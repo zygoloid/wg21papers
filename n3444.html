@@ -183,8 +183,8 @@ without any concern about whether such evaluation causes a side-effect at
 program termination.</p>
 
 <p>In all other respects, such <tt>static</tt> or <tt>thread_local</tt>
-variables behave like variable declarations outside of a <tt>constexpr</tt>
-function, and are usable in the same ways as those declarations. In particular,
+variables can be used within <tt>constexpr</tt> functions in the same ways that
+they could be used if they were declared outside the function. In particular,
 they do not need to be <tt>constexpr</tt> nor have a literal type if their value
 is not used:</p>
 
@@ -268,11 +268,12 @@ which exist only to perform such checks may return <tt>void</tt>.</p>
 
 <pre class="example"><code>#define ASSERT(expr) \
   (void)((expr) || assert_failed(#expr, __LINE__, __FILE__))
+void assert_failed(...); <i>// not <tt>constexpr</tt></i>
 struct S {
   std::array a&lt;int, 100&gt;;
   size_t i;
 
-  constexpr void check_invariants() {
+  constexpr void check_invariants() const {
     ASSERT(i &lt; a.size());
     ASSERT(a[i] == 0);
   }
