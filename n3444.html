@@ -79,7 +79,11 @@ the body of a constexpr function was required to be of the form</p>
 
 <p>However, the syntactic constraints are still extremely restrictive, and the
 lack of expressiveness is a common complaint directed at the <tt>constexpr</tt>
-feature. For instance, consider this simple integer <tt>pow</tt> function:</p>
+feature.</p>
+
+<h3>Problem</h3>
+
+<p>Consider this simple integer <tt>pow</tt> function:</p>
 
 <pre class="example"><code><i>// Compute a to the power of n</i>
 int pow(int a, int n) {
@@ -95,9 +99,10 @@ int pow(int a, int n) {
 }
 </code></pre>
 
-<p>This seems like an ideal candidate to be made <tt>constexpr</tt>. However, we
-must rewrite it in order to comply with the <tt>constexpr</tt> syntactic
-rules:</p>
+<p>For this function, and many others like it, it is sometimes desirable to
+allow compile time evaluation (for use in array bounds or enumerators). However,
+under the current language rules, we cannot mark this function as
+<tt>constexpr</tt> without completely rewriting it:</p>
 
 <pre class="example"><code>constexpr int pow_helper(int a, int n, int sqrt) {
   return sqrt * sqrt * ((n % 2) ? a : 1);
@@ -109,10 +114,33 @@ constexpr int pow(int a, int n) {
 }
 </code></pre>
 
-<p>Note that a helper function was necessary in order to avoid computing
-<tt>sqrt</tt> multiple times. There appears to be no reason not to allow the
-first form of this function definition to be annotated as <tt>constexpr</tt>
-as-is.</p>
+<p>Such rewrites can be performed mechanically by the programmer to remove the
+uses of local variable declarations and <tt>if</tt> statements from functions,
+and thus allow them to be marked <tt>constexpr</tt>. However, this makes the
+resulting code harder to read and understand, and forces an awkward coding style
+on the programmer. There is no reason to require the programmer to go to this
+effort.</p>
+
+<p>Note that a helper function is required in the rewrite, to avoid computing
+<tt>sqrt</tt> multiple times. This is necessary even for implementations which
+aggressively cache <tt>constexpr</tt> evaluations, in order to give good
+performance if the code is used in a context which is not evaluated at
+translation time.</p>
+
+<h3>Solution</h3>
+
+<p>Allow arbitrary code in <tt>constexpr</tt> function definitions, with three
+exceptions:</p>
+
+<ul>
+<li>Since modification of the values of variables is not permitted in core
+constant expressions, iteration statements cannot beneficially be used in
+<tt>constexpr</tt> functions, so they are disallowed.</li>
+<li><tt>switch</tt> and <tt>goto</tt> statements are disallowed, to avoid the
+need to model complex control flow and possible infinite loops.</li>
+<li>As with C++11, it must be possible for at least one control flow path
+through the function to produce a core constant expression.</li>
+</ul>
 
 <h2>Specific changes</h2>
 
@@ -126,7 +154,12 @@ whole-->. All references to <tt>constexpr</tt> functions here also apply to
 <p>Declarations of variables with automatic storage duration will be permitted
 within <tt>constexpr</tt> function definitions, so long as they have literal
 type and, if a constructor is called to perform their initialization, that
-constructor is a <tt>constexpr</tt> constructor.</p>
+constructor is a <tt>constexpr</tt> constructor. These can currently be
+simulated using a helper function that binds the variables to parameters, and
+the behavior of local variables would match the behavior of such parameters. In
+particular, there is no requirement that the variables be <tt>const</tt>, but
+any attempt to modify them would cause constant evaluation to fail (so the call
+will be deferred to runtime).</p>
 
 <h3>Static variable declarations</h3>
 
@@ -155,7 +188,7 @@ function, and are usable in the same ways as those declarations. In particular,
 they do not need to be <tt>constexpr</tt> nor have a literal type if their value
 is not used:</p>
 
-<pre class="example"><code>constexpr mutex &get_mutex(bool which) {
+<pre class="example"><code>constexpr mutex &amp;get_mutex(bool which) {
   static mutex m1, m2; <i>// non-const, non-literal, ok</i>
   if (which)
     return m1;
@@ -169,9 +202,11 @@ is not used:</p>
 <p>Type definitions, including <tt>enum</tt> and <tt>class</tt> definitions,
 will be permitted without restriction within <tt>constexpr</tt> functions. There
 appear to be no implementation or practical reasons which warrant their
-restriction.</p>
+restriction, and they can be useful for tracking local state of a
+<tt>constexpr</tt> function, or as a comparator or similar object to be used as
+an argument to a suitable <tt>constexpr</tt> algorithm.</p>
 
-<pre class="example"><code>constexpr algo &min_by_cost(algo *begin, algo *end) {
+<pre class="example"><code>constexpr algo &amp;min_by_cost(algo *begin, algo *end) {
   struct comparator {
     constexpr bool operator()(const algo &amp;a, const algo &amp;b) const {
       return a.cost() &lt; b.cost();
@@ -180,7 +215,7 @@ restriction.</p>
   return min_by(begin, end, comparator());
 }
 
-constexpr algo &algo_for_this_platform = min_by_cost(algos, algos + num_algos);
+constexpr algo &amp;algo_for_this_platform = min_by_cost(algos, algos + num_algos);
 </code></pre>
 
 <p>This example would also benefit from lambdas being permitted in
@@ -196,6 +231,10 @@ that each branch of an <i>if-statement</i> can return a value. For
 <tt>constexpr</tt> constructors, any number of <tt>return</tt> statements will
 be permitted.</p>
 
+<p>If a control flow path is taken through a <tt>constexpr</tt> function which
+does not reach a <tt>return</tt> statement or a <tt>throw</tt> expression, the
+behavior of the program is undefined, so constant evaluation fails.</p>
+
 <h3>Compound statements</h3>
 
 <p><i>compound-statement</i>s will be permitted, in order to allow
@@ -207,7 +246,8 @@ declarations.</p>
 <p><i>expression-statement</i>s will be permitted. Since no side-effects can
 occur inside a constant expression, the only effect of an
 <i>expression-statement</i> during function invocation substitution can be to
-render the expression non-constant, but that itself can be desirable.</p>
+render the expression non-constant. However, that effect can be desirable in
+some cases. For instance:</p>
 
 <pre class="example"><code>template&lt;typename T, size_t N&gt;
 constexpr typename array&lt;T, N&gt;::const_reference array&lt;T, N&gt;::at(size_type n) const {
@@ -215,6 +255,31 @@ constexpr typename array&lt;T, N&gt;::const_reference array&lt;T, N&gt;::at(size
     throw std::out_of_range("array::at");
   return elems[n];
 }
+
+constexpr array<int, 3> arr = { 0, 1, 2 };
+enum E { e = arr.at(5) }; <i>// error at compile time</i>
+int f() { return arr.at(5); } <i>// exception at runtime</i>
+</code></pre>
+
+<p>An arbitrary <i>expression-statement</i> is permitted, in order to allow
+calls to functions performing checks and to allow assert-like constructs.
+<tt>void</tt> also becomes a literal type, so that <tt>constexpr</tt> functions
+which exist only to perform such checks may return <tt>void</tt>.</p>
+
+<pre class="example"><code>#define ASSERT(expr) \
+  (void)((expr) || assert_failed(#expr, __LINE__, __FILE__))
+struct S {
+  std::array a&lt;int, 100&gt;;
+  size_t i;
+
+  constexpr void check_invariants() {
+    ASSERT(i &lt; a.size());
+    ASSERT(a[i] == 0);
+  }
+  S(std::array&lt;int, 100&gt; a_, size_t i_) : a(a_), i(i_) {
+    check_invariants();
+  }
+};
 </code></pre>
 
 <h3>Semantics</h3>
