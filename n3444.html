@@ -256,7 +256,7 @@ constexpr typename array&lt;T, N&gt;::const_reference array&lt;T, N&gt;::at(size
   return elems[n];
 }
 
-constexpr array<int, 3> arr = { 0, 1, 2 };
+constexpr array&lt;int, 3&gt; arr = { 0, 1, 2 };
 enum E { e = arr.at(5) }; <i>// error at compile time</i>
 int f() { return arr.at(5); } <i>// exception at runtime</i>
 </code></pre>
