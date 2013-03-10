@@ -423,7 +423,9 @@ function.</p>
 <p>Throwing and catching exceptions within constant expression evalutations is
 supported. If an exception-specification is violated, or if a destructor throws
 an exception during stack unwinding, the ensuing call to <tt>std::unexpected</tt>
-or <tt>std::terminate</tt> renders the expression non-constant.</p>
+or <tt>std::terminate</tt> renders the expression non-constant. Likewise, if
+stack unwinding leaves the constant expression evaluation, the expression is
+non-constant.</p>
 
 <h3>Block-scope static local variables</h3>
 
