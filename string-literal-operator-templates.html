@@ -207,7 +207,8 @@ allows string data to be deduplicated during translation, which in turn
 permits value comparisons to be performed rapidly by comparing the addresses
 of strings. Without literal operator templates, this requires either runtime
 overhead to perform the interning, or for the programmer to explicitly construct
-an object to hold the canonical value of a string.</p>
+an object to hold the canonical value of a string. These costs can be avoided
+with a literal operator template:</p>
 
 <pre class="extract"><code>std::map&lt;std::string, const char*&gt; intern_map;
 template&lt;char ...String&gt; struct register_intern {
@@ -241,8 +242,8 @@ encode a method signature in order to allow it to be dynamically invoked:</p>
 <p>Before the results of the <code>SIGNAL</code> and <code>SLOT</code> macro can
 be used, they must first be canonicalized (by removing spaces, canonicalizing
 the location of the <code>const</code> keyword, and so on). With a literal
-operator template, this canonicalization could be performed during
-compilation.</p>
+operator template, this canonicalization can be performed during
+translation.</p>
 
 <pre class="extract"><code>#define SIGNAL(x) #x ## _qt_signal
 #define SLOT(x) #x ## _qt_slot
@@ -280,10 +281,10 @@ literal.</p>
 
 <h2>Proposed wording</h2>
 
-<p>The term of art <q>literal operator template</q> is split into two terms,
-<q>numeric literal operator template</q> and <q>string literal operator
-template</q>. <q>Literal operator template</q> is retained and refers to either
-form.</p>
+<p>The term of art <i>literal operator template</i> is split into two terms,
+<i>numeric literal operator template</i> and <i>string literal operator
+template</i>. The term <i>literal operator template</i> is retained and refers
+to either form.</p>
 
 <p>Replace <q>literal operator template</q> with <q>numeric literal operator
 template</q> in [lex.ext] (2.14.8)/3 and [lex.ext] (2.14.8)/4:</p>
@@ -343,11 +344,11 @@ template</q> in [lex.ext] (2.14.8)/3 and [lex.ext] (2.14.8)/4:</p>
 
   <ins>A <i>string literal operator template</i> is a literal operator template
   whose <i>template-parameter-list</i> comprises
-  a type template-parameter <i>C</i> followed by a non-type template
+  a type <i>template-parameter</i> <i>C</i> followed by a non-type template
   parameter pack with element type <i>C</i>.
 
   The declaration of a literal operator template shall have an empty
-  <i>parameter-declaration-clause</i> and shall be either a numeric literal
+  <i>parameter-declaration-clause</i> and shall declare either a numeric literal
   operator template or a string literal operator template.
   </ins>
 </blockquote>
