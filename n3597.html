@@ -63,8 +63,8 @@ if they are orthogonal, and can be naturally combined with one another.
 <tt>constexpr</tt> functions currently carry a number of restrictions which
 prevent their natural combination with many other language facilities (for
 instance, <tt>for</tt> loops, variable modifications, exceptions, and so
-on). Working around these restrictions often requires the sacrifice of
-expressiveness, and causes programmer frustration.</p>
+on), and make them harder to write. Working around these restrictions often
+requires the sacrifice of expressiveness, and causes programmer frustration.</p>
 
 <p>This paper explores the removal of most of the restrictions on
 <tt>constexpr</tt> function definitions, in order to make them a simpler and
@@ -97,7 +97,8 @@ the body of a <tt>constexpr</tt> function was required to be of the form</p>
 severe, and the relaxation of the rules has resulted in them becoming harder to
 teach and to justify. Non-trivial <tt>constexpr</tt> functions tend to be
 complex and to use a style of coding which is unfamiliar to many, because code
-must be contorted to fit within the syntactic constraits.</p>
+must be contorted to fit within the syntactic constraits, even if it already has
+a pure functional interface.</p>
 
 <p>Consider <tt>std::bitset&lt;N&gt;::all</tt>. Here is one possible
 implementation:</p>
@@ -183,6 +184,14 @@ functions seem more arbitary than they do today. Therefore we consider the
 final option in detail, and seek to identify an appropriate subset of C++
 which improves simplicity of use without sacrificing simplicity of
 implementation much beyond that required to support a for-loop.</p>
+
+<p>We must restrict our attention to a subset of C++ which it is reasonable to
+expect all major implementors to be able to support within constant expressions.
+Additionally, it is important to maintain a distinction between translation time
+and runtime, and to avoid permitting constructs which cannot be supported in
+the translation environment (for instance, there would be significant
+implementation problems in supporting a <tt>new</tt> at translation time and a
+corresponding <tt>delete</tt> at runtime).</p>
 
 <h2>Proposed solution</h2>
 
@@ -438,6 +447,12 @@ they are not proposed here.</p>
 <p>Throwing and catching exceptions within constant expression evalutations is
 possible to support, but we do not know of a compelling use case for it, so it
 is not proposed.</p>
+
+<h3>Variadic functions</h3>
+
+<p>It would be possible to support C-style variadic functions and the <tt>va_arg</tt>
+macro within <tt>constexpr</tt> functions, but this is thought to have little
+value in the presence of variadic function templates, so is not proposed.</p>
 
 <h2>Acknowledgements</h2>
 
