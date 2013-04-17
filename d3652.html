@@ -353,13 +353,15 @@ expressions, and address constant expressions are called
 <ins>
 A <i>constant expression</i> is either a glvalue core constant expression whose
 value refers to an object with static storage duration or a function, or a
-prvalue core constant expression whose value is an object where:
+prvalue core constant expression whose value is an object where, for that object
+and each of its subobjects:
 
 <ul>
-<li>each subobject of reference type refers to an object with static storage duration or a function, and</li>
-<li>each subobject of pointer type contains the address of an object with
-static storage duration, the address past the end of such an object (5.7), the
-address of a function, or a null pointer value.</li>
+<li>each non-static data member of reference type refers to an object with
+static storage duration or a function, and</li>
+<li>if the object or subobject is of pointer type, it contains the address of
+an object with static storage duration, the address past the end of such an
+object (5.7), the address of a function, or a null pointer value.</li>
 </ins>
 </blockquote>
 
