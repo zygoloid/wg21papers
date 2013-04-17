@@ -133,11 +133,17 @@ of <tt>e</tt></ins>
 substitution (7.1.5) replaces each occurrence of
 <tt>this</tt> in a <tt>constexpr</tt> member function with a pointer to
 the class object. ]</del>;
+
+<li>
+<ins>
+an expression which would start the lifetime of an object of non-literal type;
+</ins>
  
 <li>
  an invocation of a function other than
-a <tt>constexpr</tt> constructor for a literal class or
-a <tt>constexpr</tt> function
+a <tt>constexpr</tt> constructor <del>for a literal class or</del><ins>,</ins>
+a <tt>constexpr</tt> function<ins>, or an implicit invocation of a trivial
+destructor (12.4)</ins>
 [ <i>Note</i> Overload resolution (13.3)
 is applied as usual ];
 
@@ -413,8 +419,10 @@ do not define classes or enumerations,
 <li> an <i>asm-definition</i>, or
 <li> a <tt>goto</tt> statement, or
 <li> a <i>try-block</i>, or
-<li> a definition of a variable of static or thread storage duration or
-of non-literal type or for which no initialization is performed.
+<li> a definition of a variable
+of non-literal type or
+of static or thread storage duration or
+for which no initialization is performed.
 </ul>
 </ins>
 
@@ -684,8 +692,8 @@ Stroustrup and Gabriel Dos Reis for guidance and encouragement.
 DONE: add xref to 1.9 for abstract machine
 DONE: a conditional-expression <i>e</i> is ....
 DONE: "would exceed implementation-defined limit": remove intro, we know we're evaluating an expression
-TODO: don't allow prvalue subexpressions of a constant expression to be of non-literal type
-TODO: think more about volatile data members + aggregate initialization
+DONE: don't allow prvalue subexpressions of a constant expression to be of non-literal type
+DONE: think more about volatile data members + aggregate initialization
 NOPE: --non-static-data-member in lvalue-to-rvalue conversion. just 'object'. it's cleaner.
       (this is talking about reference members, which aren't objects)
 DONE: (modification|lvalue-to-rvalue conversion) of [...] static or thread storage duration [...] is redundant
