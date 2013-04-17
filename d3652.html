@@ -498,14 +498,34 @@ private:
 <p>]</p>
 </blockquote>
 
-<p>Replace [dcl.constexpr] (7.1.5)/5 (function invocation substitution) with:</p>
+<p>Change in [dcl.constexpr] (7.1.5)/5:</p>
 
 <blockquote class="std">
-TODO: add deleted quote
+<del>
+Function invocation substitution for a call of a constexpr function or of a constexpr constructor means:
+<ul>
+<li> implicitly converting each argument to the corresponding parameter type as if by copy-initialization, [ <i>Footnote</i>:
+The resulting converted value will include an lvalue-to-rvalue conversion (4.1) if the corresponding copy-initialization
+requires one.
+]
+<li> substituting that converted expression for each use of the corresponding parameter in the <i>function-body</i>,
+<li> in a member function, substituting for each use of <tt>this</tt> (9.3.2) a prvalue pointer whose value is the
+address of the object for which the member function is called, and
+<li> in a <tt>constexpr</tt> function, implicitly converting the resulting returned expression or <i>braced-init-list</i> to
+the return type of the function as if by copy-initialization.
+Such substitution does not change the meaning. [ Example: ... ]
+</ul>
+</del>
 
-  For a <tt>constexpr</tt> function or a <tt>constexpr</tt> constructor, if no function
-  argument values exist such that an invocation of the function would be a core
-  constant expression (5.19), the program is ill-formed; no diagnostic required.
+For a <tt>constexpr</tt> function <del>, if no function argument values exist
+such that the function invocation substitution would produce a constant
+expression (5.19), the program is ill-formed; no diagnostic required. For</del>
+<ins>or</ins> a constexpr constructor, if no argument values exist such that
+<del>after function invocation substitution, every constructor call and
+full-expression in the mem-initializers</del> <ins>an invocation of the
+function or constructor</ins> would be a <ins>core</ins> constant expression
+<ins>(5.19)</ins> <del>(including
+conversions)</del>, the program is ill-formed; no diagnostic required.
 
 <p>[ <i>Example</i>:</p>
 <pre>
@@ -566,8 +586,7 @@ struct D : B {
       { return x + y + x*y; }
   // ...
   int bar(int x, int y)           // error: redefinition of bar
-      { return x * 2 + 3 * y; }
-  </pre>
+      { return x * 2 + 3 * y; }</pre>
   ]
 </blockquote>
 
@@ -624,6 +643,38 @@ thereof), the assignment operator selected to copy/move that member is a
 </ins>
 </blockquote>
 
+<p>Add new item to Clause B:</p>
+
+<blockquote class="stdins">
+Full-expressions evaluated within a core constant expression [1,048,576].
+</blockquote>
+
+<p>Add new subclause after C.2 to Clause C:</p>
+
+<blockquote class="stdins">
+<h3>C++ and ISO C++ 2011</h3>
+
+<p>This subclause lists the differences between C++ and ISO C++ 2011 (ISO/IEC 14882:2011, <i>Programming Languages -- C++</i>), by the chapters of this document.</p>
+</blockquote>
+
+<p>Add a new subclause to the newly-added subclause:</p>
+
+<blockquote class="stdins">
+<h3>Clause 7: declarations</h3>
+
+7.1.5<br>
+<b>Change:</b> <tt>constexpr</tt> non-static member functions are not implicitly <tt>const</tt> member functions.<br>
+<b>Rationale:</b> Necessary to allow <tt>constexpr</tt> member functions to mutate the object.<br>
+<b>Effect on original feature:</b> Valid C++ 2011 may fail to compile in this International Standard. For example, the following code is valid in C++ 2011 but invalid in this International Standard because it declares the same member function twice with different return types:
+<pre>
+  struct S {
+    constexpr const int &amp;f();
+    int &amp;f();
+  };
+</pre>
+</blockquote>
+
+
 <h2>Acknowledgements</h2>
 
 Thanks to Jens Maurer for assistance in preparing this wording, and to Bjarne
@@ -638,7 +689,7 @@ TODO: think more about volatile data members + aggregate initialization
 NOPE: --non-static-data-member in lvalue-to-rvalue conversion. just 'object'. it's cleaner.
       (this is talking about reference members, which aren't objects)
 DONE: (modification|lvalue-to-rvalue conversion) of [...] static or thread storage duration [...] is redundant
-TODO: Clause D note for constexpr vs const
+DONE: Clause D note for constexpr vs const
 DONE: 
 
 a constant expression is either a glvalue core constant expression whose value
