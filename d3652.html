@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+
+<style type="text/css">
+
+body { color: #000000; background-color: #FFFFFF; }
+del { text-decoration: line-through; color: #8B0040; }
+ins { text-decoration: underline; color: #005100; }
+
+p.example { margin-left: 2em; }
+pre.example { margin-left: 2em; }
+div.example { margin-left: 2em; }
+
+code.extract { background-color: #F5F6A2; }
+pre.extract { margin-left: 2em; background-color: #F5F6A2;
+              border: 1px solid #E1E28E; }
+
+p.function { }
+.attribute { margin-left: 2em; }
+.attribute dt { float: left; font-style: italic;
+                padding-right: 1ex; }
+.attribute dd { margin-left: 0em; }
+
+blockquote.std { color: #000000; background-color: #F1F1F1;
+                 border: 1px solid #D1D1D1;
+                 padding-left: 0.5em; padding-right: 0.5em; }
+blockquote.stddel { text-decoration: line-through;
+                    color: #000000; background-color: #FFEBFF;
+                    border: 1px solid #ECD7EC;
+                    padding-left: 0.5em; padding-right: 0.5em; }
+
+blockquote.stdins { text-decoration: underline;
+                    color: #000000; background-color: #C8FFC8;
+                    border: 1px solid #B3EBB3; padding: 0.5em; }
+
+table { border: 1px solid black; border-spacing: 0px;
+        margin-left: auto; margin-right: auto; }
+th { text-align: left; vertical-align: top;
+     padding-left: 0.8em; border: none; }
+td { text-align: left; vertical-align: top;
+     padding-left: 0.8em; border: none; }
+
+p.grammarlhs { margin-bottom: 0 }
+p.grammarrhs { margin-left:8em; margin-top:0; text-indent:-4em }
+
+</style>
+
+<title>Relaxing constraints on constexpr functions</title>
+</head>
+
+<body>
+
+<div style="text-align: right; float: right">
+<p>ISO/IEC JTC1 SC22 WG21<br>D3652<br>Richard Smith<br>2013-04-17</p>
+</div>
+
+<h1>Relaxing constraints on <tt>constexpr</tt> functions</h1>
+
+<h1><tt>constexpr</tt> member functions and implicit <tt>const</tt></h1>
+
+<p>This paper describes the subset of 
+<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2011/n3597.htm">N3597</a>
+selected for inclusion in C++14, relaxing a number of restrictions on <tt>constexpr</tt>
+functions. These changes all received overwhelmingly strong or unopposed support under review
+of the Evolution Working Group. It also incorporates Option 2 of
+<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2011/n3598.htm">N3598</a>.</p>
+
+<h2>Accepted Changes</h2>
+
+<p>The changes selected by the Evolution Working Group were:</p>
+
+<ul>
+<li>Allow declarations within <tt>constexpr</tt> functions, other than:
+  <ul>
+  <li><tt>static</tt> or <tt>thread_local</tt> variables
+  <li>uninitialized variables
+  </ul></li>
+<li>Allow <tt>if</tt> and <tt>switch</tt> statements (but not <tt>goto</tt>)</li>
+<li>Allow all looping statements: <tt>for</tt> (including range-based for), <tt>while</tt>, and <tt>do</tt>-<tt>while</tt></li>
+<li>Allow mutation of objects whose lifetime began within the constant expression evaluation.</li>
+</ul>
+
+<p>In addition, in discussion of N3598, Option 2 was selected, which removes the rule that a
+<tt>constexpr</tt> non-static member function is implicitly <tt>const</tt>.</p>
+
+<h2>Proposed wording</h2>
+
+<p>Change in [dcl.constexpr] (7.1.5)/6:</p>
+
+<blockquote class="std">
+  If the instantiated template specialization of a constexpr function template
+  or member function of a class template would fail to satisfy the requirements
+  for a constexpr function or constexpr constructor, that specialization is not
+  a constexpr function or constexpr constructor. <del>[ Note: If the function is
+  a member function it will still be const as described below. — end note
+  ]</del> If no specialization of the template would yield a constexpr
+  function or constexpr constructor, the program is ill-formed; no diagnostic
+  required.
+</blockquote>
+
+<p>Change in [dcl.constexpr] (7.1.5)/8:</p>
+
+<blockquote class="std">
+  <del>A <tt>constexpr</tt> specifier for a non-static member function that is
+  not a constructor declares that member function to be <tt>const</tt>
+  (9.3.1). [ Note:</del> The <tt>constexpr</tt> specifier has no
+  <del>other</del> effect on the <del>function</del> type <ins> of a constexpr
+  function or a constexpr constructor</ins>. <del>— end note ] The keyword
+  <tt>const</tt> is ignored if it appears in the <i>cv-qualifier-seq</i> of
+  the function declarator of the declaration of such a member function.</del>
+  The class of which <del>that</del> <ins>a constexpr</ins> function is a member
+  shall be a literal type (3.9). [ <i>Example:</i>
+  <pre>
+  class debug_flag {
+  public:
+    explicit debug_flag(bool);
+    constexpr bool is_on() <ins>const</ins>; // error: debug_flag not
+                                  // literal type
+  private:
+    bool flag;
+  };
+  constexpr int bar(int x, int y) // OK
+      { return x + y + x*y; }
+  // ...
+  int bar(int x, int y)           // error: redefinition of bar
+      { return x * 2 + 3 * y; }
+  </pre>
+  — <i>end example</i> ]
+</blockquote>
