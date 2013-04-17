@@ -54,7 +54,7 @@ p.grammarrhs { margin-left:8em; margin-top:0; text-indent:-4em }
 <body>
 
 <div style="text-align: right; float: right">
-<p>ISO/IEC JTC1 SC22 WG21<br>D3652<br>Richard Smith<br>2013-04-17</p>
+<p>ISO/IEC JTC1 SC22 WG21<br>D3652<br>Richard Smith<br>richard@metafoo.co.uk<br>2013-04-17</p>
 </div>
 
 <h1>Relaxing constraints on <tt>constexpr</tt> functions</h1>
@@ -62,11 +62,11 @@ p.grammarrhs { margin-left:8em; margin-top:0; text-indent:-4em }
 <h1><tt>constexpr</tt> member functions and implicit <tt>const</tt></h1>
 
 <p>This paper describes the subset of 
-<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2011/n3597.htm">N3597</a>
+<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3597.html">N3597</a>
 selected for inclusion in C++14, relaxing a number of restrictions on <tt>constexpr</tt>
 functions. These changes all received overwhelmingly strong or unopposed support under review
 of the Evolution Working Group. It also incorporates Option 2 of
-<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2011/n3598.htm">N3598</a>.</p>
+<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3598.html">N3598</a>.</p>
 
 <h2>Accepted Changes</h2>
 
@@ -86,7 +86,447 @@ of the Evolution Working Group. It also incorporates Option 2 of
 <p>In addition, in discussion of N3598, Option 2 was selected, which removes the rule that a
 <tt>constexpr</tt> non-static member function is implicitly <tt>const</tt>.</p>
 
+<p>The proposed wording also resolves core issues 1361.</p>
+
 <h2>Proposed wording</h2>
+
+<p>Change in [basic.types] (3.9)/10:</p>
+
+<blockquote class="std">
+A type is a <i>literal type</i> if it is:
+<ul>
+<li> <ins><tt>void</tt>; or</ins>
+<li> a scalar type; or
+<li> a reference type; or
+<li> an array of literal type; or
+<li> a class type (Clause 9) that has all of the following properties:
+  <ul>
+  <li> it has a trivial destructor,
+  <li> <del>every constructor call and full-expression in the <i>brace-or-equal-initializers</i> for non-static data
+  members (if any) is a constant expression (5.19),</del>
+  <li> it is an aggregate type (8.5.1) or has at least one constexpr constructor or constructor template
+  that is not a copy or move constructor, and
+  <li> all of its non-static data members and base classes are of non-volatile literal types.
+  </ul>
+</ul>
+</blockquote>
+
+<p>Change in [expr.const] (5.19)/2:</p>
+
+<blockquote class="std">
+A <i>conditional-expression</i> <ins><tt>e</tt></ins> is a <i>core constant expression</i> unless
+<del>it involves one of the following as a potentially evaluated
+subexpression (3.2), but 
+subexpressions of logical AND (5.14),
+logical OR (5.15), and conditional (5.16)
+operations that are not evaluated are not considered 
+[ <i>Note</i>: An overloaded operator invokes a function. ]</del>
+<ins>the evaluation of <tt>e</tt> following the rules of the abstract
+machine (1.9) would evaluate one of the following expressions</ins>:
+ 
+<ul>
+<li>
+<tt>this</tt> (5.1.1)<ins>, except in a <tt>constexpr</tt>
+function or a <tt>constexpr</tt> constructor which is being evaluated as part
+of <tt>e</tt></ins>
+<del>[ <i>Note</i>: when evaluating a constant expression, function invocation
+substitution (7.1.5) replaces each occurrence of
+<tt>this</tt> in a <tt>constexpr</tt> member function with a pointer to
+the class object. ]</del>;
+ 
+<li>
+ an invocation of a function other than
+a <tt>constexpr</tt> constructor for a literal class or
+a <tt>constexpr</tt> function
+[ <i>Note</i> Overload resolution (13.3)
+is applied as usual ];
+
+<li>
+an invocation of an undefined <tt>constexpr</tt> function or an
+ undefined <tt>constexpr</tt> constructor;
+ 
+<li>
+<del>
+an invocation of a <tt>constexpr</tt> function with arguments that, when
+substituted by function invocation substitution (7.1.5),
+do not
+produce a core constant expression; [ <i>Example</i>:
+<pre>
+constexpr const int* addr(const int& ir) { return &ir; }  // OK
+static const int x = 5;
+constexpr const int* xp = addr(x);  // OK: <tt>(const int*)&amp;(const int&amp;)x</tt> is an
+                                    // address constant expression
+constexpr const int* tp = addr(5);  // error, initializer for <tt>constexpr</tt> variable not a constant
+                                    // expression; <tt>(const int*)&amp;(const int&amp;)5</tt> is not a constant
+                                    // expression because it takes the address of a temporary
+</pre>
+]
+</del>
+
+<li>
+<del>
+an invocation of a <tt>constexpr</tt> constructor with arguments that, when substituted
+by function invocation substitution (7.1.5), do not
+produce all core constant
+expressions for the constructor calls and full-expressions in the
+<i>mem-initializer</i>{s} (including conversions); [ <i>Example</i>:
+<pre>
+int x;                              // not constant
+struct A {
+  constexpr A(bool b) : m(b?42:x) { }
+  int m;
+};
+constexpr int v = A(true).m;        // OK: constructor call initializes
+                                    // <tt>m</tt> with the value <tt>42</tt> after substitution
+constexpr int w = A(false).m;       // error: initializer for <tt>m</tt> is
+                                    // <tt>x</tt>, which is non-constant
+</pre>
+]
+</del>
+
+<li>
+<del>
+an invocation of a <tt>constexpr</tt> function or a <tt>constexpr</tt>
+constructor that would exceed the implementation-defined recursion limits
+(see Annex B);
+</del>
+
+<li>
+<ins>
+an expression that would exceed the implementation-defined limits (see
+Annex B);
+</ins>
+ 
+<li>
+an operation that would have undefined behavior [ <i>Note</i>: including,
+for example, signed integer overflow (Clause 5), certain
+pointer arithmetic (5.7), division by
+zero (5.6), or certain shift operations (5.8)
+];
+
+<li>
+a <i>lambda-expression</i> (5.1.2);
+
+<li>
+an lvalue-to-rvalue conversion (4.1) unless
+it is applied to
+
+<ul>
+  <li>
+  a non-volatile glvalue of integral or enumeration type that refers
+  to a non-volatile const object with a preceding initialization,
+  initialized with a constant expression [ <i>Note</i>: a string
+  literal (2.14.5) corresponds to an array of such 
+  objects. ], or
+
+  <li>
+  a non-volatile glvalue <del>of literal type</del> that refers to a
+  non-volatile object defined with <tt>constexpr</tt>, or that refers
+  to a sub-object of such an object, or
+
+  <li>
+  a non-volatile glvalue <del>of literal type</del> that refers to a non-volatile
+  <del>temporary</del> object whose lifetime
+  <ins>began within the evalution of <tt>e</tt></ins>
+  <del>has not ended, initialized with a core constant expression</del>;
+</ul>
+
+<li>
+an lvalue-to-rvalue conversion (4.1)
+<ins>or modification (5.17, 5.2.6, 5.3.2)</ins>
+that is applied to a glvalue
+that refers to a non-active member of a union or a subobject thereof;
+ 
+<li>
+an <i>id-expression</i> that refers to a variable or
+data member of reference type
+unless the reference has a preceding initialization and either
+
+<ul>
+  <li>
+  it is initialized with a constant expression or
+
+  <li>
+  it is a non-static data member of a<ins>n</ins> <del>temporary</del> object whose lifetime
+  <ins>began within the evaluation of <tt>e</tt></ins>
+  <del>has not ended and is initialized with a core constant expression</del>;
+</ul>
+ 
+<li>
+a conversion from type <i>cv</i> <tt>void *</tt> to a pointer-to-object type;
+
+<li>
+a dynamic cast (5.2.7);
+
+<li>
+a <tt>reinterpret_cast</tt> (5.2.10);
+
+<li>
+a pseudo-destructor call (5.2.4);
+ 
+<li>
+<del>increment or decrement operations (5.2.6, 5.3.2);</del>
+
+<li>
+modification of an object
+whose lifetime did not begin
+within the evaluation of <tt>e</tt> (5.17, 5.2.6, 5.3.2);
+
+<li>
+a typeid expression (5.2.8) whose operand
+is of a polymorphic class type;
+
+<li>
+a <i>new-expression</i> (5.3.4);
+
+<li>
+a <i>delete-expression</i> (5.3.5);
+
+<li>
+a relational (5.9) or equality (5.10)
+operator where the result is unspecified; <ins>or</ins>
+
+<li>
+<del>an assignment or a compound assignment (5.17); or</del>
+
+<li>
+a <i>throw-expression</i> (15.1).
+</ul>
+ 
+<ins>
+[ <i>Example</i>:
+<pre>
+int x;                              // not constant
+struct A {
+  constexpr A(bool b) : m(b?42:x) { }
+  int m;
+};
+constexpr int v = A(true).m;        // OK: constructor call initializes
+                                    // <tt>m</tt> with the value <tt>42</tt>
+constexpr int w = A(false).m;       // error: initializer for <tt>m</tt> is
+                                    // <tt>x</tt>, which is non-constant
+
+constexpr int incr(int &amp;n) {
+  return ++n;
+}
+constexpr void g(int k) {
+  constexpr int x = incr(k);        // error: <tt>incr(k)</tt> is not a core constant
+                                    // expression because lifetime of <tt>k</tt>
+                                    // began outside the expression
+}
+constexpr int h(int k) {
+  return incr(k);
+}
+constexpr int y = h(1);             // OK, initializes <tt>y</tt> with the value <tt>2</tt>
+</pre>
+]
+</ins>
+</blockquote>
+
+<p>Change in [expr.const] (5.19)/4:</p>
+
+<blockquote class="std">
+<del>
+A <i>literal constant expression</i> is a prvalue core constant
+expression of literal type, but not pointer type (after conversions as
+required by the context). For a literal constant expression of array
+or class type, each subobject of its value shall have been initialized
+by a constant expression. 
+A <i>reference constant expression</i> is an lvalue core constant
+expression that designates an object with static storage duration or a
+function. An <i>address constant expression</i> is a prvalue core
+constant expression (after conversions as required by the context) of
+type <tt>std::nullptr_t</tt> or of
+pointer type that evaluates to the address of an object with static
+storage duration, to the address of a function, or to a null pointer 
+value. Collectively, literal constant expressions, reference constant 
+expressions, and address constant expressions are called 
+<i>constant expressions</i>. <!--[sic]-->
+</del>
+<p>
+<ins>
+A <i>constant expression</i> is either a glvalue core constant expression whose
+value refers to an object with static storage duration or a function, or a
+prvalue core constant expression whose value is an object where:
+
+<ul>
+<li>each subobject of reference type refers to an object with static storage duration or a function, and</li>
+<li>each subobject of pointer type contains the address of an object with
+static storage duration, the address past the end of such an object (5.7), the
+address of a function, or a null pointer value.</li>
+</ins>
+</blockquote>
+
+<p>Change example in [dcl.constexpr] (7.1.5)/1:</p>
+
+<blockquote class="std">
+<pre>
+constexpr <del>int</del><ins>void</ins> square(int <ins>&amp;</ins>x); // OK: declaration
+constexpr int bufsz = 1024;     // OK: definition
+constexpr struct pixel {        // error: \tcode{pixel} is a type
+  int x;
+  int y;
+  constexpr pixel(int);         // OK: declaration
+}; 
+constexpr pixel::pixel(int a)
+  : x(<del>square(</del>a<del>)</del>), y(<del>square(a)</del><ins>x</ins>) // OK: definition
+  { <ins>square(x);</ins> }
+constexpr pixel small(2);       // error: \tcode{square} not defined, so \tcode{small(2)}
+                                // not constant~(\ref{expr.const}) so \tcode{constexpr} not satisfied
+
+constexpr <del>int</del><ins>void</ins> square(int <ins>&amp;</ins>x) { // OK: definition
+  <del>return</del> x *<ins>=</ins> x;
+}
+constexpr pixel large(4);       // OK: \tcode{square} defined
+int next(constexpr int x) {     // error: not for parameters
+     return x + 1;
+} 
+extern constexpr int memsz;     // error: not a definition 
+</pre>
+</blockquote>
+
+<p>Change in [dcl.constexpr] (7.1.5)/3:</p>
+
+<blockquote class="std">
+The definition of a constexpr function shall satisfy the following constraints:
+<ul>
+<li> it shall not be virtual (10.3);
+<li> its return type shall be a literal type;
+<li> each of its parameter types shall be a literal type;
+<li> its <i>function-body</i> shall be <tt>= delete</tt>, <tt>= default</tt>, or a <i>compound-statement</i>
+that <ins>does not</ins> contain<del>s only</del>
+
+<del>
+<ul>
+<li> null statements,
+<li> <i>static_assert-declaration</i>s
+<li> <tt>typedef</tt> declarations and <i>alias-declaration</i>s that
+do not define classes or enumerations,
+<li> <i>using-declaration</i>s,
+<li> <i>using-directive</i>s,
+<li> and exactly one return statement.
+</ul>
+</del>
+
+<ins>
+<ul>
+<li> an <i>asm-definition</i>, or
+<li> a <tt>goto</tt> statement, or
+<li> a <i>try-block</i>, or
+<li> a definition of a variable of static or thread storage duration or
+of non-literal type or for which no initialization is performed.
+</ul>
+</ins>
+
+<p>[ <i>Example</i>:</p>
+
+<pre>
+constexpr int square(int x) 
+  { return x * x; }             // OK
+constexpr long long_max() 
+  { return 2147483647; }        // OK
+<del>constexpr int abs(int x) 
+  { return x &lt; 0 ? -x : x; }    // OK 
+constexpr void f(int x)         // error: return type is \tcode{void}
+  { /* ... */ }</del>
+<ins>constexpr int abs(int x) {
+  if (x &lt; 0)
+    x = -x;
+  return x;                     // OK
+}
+constexpr int first(int n) {
+  static int value = n;         // error: variable has static storage duration
+  return value;
+}
+constexpr int uninit() {
+  int a;                        // error: variable is uninitialized
+  return a;
+}</ins>
+constexpr int prev(int x)
+  { return --x; }               // OK
+constexpr int g(int x, int n) { // OK
+  int r = 1;
+  while (--n &gt; 0) r *= x;
+  return r;
+}
+</pre>
+<p>]</p>
+</blockquote>
+
+<p>Change in [dcl.constexpr] (7.1.5)/4:</p>
+
+<blockquote class="std">
+  The definition of a constexpr constructor shall satisfy the following constraints:
+
+<ul>
+<li> the class shall not have any virtual base classes;
+<li> each of the parameter types shall be a literal type;
+<li> its <i>function-body</i> shall not be a <i>function-try-block</i>;
+In addition, either its <i>function-body</i> shall be <tt>= delete</tt>, or it shall satisfy the following constraints:
+<li> either its <i>function-body</i> shall be <tt>= default</tt>, or the <i>compound-statement</i> of its <i>function-body</i> shall
+<ins>
+satisfy the constraints for a <i>function-body</i> of a constexpr function;
+</ins>
+<del>
+contain only
+  <ul>
+  <li> null statements,
+  <li> <i>static_assert-declaration</i>s
+  <li> <tt>typedef</tt> declarations and <i>alias-declaration</i>s that do not define classes or enumerations,
+  <li> <i>using-declaration</i>s,
+  <li> and <i>using-directive</i>s;
+  </ul>
+</del>
+<li> every non-variant non-static data member and base class sub-object shall be initialized (12.6.2);
+<li> if the class is a non-empty union, or for each non-empty anonymous union member of a non-union
+class, exactly one non-static data member shall be initialized;
+<li> every constructor involved in initializing non-static data members and base class sub-objects shall be
+a <tt>constexpr</tt> constructor<del>;</del><ins>.</ins>
+<li> <del>every <i>assignment-expression</i> that is an <i>initializer-clause</i> appearing directly or indirectly within a
+<i>brace-or-equal-initializer</i> for a non-static data member that is not named by a <i>mem-initializer-id</i> shall be a
+constant expression.</del>
+</ul>
+
+<p>[ <i>Example</i>:</p>
+<pre>
+struct Length {
+  explicit constexpr Length(int i = 0) : val(i) { }
+private:
+  <del>  </del>int val;
+};
+</pre>
+<p>]</p>
+</blockquote>
+
+<p>Replace [dcl.constexpr] (7.1.5)/5 (function invocation substitution) with:</p>
+
+<blockquote class="std">
+TODO: add deleted quote
+
+  For a <tt>constexpr</tt> function or a <tt>constexpr</tt> constructor, if no function
+  argument values exist such that an invocation of the function would be a core
+  constant expression (5.19), the program is ill-formed; no diagnostic required.
+
+<p>[ <i>Example</i>:</p>
+<pre>
+constexpr int f(bool b)
+  { return b ? throw 0 : 0; }               // OK
+constexpr int f() { return f(true); }       // ill-formed, no diagnostic required
+
+struct B {
+  constexpr B(int x) : i(0) { }             // <tt>x</tt> is unused
+  int i;
+};
+
+int global;
+
+struct D : B {
+  constexpr D() : B(global) { }             // ill-formed, no diagnostic required
+                                            // lvalue-to-rvalue conversion on non-constant <tt>global</tt>
+};
+</pre>
+<p>]</p>
+</blockquote>
 
 <p>Change in [dcl.constexpr] (7.1.5)/6:</p>
 
@@ -128,5 +568,85 @@ of the Evolution Working Group. It also incorporates Option 2 of
   int bar(int x, int y)           // error: redefinition of bar
       { return x * 2 + 3 * y; }
   </pre>
-  — <i>end example</i> ]
+  ]
 </blockquote>
+
+<p>Change in [dcl.constexpr] (7.1.5)/9:</p>
+
+<blockquote class="std">
+A <tt>constexpr</tt> specifier used in an object declaration declares the
+object as <tt>const</tt>. Such an object shall have literal type and shall be
+initialized. If it is initialized by a constructor call, that call shall be a
+constant expression (5.19). Otherwise, or if a <tt>constexpr</tt> specifier is
+used in a reference declaration, every full-expression that appears in its
+initializer shall be a constant expression.
+
+<ins>[ Note:</ins>
+
+Each implicit conversion used in converting the initializer expressions
+and each constructor call used for the initialization <del>shall be one of those
+allowed in a constant expression (5.19).</del> <ins>is part of such a full-expression
+]</ins>
+
+[ <i>Example</i>:
+<pre>
+struct pixel {
+int x, y;
+};
+constexpr pixel ur = { 1294, 1024 };  // OK
+constexpr pixel origin;               // error: initializer missing
+</pre>
+]
+</blockquote>
+
+<p>Change in [class.copy] 12.8/26:</p>
+
+<blockquote class="std">
+A copy/move assignment operator that is defaulted and not defined as deleted is <i>implicitly defined</i> when it
+is odr-used (3.2) (e.g., when it is selected by overload resolution to assign to an object of its class type) or
+when it is explicitly defaulted after its first declaration.
+
+<ins>
+The implicitly-defined copy/move assignment operator is <tt>constexpr</tt> if
+<ul>
+<li>
+<tt>X</tt> is a literal type, and
+
+<li>
+the assignment operator selected to copy/move each direct base class is a
+<tt>constexpr</tt> function, and
+
+<li>
+for each non-static data member of <tt>X</tt> that is of class type (or array
+thereof), the assignment operator selected to copy/move that member is a
+<tt>constexpr</tt> function.
+</ul>
+</ins>
+</blockquote>
+
+<h2>Acknowledgements</h2>
+
+Thanks to Jens Maurer for assistance in preparing this wording, and to Bjarne
+Stroustrup and Gabriel Dos Reis for guidance and encouragement.
+
+<!--
+DONE: add xref to 1.9 for abstract machine
+DONE: a conditional-expression <i>e</i> is ....
+DONE: "would exceed implementation-defined limit": remove intro, we know we're evaluating an expression
+TODO: don't allow prvalue subexpressions of a constant expression to be of non-literal type
+TODO: think more about volatile data members + aggregate initialization
+NOPE: --non-static-data-member in lvalue-to-rvalue conversion. just 'object'. it's cleaner.
+      (this is talking about reference members, which aren't objects)
+DONE: (modification|lvalue-to-rvalue conversion) of [...] static or thread storage duration [...] is redundant
+TODO: Clause D note for constexpr vs const
+DONE: 
+
+a constant expression is either a glvalue core constant expression whose value
+refers to an object with static storage duration or a function, or a prvalue
+core constant expression whose value is an object where:
+
+ -- each subobject of reference type refers to an object with static storage duration or a function, and
+ -- each subobject of pointer type contains the address of an object with [...]
+
+DONE: The implicitly-defined copy/move assignment operator is
+-->
