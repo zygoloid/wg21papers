@@ -91,7 +91,7 @@ of the Evolution Working Group. It also incorporates Option 2 of
 
 <h2>Proposed wording</h2>
 
-<p><em>Change in [basic.start.init] (3.6.2)/2:</em></p>
+<p>Change in [basic.start.init] (3.6.2)/2:</p>
 
 <blockquote class="std">
 Variables with static storage duration (3.7.1) or thread storage duration (3.7.2) shall be zero-initialized (8.5)
@@ -151,13 +151,13 @@ subexpressions of logical AND (5.14),
 logical OR (5.15), and conditional (5.16)
 operations that are not evaluated are not considered 
 [ <i>Note</i>: An overloaded operator invokes a function. ]</del>
-<ins>the evaluation of <tt>e</tt><em>,</em> following the rules of the abstract
-machine (1.9)<em>,</em> would evaluate one of the following expressions</ins>:
+<ins>the evaluation of <tt>e</tt>, following the rules of the abstract
+machine (1.9), would evaluate one of the following expressions</ins>:
  
 <ul>
 <li>
 <tt>this</tt> (5.1.1)<ins>, except in a <tt>constexpr</tt>
-function or a <tt>constexpr</tt> constructor <em>that</em> is being evaluated as part
+function or a <tt>constexpr</tt> constructor that is being evaluated as part
 of <tt>e</tt></ins>
 <del>[ <i>Note</i>: when evaluating a constant expression, function invocation
 substitution (7.1.5) replaces each occurrence of
@@ -256,7 +256,7 @@ it is applied to
   to a sub-object of such an object, or
 
   <li>
-  a non-volatile glvalue <em>of literal type</em> that refers to a non-volatile
+  a non-volatile glvalue of literal type that refers to a non-volatile
   <del>temporary</del> object whose lifetime
   <ins>began within the evalution of <tt>e</tt></ins>
   <del>has not ended, initialized with a core constant expression</del>;
@@ -301,7 +301,7 @@ a pseudo-destructor call (5.2.4);
 <li>
 <ins>
 modification of an object (5.17, 5.2.6, 5.3.2) unless it is applied to
-a <em>non-volatile lvalue of literal type that refers to a non-volatile</em>
+a non-volatile lvalue of literal type that refers to a non-volatile
 object whose lifetime began within the evalution of <tt>e</tt>;
 </ins>
 
@@ -396,14 +396,14 @@ expressions, and address constant expressions are called
 <p>
 <ins>
 A <i>constant expression</i> is either a glvalue core constant expression whose
-value refers to an object with static storage duration or <em>to</em> a function, or a
+value refers to an object with static storage duration or to a function, or a
 prvalue core constant expression whose value is an object where, for that object
 and each of its subobjects:
 </ins>
 <ul>
 <ins>
 <li>each non-static data member of reference type refers to an object with
-static storage duration or <em>to</em> a function, and</li>
+static storage duration or to a function, and</li>
 <li>if the object or subobject is of pointer type, it contains the address of
 an object with static storage duration, the address past the end of such an
 object (5.7), the address of a function, or a null pointer value.</li>
