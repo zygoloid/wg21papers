@@ -1,0 +1,90 @@
+<html>
+<head>
+<title>Features SG: Wording for __has_include</title>
+
+<style type="text/css">
+  ins { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del { text-decoration:line-through; background-color:#FFA0A0 }
+  strong { font-weight: inherit; color: #2020ff }
+  pre.grammar { font-family: inherit; font-size: inherit; }
+
+  blockquote.numbered { counter-reset: paragraph; padding-left: 20px; }
+  blockquote.numbered p:before {
+    content: counter(paragraph); counter-increment:
+    paragraph; position: absolute; margin-left: -20px
+  }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2013-08-26
+
+<h1>Features SG: Wording for __has_include</h1>
+
+<p>The following wording describes Clang's <tt>__has_include</tt> extension.</p>
+
+<blockquote class="numbered">
+<h2>The has-include operator</h2>
+
+<p>The implementation shall define the macro name <tt>__has_include</tt> as an
+object-like macro that expands to a <em>has-include</em> preprocessing token.
+This preprocessing token is distinct from all other preprocessing tokens.</p>
+
+<p>The <em>has-include</em> preprocessing token shall only appear within a
+<em>has-include-expression</em>.
+<pre class="grammar">
+  <em>h-preprocssing-token:</em>
+          any <em>preprocessing-token</em> other than <tt>&gt;</tt>
+  <em>h-pp-tokens:</em>
+          <em>h-preprocessing-token</em>
+          <em>h-pp-tokens</em> <em>h-preprocessing-token</em>
+  <em>has-include-expression:</em>
+          <em>has-include</em> <tt>( </tt><em>header-name</em><tt> )</tt>
+          <em>has-include</em> <tt>( </tt><em>string-literal</em><tt> )</tt>
+          <em>has-include</em> <tt>( &lt;</tt> <em>has-include-pp-tokens</em> <tt>&gt; )</tt>
+</pre>
+In the first form of the <em>has-include-expression</em>, the parenthesized
+<em>header-name</em> token is not subject to macro expansion. The second and
+third forms are only considered if the first form does not match, and the
+preprocessing tokens are processed just as in normal text.
+
+<p>
+A <em>has-include</em> preprocessing token shall only appear in the
+controlling constant expression of a
+<tt>#if</tt> or <tt>#elif</tt> directive ([cpp.cond] 16.1).
+
+Prior to the evaluation of such an expression,
+the source file identified by the parenthesized preprocessing token sequence
+in each contained <em>has-include-expression</em>
+is searched for as if those tokens were the <em>pp-tokens</em> in a
+<tt>#include</tt> directive, except that no further macro expansion is
+performed.
+
+If such a directive would not satisfy the
+syntactic requirements of a <tt>#include</tt> directive,
+the program is ill-formed.
+
+The <em>has-include-expression</em> is replaced
+by the <em>pp-number</em> <tt>1</tt> if the search for the source file succeeds, and
+by the <em>pp-number</em> <tt>0</tt> if the search fails.</p>
+
+<p>[&nbsp;<em>Example:</em>
+<pre>
+#ifdef __has_include
+#  if __has_include &lt;optional&gt;
+#    include &lt;optional&gt;
+#    define have_optional
+#  endif
+#endif
+</pre>
+
+can be used to portably include <tt>&lt;optional&gt;</tt> only if it is
+available.
+&mdash;&nbsp;<em>end&nbsp;example</em>&nbsp;]
+</blockquote>
+
+
+</body>
+</html>
