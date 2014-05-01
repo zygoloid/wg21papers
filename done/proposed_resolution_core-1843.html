@@ -1,0 +1,48 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 1843: Bit-field in conditional operator with throw
+operand</title>
+
+<style type="text/css">
+  ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2014-02-12
+
+<h1>Core Issue 1843: Bit-field in conditional operator with <tt>throw</tt>
+operand</h1>
+
+<p>
+Change in 5.16 expr.cond paragraph 2:
+</p>
+
+<blockquote>
+If either the second or the third operand has type <tt>void</tt>,
+one of the following shall hold:
+<ul>
+<li>
+The second or the third operand (but not both) is a (possibly parenthesized)
+<em>throw-expression</em> (15.1); the result is of the type and value category
+of the other
+<ins>operand. The <em>conditional-expression</em> is a bit-field if that
+operand is a bit-field</ins>.
+<li>&hellip;
+</ul>
+</blockquote>
+
+<em>Drafting note: the above edit conflicts with the edits made by core issue
+1299. The following change should be used if core issue 1299 has already been
+applied:</em>
+
+<blockquote>
+<ul><li>
+The second or the third operand (but not both) is a (possibly parenthesized)
+<em>throw-expression</em> (15.1); the result is of the type and value category
+of the other operand. The <em>conditional-expression</em> is a temporary
+expression if that operand is a temporary expression
+<ins>and is a bit-field if that operand is a bit-field</ins>.
+</body></html>

@@ -1,0 +1,41 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 1708: overly-strict requirements for names with C language linkage</title>
+
+<style type="text/css">
+  ins { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del { text-decoration:line-through; background-color:#FFA0A0 }
+  tt { font-style:normal }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2013-09-27
+
+<h1>Core Issue 1708: overly-strict requirements for names with C language linkage</h1>
+
+<p>
+Change in 7.5 dcl.link paragraph 6:
+</p>
+
+<blockquote>
+At most one function with a particular name can have C language linkage. Two
+declarations for a function with C language linkage with the same function name
+(ignoring the namespace names that qualify it) that appear in different
+namespace scopes refer to the same function. Two declarations for a variable
+with C language linkage with the same name (ignoring the namespace names that
+qualify it) that appear in different namespace scopes refer to the same
+variable. An entity with C language linkage shall not be declared with the same
+name as <del>an entity</del><ins>a variable</ins> in global scope, unless both
+declarations denote the same
+entity; no diagnostic is required if the declarations appear in different
+translation units. A variable with C language linkage shall not be declared with
+the same name as a function with C language linkage (ignoring the namespace
+names that qualify the respective names); no diagnostic is required if the
+declarations appear in different translation units.
+[&nbsp;<em>Note:</em> &hellip;&nbsp;]
+[&nbsp;<em>Example:</em> &hellip;&nbsp;]
+</blockquote>
+
+</body></html>

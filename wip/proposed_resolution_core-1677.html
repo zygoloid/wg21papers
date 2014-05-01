@@ -1,0 +1,68 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 1677: Constant initialization via aggregate initialization</title>
+
+<style type="text/css">
+  ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2014-02-12
+
+<h1>Core Issue 1677: Constant initialization via aggregate initialization</h1>
+
+<p>
+Change in 3.6.2 basic.start.init paragraph 2:
+</p>
+
+<!--
+int a[1000]{} case NAD.
+brace-or-equal-initializer case needs handling.
+-->
+
+<blockquote>
+&hellip; <em>Constant initialization</em> is performed:
+
+<ul>
+<del>
+<li>
+if each full-expression (including implicit conversions) that appears in the
+initializer of a reference with static or thread storage duration is a constant
+expression (5.19) and the reference is bound to an lvalue designating an object
+with static storage duration or to a temporary (see 12.2);
+</li>
+</del>
+
+<ins>
+<li>
+if a reference with static or thread storage duration is initialized by a
+full-expression (including implicit conversions) that is a glvalue constant
+expression;
+</li>
+</ins>
+
+<li>
+if an object with static or thread storage duration is initialized by a
+<del>constructor call, and if the initialization</del>
+full-expression <ins>that</ins> is a constant initializer for the object;
+</li>
+
+<del>
+<li>
+if an object with static or thread storage duration is 
+initialized by a full-expression that
+is not initialized by a
+constructor call and if
+either the object is value-initialized or every
+full-expression that appears in its initializer
+</li>
+</del>
+</ul>
+
+&hellip;
+</blockquote>
+
+</body></html>

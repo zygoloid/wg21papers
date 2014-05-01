@@ -1,0 +1,71 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 1705: Unclear specification of "more specialized"</title>
+
+<style type="text/css">
+  ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2014-02-11
+
+<h1>Core Issue 1705: Unclear specification of "more specialized"</h1>
+
+<p>
+Change in 14.8.2.4 temp.deduct.partial paragraph 9:
+</p>
+
+<blockquote>
+If, for a given type, deduction succeeds in both directions (i.e., the types
+are identical after the transformations above) and both <tt>P</tt> and
+<tt>A</tt> were reference types (before being replaced with the type referred
+to above):
+
+<ul>
+<li>
+if the type from the argument template was an lvalue reference and the type
+from the parameter template was not,
+<del>the argument type is considered to be more specialized than the other</del>
+<ins>the parameter type is not considered to be at least as
+specialized as the argument type</ins>; otherwise,
+
+<li>
+if the type from the argument template is more cv-qualified than the type from
+the parameter template (as described above),
+<del>the argument type is considered to be more specialized than the
+other; otherwise,</del>
+<ins>the parameter type is not considered to be at least as
+specialized as the argument type.</ins>
+
+<li>
+<del>neither type is more specialized than the other.</del>
+</ul>
+</blockquote>
+
+<p>
+Change in 14.8.2.4 temp.deduct.partial paragraph 10:
+</p>
+
+<blockquote>
+<del>
+If for each type being considered a given template is at least as specialized
+for all types and more specialized for some set of types and the other template
+is not more specialized for any types or is not at least as specialized for any
+types, then the given template is more specialized than the other template.
+Otherwise, neither template is more specialized than the other.</del>
+
+<ins>
+Function template <tt>F</tt> is at least as specialized as function template
+<tt>G</tt> if, for each pair of types used to determine the ordering, the type
+from <tt>F</tt> is at least as specialized as the type from <tt>G</tt>.
+<tt>F</tt> is more specialized than <tt>G</tt> if
+<tt>F</tt> is at least as specialized as <tt>G</tt> and
+<tt>G</tt> is not at least as specialized as <tt>F</tt>.
+</ins>
+
+</blockquote>
+
+</body></html>

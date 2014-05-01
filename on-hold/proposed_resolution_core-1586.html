@@ -1,0 +1,106 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 1586: Naming a destructor via decltype</title>
+
+<style type="text/css">
+  ins { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del { text-decoration:line-through; background-color:#FFA0A0 }
+  tt { font-style:normal }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2013-08-24
+
+<h1>Core Issue 1586: Naming a destructor via <tt>decltype</tt></h1>
+
+<p>
+Change in 5.1.1 expr.prim.general:
+</p>
+
+<blockquote>
+<pre><em>
+unqualified-id:
+        identifier
+        operator-function-id
+        conversion-function-id
+        literal-operator-id
+        <tt>~</tt> class-name
+        <del><tt>~</tt> decltype-specifier</del>
+        template-id
+</em></pre>
+</blockquote>
+
+<p>
+Change in 5.2 expr.post paragraph 1:
+</p>
+
+<blockquote>
+<pre><em>
+pseudo-destructor-name:
+        nested-name-specifier<sub>opt</sub> type-name <tt>:: ~</tt> type-name
+        nested-name-specifier <tt>template</tt> simple-template-id <tt>:: ~</tt> type-name
+        nested-name-specifier<sub>opt</sub> <tt>~</tt> type-name
+        <del><tt>~</tt> decltype-specifier</del>
+        <ins><tt>~ auto</tt></ins>
+</em></pre>
+</blockquote>
+
+<p>
+Change in 5.2.4 expr.pseudo paragraph 1:
+</p>
+
+<blockquote>
+The use of a <em>pseudo-destructor-name</em> after a dot <tt>.</tt>
+or arrow <tt>-&gt;</tt> operator represents the destructor for the
+<del>non-class</del> type denoted by <em>type-name</em>
+or <del><em>decltype-specifier</em></del> <ins>implied by the <tt>auto</tt>
+keyword</ins>.
+
+<ins>
+For the second option (arrow), the <em>postfix-expression</em> shall be of
+pointer type.  The expression <tt>E-&gt;N</tt> is converted into the equivalent
+form <tt>(*(E)).N</tt>; the remainder of 5.2.4 will address only the dot operator.
+</ins>
+
+The result shall only be used as the operand for the function call
+operator <tt>()</tt>, and the result of such a call has type
+<tt>void</tt>.
+
+<del>
+The only effect is the evaluation
+of the <em>postfix-expression</em> before the dot or arrow.
+</del>
+
+</blockquote>
+
+<p>
+Change in 5.2.4 expr.pseudo paragraph 2:
+</p>
+
+<blockquote>
+<ins>
+If the <em>postfix-expression</em> is of (possibly cv-qualified) class
+type <tt>C</tt>, the expression <tt>E.~auto</tt> is equivalent to <tt>E.~C</tt>.
+Otherwise,</ins>
+the <del>left-hand side of the dot
+operator</del><ins><em>postfix-expression</em></ins> shall be of scalar type<ins>,
+and the only effect of a call to such an expression is the evaluation of the
+<em>postfix-expression</em></ins>.
+<del>
+The left-hand side of the arrow operator shall be of pointer to scalar type.
+This scalar type is the object type.
+</del>
+<ins>If the <em>pseudo-destructor-name</em> is not <tt>~auto</tt>,</ins>
+the cv-unqualified versions of the <del>object</del> type <ins>of the
+<em>postfix-expression</em></ins> and of the type designated by the
+<em>pseudo-destructor-name</em> shall be the same type.
+Furthermore, the two <em>type-name</em>s in a <em>pseudo-destructor-name</em> of the form
+<pre><em>
+        nested-name-specifier<sub>opt</sub> type-name <tt>:: ~</tt> type-name
+</em></pre>
+shall designate the same scalar type.
+</blockquote>
+
+</body></html>

@@ -1,0 +1,171 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>NB Comment GB 2</title>
+
+<style type="text/css">
+  ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del { text-decoration:line-through; background-color:#FFA0A0 }
+</style>
+</head>
+
+<body>
+Richard Smith<br>
+2014-02-11
+
+<h1>NB Comment GB 2: uninitialized "unsigned char" has defined value</h1>
+
+<p>Change in 3.3.2 basic.scope.pdecl paragraph 1:</p>
+
+<blockquote>
+<p>...
+[&nbsp<em>Example</em>:
+<pre>
+<del>int</del><ins>unsigned char</ins> x = 12;
+{ <del>int</del><ins>unsigned char</ins> x = x; }
+</pre>
+
+Here the second <tt>x</tt> is initialized with its own (indeterminate) value. ]
+</blockquote>
+
+<p>Change in 4.1 conv.lval paragraph 2:</p>
+
+<blockquote>
+<ul>
+<li> ... </li>
+
+<li>
+<del>Otherwise, if <tt>T</tt> is a (possibly cv-qualified) unsigned
+character type (3.9.1), and the object to which the glvalue refers contains an
+indeterminate value (5.3.4, 8.5, 12.6.2),
+
+and that object does not have automatic storage duration
+or the glvalue was the operand of a unary <tt>&amp;</tt> operator or it was
+bound to a reference, the result is an unspecified value.
+[&nbsp;<em>Footnote:</em> The value may be
+different each time the lvalue-to-rvalue conversion is applied to the object.
+An <tt>unsigned char</tt> object with indeterminate value allocated to a
+register might trap.&nbsp;]
+</del>
+</li>
+
+<li>
+<del>
+Otherwise, if
+<!--<ins><tt>T</tt> is not a (possibly cv-qualified) unsigned narrow
+character type (3.9.1), and</ins>-->
+the object to which the glvalue refers
+contains an indeterminate value, the behavior is undefined.
+</del>
+</li>
+
+<li>
+Otherwise, the value contained in the object indicated by the glvalue is the
+prvalue result.
+</li>
+
+</blockquote>
+
+<p>Change in 5.3.4 expr.new paragraph 17:</p>
+
+<blockquote>
+A <em>new-expression</em> that creates an object of type <tt>T</tt> initializes
+that object as follows:
+
+<ul>
+<li>If the <em>new-initializer</em> is omitted, the object is
+default-initialized (8.5)<del>; if</del><ins>. [&nbsp;<em>Note:</em> If</ins> no
+initialization is performed, the object has <ins>an</ins> indeterminate
+value. <ins>]</ins>
+<li>Otherwise ...
+</ul>
+</blockquote>
+
+<p>Change in 8.5 dcl.init paragraph 12:</p>
+
+<blockquote>
+
+<p>If no initializer is specified for an object, the object is
+default-initialized<del>; if no initialization is performed,
+an</del><ins>.
+When storage for an</ins>
+object with
+automatic or dynamic storage duration
+<ins>is obtained, the object</ins>
+has <del>indeterminate value</del>
+<ins>an <em>indeterminate value</em>, and if no initialization is performed
+for the object, that object retains an indeterminate value until that value
+is replaced (5.17)</ins>.
+[ Note ... ]
+<!--
+</p>
+
+<p>Add a new paragraph after 8.5 dcl.init paragraph 12:</p>
+
+<blockquote>
+
+<p>
+-->
+<ins>
+If an indeterminate value is produced by an evaluation, the behavior is
+undefined except in the following cases:
+</p><ins>
+<ul>
+<li>
+If an indeterminate value of unsigned narrow character type (3.9.1) is produced
+by the evaluation of:
+
+<ul>
+<li>the second or third operand of a conditional expression (5.16),
+<li>the right operand of a comma (5.18),
+<li>the operand of a cast or conversion to an unsigned narrow character type
+(4.7, 5.2.3, 5.2.9, 5.4), or
+<li>a discarded-value expression (Clause 5),
+</ul>
+
+then the result of the operation is an indeterminate value.
+
+<li>
+If an indeterminate value of unsigned narrow character type (3.9.1) is produced
+by the evaluation of the right operand of a simple assignment operator (5.17)
+whose first operand is an lvalue of unsigned narrow character type, an
+indeterminate value replaces the value of the object referred to by the left
+operand.
+
+<li>
+If an indeterminate value of unsigned narrow character type (3.9.1) is produced
+by the evaluation of the initialization expression when initializing
+an object of unsigned narrow character type, that object is initialized to an
+indeterminate value.
+</ul>
+
+[&nbsp;<em>Example:</em>
+<pre>
+int f(bool b) {
+  unsigned char c;
+  unsigned char d = c; // ok, d has an indeterminate value
+  int e = d;           // undefined behavior
+  return b ? d : 0;    // undefined behavior if b is true
+}
+</pre>
+&nbsp;]
+</ins>
+
+</blockquote>
+
+<p>Change in 12.6.2 class.base.init paragraph 8:</p>
+
+<blockquote>
+
+<p>... An attempt to initialize more than one non-static data member of a union
+renders the program ill-formed.
+<ins>[&nbsp;<em>Note:</em></ins>
+After the call to a constructor for a class <tt>X</tt>
+<ins>for an object with automatic or dynamic storage duration</ins>
+has completed, if
+<ins>the constructor was not invoked as part of value-initialization and</ins>
+a member of <tt>X</tt> is neither initialized nor given a value during execution
+of the <em>compound-statement</em> of the body of the constructor, the member
+has <ins>an</ins> indeterminate value.
+<ins>]</ins>
+[&nbsp;<em>Example:</em> ... ]
+
+</blockquote>

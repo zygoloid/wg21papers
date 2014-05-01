@@ -1,0 +1,68 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>NB Comment CA 14</title>
+
+<style type="text/css">
+  ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del { text-decoration:line-through; background-color:#FFA0A0 }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2013-09-24
+
+<h1>NB Comment CA 14: Definedness of out-of-lifetime lvalue-to-rvalue conversion
+of block-scope constants</h1>
+
+<p>
+Change in 4.1 conv.lval paragraph 2:
+</p>
+
+<blockquote>
+When an lvalue-to-rvalue conversion
+<del>
+occurs in an unevaluated operand or a subexpression thereof (Clause 5)
+</del>
+
+<ins>
+is applied to an expression <tt><strong>e</strong></tt>, and
+either
+<ul><li>
+<tt><strong>e</strong></tt> is not potentially evaluated, or
+</li><li>
+the evaluation of
+<tt><strong>e</strong></tt>
+results in the evaluation of a member
+<tt><strong>ex</strong></tt>
+of the set of potential results of
+<tt><strong>e</strong></tt>, and 
+<tt><strong>ex</strong></tt>
+names a variable
+<tt><strong>x</strong></tt>
+that is not odr-used by
+<tt><strong>ex</strong></tt> (3.2),
+</li></ul>
+</ins>
+
+the value contained in the referenced object is not accessed.
+
+<ins>
+[&nbsp;<i>Example:</i>
+<pre>
+struct S { int n; };
+auto f() {
+  S x { 1 };
+  constexpr S y { 2 };
+  return [&](bool b) { return (b ? y : x).n; };
+}
+auto g = f();
+int m = g(false); // undefined behavior due to access of x.n outside its lifetime
+int n = g(true);  // ok, does not access y.n
+</pre>
+&mdash;&nbsp;<i>end example</i>&nbsp;]
+</ins>
+&hellip;
+</blockquote>
+
+</body></html>

@@ -1,0 +1,26 @@
+EVOLUTION core 1586
+DRAFT core 1677
+EDITORIAL core 1683
+DRAFT core 1704, 1728: act as if a redecl
+REVIEW core 1708: same name as a *variable* in global scope
+REVIEW core 1712
+DRAFT core 1581
+FIX core 1700
+DRAFT 1839: look up until we get to innermost enclosing namespace. if you don't find a member of the innermost enclosing namespace, ill-formed.
+DRAFT 1843
+DRAFT 1850
+DRAFT 1705: strike "for all types", "for any type", replace "other" with "parameter", name the templates in the final two sentences and talk about the types directly rather than weaseling with "for all types being considered".
+
+DRAFT 1652
+DRAFT 1621
+DRAFT 1776
+
+"You gotta know when to hold 'em
+Know when to fold 'em
+Know when you need parens
+and know when you need none
+
+You never count your sizeof
+When your type is dependent
+There'll be plenty of time for counting
+When substitution's done"

@@ -1,0 +1,48 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 1693: Superfluous semicolons in class definitions</title>
+
+<style type="text/css">
+  ins { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del { text-decoration:line-through; background-color:#FFA0A0 }
+  tt { font-style:normal }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2013-09-27
+
+<h1>Core Issue 1693: Superfluous semicolons in class definitions</h1>
+
+<p>
+Change in 9.2 class.mem:
+</p>
+
+<blockquote>
+<pre><em>
+member-declaration:
+        attribute-specifier-seq<sub>opt</sub> decl-specifier-seq<sub>opt</sub> member-declarator-list<sub>opt</sub> ;
+        function-definition </em><del><tt>;</tt><em><sub>opt</sub></em></del><em>
+        using-declaration
+        static_assert-declaration
+        template-declaration
+        alias-declaration
+        <ins>empty-declaration</ins>
+</em></pre>
+</blockquote>
+
+<p>
+Change in 9.2 class.mem paragraph 1:
+</p>
+
+<blockquote>
+Except when used to declare friends (11.3) or to introduce the name of a member
+of a base class into a derived class (7.3.3)
+<ins>or when the declaration is an <em>empty-declaration</em></ins>,
+<em>member-declarations</em> declare
+members of the class, and each such <em>member-declaration</em> shall declare at
+least one member name of the class. 
+</blockquote>
+
+</body></html>

@@ -1,0 +1,31 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 1712: constexpr variable template declarations</title>
+
+<style type="text/css">
+  ins { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del { text-decoration:line-through; background-color:#FFA0A0 }
+  tt { font-style:normal }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2013-09-27
+
+<h1>Core Issue 1712: <tt>constexpr</tt> variable template declarations</h1>
+
+<p>
+Change in 7.1.5 dcl.constexpr paragraph 1:
+</p>
+
+<blockquote>
+&hellip; If any declaration of a function<del>,</del>
+<ins>or</ins> function
+template<del>, or variable template</del>
+has a <tt>constexpr</tt> specifier, then all its declarations
+shall contain the
+<tt>constexpr</tt> specifier. &hellip;
+</blockquote>
+
+</body></html>

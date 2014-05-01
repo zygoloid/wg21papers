@@ -1,0 +1,107 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>NB Comment GB 3</title>
+
+<style type="text/css">
+  ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del { text-decoration:line-through; background-color:#FFA0A0 }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2013-09-27
+
+<h1>NB Comment GB 3: Access and lookup of <em>init-capture</em>s</h1>
+<h1>Core issue 1681: <em>init-capture</em>s and nested lambdas</h1>
+
+<p>
+Change in 5.1.2 expr.prim.lambda paragraph 11:
+</p>
+
+<blockquote>
+<del>
+For every <em>init-capture</em>
+a non-static data member
+named by the <em>identifier</em> of the <em>init-capture</em>
+is declared in the closure type.
+This member is not a bit-field and not <tt>mutable</tt>.
+The type of that member corresponds to
+the type of a hypothetical
+</del>
+<ins>
+An <em>init-capture</em> behaves as if
+it declares
+and explicitly captures a
+</ins>
+variable <del>declaration</del> of the form
+"<tt>auto</tt> <em>init-capture</em> <tt>;</tt>"
+<ins>whose declarative region is the <em>lambda-expression</em>'s
+<em>compound-statement</em>
+</ins>, except that<del>
+the variable name (i.e., the <em>identifier</em> of the <em>init-capture</em>) is replaced by a unique identifier.
+</del>
+<ins>:
+<li>if the capture is by copy (see below),
+the non-static data member
+declared for the capture
+and
+the variable
+are treated as two
+different ways of referring to the same object, which has the lifetime
+of the non-static data member, and no additional copy
+and destruction is performed, and</li>
+<li>if the capture is by reference, the variable's lifetime
+ends when the closure object's lifetime ends.</li>
+</ul>
+</ins>
+[&nbsp;<em>Note:</em>
+This enables an <em>init-capture</em> like
+"<tt>x = std::move(x)</tt>"; the second "<tt>x</tt>"
+must bind to a declaration in the surrounding context.
+&mdash;&nbsp;<em>end note</em>&nbsp;]
+<del>
+No entity is captured by an <em>init-capture</em>.
+Within
+the <em>lambda-expression</em>s
+<em>lambda-declarator</em> and
+<em>compound-statement</em>,
+the identifier in the <em>init-capture</em> hides any declaration of the same name in scopes
+enclosing the <em>lambda-expression</em>.</del>
+[&nbsp;<em>Example:</em> &hellip; ]
+</blockquote>
+
+<p>
+Change in 5.1.2 expr.prim.lambda paragraph 15:
+</p>
+
+<blockquote>
+An entity is <em>captured by copy</em> if it is implicitly captured and the
+<em>capture-default</em> is <tt>=</tt> or if it is explicitly
+captured with a capture that
+<del>
+does not include an &amp;
+</del>
+<ins>
+is not of the form &amp; <em>identifier</em> or &amp; <em>identifier</em>
+<em>initializer</em></ins>. &hellip;
+</blockquote>
+
+<p><i>Drafting note: this excludes the case where the <tt>&amp;</tt> is within an
+init-capture's initializer.</i></p>
+
+<p>
+Change in 5.1.2 expr.prim.lambda paragraph 18:
+</p>
+
+<blockquote>
+Every <em>id-expression</em>
+<ins>
+within the <em>compound-statement</em> of a <em>lambda-expression</em>
+</ins>
+that is an odr-use (3.2) of an entity captured by copy is
+transformed into an access to the
+corresponding unnamed data member of the closure type. &hellip;
+</blockquote>
+
+</body></html>
