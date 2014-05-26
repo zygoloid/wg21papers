@@ -56,7 +56,7 @@ p.grammarrhs tt { font-style:normal }
 <body>
 
 <div style="text-align: right; float: right">
-<p>ISO/IEC JTC1 SC22 WG21<br>D????<br>Richard Smith<br>2014-05-25</p>
+<p>ISO/IEC JTC1 SC22 WG21<br>D????<br>Richard Smith<br>2014-05-26</p>
 </div>
 
 <h1>Allow <tt>typename</tt> in a template template parameter</h1>
@@ -93,7 +93,8 @@ template&lt;template&lt;typename> typename X> struct D; // error, cannot use typ
 
 <p>Note that <tt>typename</tt> is permitted for non-template
 <i>type-parameters</i>, but not for template <i>type-parameters</i>.
-This difference is artificial and surprising, and should be removed.</p>
+This difference is artificial and is a common surprise. Removing it
+would make the language simpler.</p>
 
 <h2>Proposed wording</h2>
 
@@ -117,10 +118,12 @@ This difference is artificial and surprising, and should be removed.</p>
 
 <blockquote class="std">
 There is no semantic difference between <tt>class</tt> and <tt>typename</tt> in
-a <ins><i>type-parameter-key</i>. In a</ins>
-<i>template-parameter</i><del>.</del><ins>,</ins> <tt>typename</tt> followed by
-an <i>unqualified-id</i> names a template type parameter<del>.</del><ins>,
-and</ins> <tt>typename</tt> followed by a <i>qualified-id</i> denotes the type
+a
+<del><i>template-parameter</i></del>
+<ins><i>type-parameter-key</i></ins>.
+<tt>typename</tt> followed by
+an <i>unqualified-id</i> names a template type parameter.
+<tt>typename</tt> followed by a <i>qualified-id</i> denotes the type
 in a non-type [Footnote: &hellip;] <i>parameter-declaration</i>.
 &hellip;
 [Note: A template <del>parameter</del><ins>argument</ins> may be a class
