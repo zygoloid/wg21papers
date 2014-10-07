@@ -59,7 +59,7 @@ D???? /
 EWG 118<br>
 Richard Smith<br>
 richard@metafoo.co.uk<br>
-2014-09-29
+2014-10-06
 </div>
 
 <h1>Allow conversion from pointer to array of known bound to pointer to array of unknown bound</h1>
@@ -97,7 +97,7 @@ of known bound to an array of unknown bound.
 
 <h2><a name="Discussion">Discussion</a></h2>
 
-<p>The problem extends far beyond function calls. For instance:
+<p>The problem extends beyond function calls. For instance:
 
 <pre class="extract">
 extern int arr1[], arr2[];
@@ -114,9 +114,28 @@ and <tt>arr2</tt>, the common type should be an array of unknown bound.
 <tt>T</tt>". Thus it is reasonable to implicitly convert from <tt>T [N]</tt> to
 <tt>T []</tt>. Furthermore, this subtyping relation extends into composite
 types in the usual way; it is also reasonable to implicitly convert from <tt>T
-(*X::*)[N]</tt> to <tt>T (*const X::*)[]</tt>. The most natural way to model this is
-as a qualification conversion: discarding an array bound results in a more
-qualified type.
+(*X::*)[N]</tt> to <tt>T (*const X::*)[]</tt>. The most natural way to model
+this is as a qualification conversion: discarding an array bound results in a
+more qualified type.
+
+<p>Despite modeling absence of an array bound analogously to a cv-qualifier for
+the purposes of implicit conversion, this paper does not permit conversion from
+arrays of unknown bound to arrays of known bound to be performed by
+<tt>const_cast</tt>. Instead, such conversions instead fall under the domain of
+<tt>static_cast</tt>. In some cases, a combination of a <tt>static_cast</tt>
+and a <tt>const_cast</tt> will be required to reverse the effects of an
+implicit conversion that removes a deeply-nested array bound:
+
+<pre class="extract">
+int (**pparr)[3];
+int (*const *no_bound)[] = pparr; // ok, qualification conversion
+
+// As usual, we cannot convert to int (**)[], since that would allow
+//   int arr[1];
+//   *no_bound = &amp;arr;
+
+int (**pparr2)[3] = const_cast&lt;int(**)[3]>(static_cast&lt;int(*const*)[3]>(no_bound)); // ok
+</pre>
 
 <h2><a name="Wording">Proposed Wording</a></h2>
 
@@ -147,7 +166,8 @@ and
   T</ul>
 
 where each cv<sub>i,j</sub> is <tt>const</tt>, <tt>volatile</tt>, <tt>const
-  volatile</tt>, or nothing and, for each j from 0 ... n-1,
+  volatile</tt>, or nothing and, for each j from 0 ... n-1
+<ins>and for an invented type U</ins>,
 <!--
 <ins>"</ins>P<sub><ins>1,</ins>j</sub> P<sub><ins>1,</ins>j+1</sub> ...
 P<sub><ins>1,</ins>n-1</sub> T<ins>" and "P<sub>2,j</sub> P<sub>2,j+1</sub> ...
@@ -160,15 +180,15 @@ array of unknown bound, and in the pointer and pointer to member cases, let
 cvb<sub>i,j</sub> be cv<sub>i,j</sub> [ Note: In the array case, cv<sub>i,j</sub>
 is always empty. ]</ins>.
 -->
-P<sub><ins>1,</ins>j</sub> <ins>and</ins>
-P<sub><ins>2,</ins>j<del>+1</del></sub>
-<del>&hellip;
-P<sub>n-1</sub> T is a</del> <ins>are both "</ins>pointer
-<ins>to"</ins>, <ins>are both "</ins>pointer to member <ins>of class C of type"</ins>,
-or are <ins>"</ins>array <ins>of b<sub>1,j</sub>" and "array of b<sub>2,j</sub>" respectively
-(where b<sub>i,j</sub> is "unknown bound" for an array of unknown bound)</ins>
-<del>type</del>.
-<ins>In the array case, let
+P<sub><ins>1,</ins>j</sub> <ins>U and P<sub>2,j</sub> U</ins>
+<del>P<sub>j</sub> &hellip; P<sub>n-1</sub> T is a</del>
+<ins>are both "</ins>pointer
+<ins>to U"</ins>, <ins>are both "</ins>pointer to member <ins>of class C of type U"</ins>,
+or are <ins>"</ins>array
+<del>type.</del>
+<ins>of b<sub>1,j</sub> U" and "array of b<sub>2,j</sub> U" respectively
+(where b<sub>i,j</sub> is "unknown bound" for an array of unknown bound).
+In the array case, let
 cvb<sub>i,j</sub> be the b<sub>i,j</sub>, and
 in the pointer and pointer to member cases, let
 cvb<sub>i,j</sub> be cv<sub>i,j</sub>
@@ -189,7 +209,7 @@ an object of type <tt>T (*)[N]</tt> can be accessed by an lvalue of type
 Move from 5 (expr) paragraph 13 to start of 4.4 (conv.qual) paragraph 5 and change:
 <blockquote class="std">
 The <del>cv</del><ins>qualification</ins>-combined type of two types T1 and
-T2 is a type T3 similar to T1 whose <del>cv-</del>qualification signature
+T2 is <del>a</del> <ins>the</ins> type T3 similar to T1 whose <del>cv-</del>qualification signature <ins>cvb<sub>3,j</sub></ins>
 <del>(4.4)</del> is:
 <ul>
 <li>for every j > 0,
@@ -237,14 +257,17 @@ Change the rest of 4.4 (conv.qual) paragraph 5:
 
 Change in 5.2.11 (expr.const.cast) paragraph 3:
 <blockquote class="std">
-For two <ins>cv-</ins>similar types T1 and T2 (4.4), a prvalue of type T1 may be explicitly converted to the type T2 using a const_cast. [...]
+For two <ins>cv-</ins>similar types T1 and T2 (4.4), a prvalue of type T1 may be explicitly converted to the type T2 using a <tt>const_cast</tt>. [...]
 </blockquote>
-
-<p><em>Drafting note: this implies that adding or removing an array bound can be performed by a <tt>static_cast</tt>, but not a <tt>const_cast</tt>.</em></p>
 
 Change in 5.2.11 (expr.const.cast) paragraph 8:
 <blockquote class="std">
-Given two <ins>cv-</ins>similar types T1 and T2, a conversion from T1 to T2 casts away constness if there is no qualification conversion (4.4 conv.qual) that converts T1 to T2.
+A conversion from a type T1 to a type T2 <i>casts away constness</i> if
+<ul>
+<li>T1 and T2 are similar<ins>, the qualification signatures (4.4 conv.qual) of T1 and T2 differ in their cv-qualifiers,</ins> and there is no qualification conversion <del>(4.4 conv.qual)</del> that converts T1 to T2,
+<li>T1 is "pointer to cv1 U1" and T2 is "pointer to cv2 U2" and there is no qualification conversion that converts T1 to the type "pointer to cv2 U1" (see 4.10 conv.ptr), or
+<li>T1 is "pointer to member of class C1 of type cv1 U1" and T2 is "pointer to member of class C2 of type cv2 U2" and there is no qualification conversion that converts T1 to the type "pointer to member of class C1 of type cv2 U1" (see 4.11 conv.mem).
+</ul>
 </blockquote>
 
 Change in 5 (expr) paragraph 13: (note the first half of this paragraph was moved to 4.4 (conv.qual) paragraph 5)
@@ -309,3 +332,5 @@ which shall be an lvalue.
 <p><em>Drafting note: this allows a <tt>int (&)[]</tt> template-parameter to
   bind to an <tt>int [N]</tt> lvalue, and makes pointer and reference
   template-parameters behave consistently.</em></p>
+
+FIXME: This doesn't work. You can't perform a qualification conversion in this way. We want to perform implicit conversions a la the generalized template arguments paper, PLUS allow qualification conversion in reference bindings, a la core issue NNNN.

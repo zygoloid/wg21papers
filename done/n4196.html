@@ -55,12 +55,12 @@ td { text-align: left; vertical-align: top;
 <div style="text-align: right; float: right">
 <p>
 ISO/IEC JTC1 SC22 WG21<br>
-D???? /
+N4196 /
 CWG 1657 /
 EWG 113<br>
 Richard Smith<br>
 richard@metafoo.co.uk<br>
-2014-09-29
+2014-10-06
 </div>
 
 <h1>Attributes for namespaces and enumerators</h1>
@@ -140,6 +140,18 @@ cases. This is the status quo for attributes on other entities.
 
 <p>For consistency with classes and enumerations, the natural location for the
 <i>attribute-specifier-seq</i> is after the <tt>namespace</tt> keyword.</p>
+
+<h3>Meaning of deprecating a namespace</h3>
+
+<p>Following the lead of N3394, this paper provides no normative requirements
+on the effect of deprecating an entity. For an inline namespace, this paper
+suggests that implementations might wish to consider issuing a warning only
+if the name of the namespace is used (and not if entities within that
+namespace are named as members of a surrounding namespace). This allows a
+library author to discourage its clients from naming an inline namespace
+directly, while still allowing access to its members. With this approach,
+deprecating an unnamed namespace would have no effect, and implementations
+may wish to issue a warning on such a construct.
 
 <h2><a name="Wording">Proposed Wording</a></h2>
 
