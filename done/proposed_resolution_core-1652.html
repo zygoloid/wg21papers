@@ -1,0 +1,44 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 1652: Object addresses in constexpr expressions</title>
+
+<style type="text/css">
+  ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2014-11-04
+
+<h1>Core Issue 1652: Object addresses in constexpr expressions</h1>
+
+<p>
+Change in 5.10 expr.eq paragraph 2:
+</p>
+
+<blockquote>
+If at least one of the operands is a pointer, pointer conversions (4.10) and
+qualification conversions (4.4) are performed on both operands to bring them to
+their composite pointer type (Clause 5). Comparing pointers is defined as
+follows:
+<ul>
+<li>
+<ins>
+If one pointer represents the address of a complete object, and another pointer
+represents the address one past the last element of a different complete object
+[Footnote: An object that is not an array element is considered to belong to a
+single-element array for this purpose; see 5.3.1. -- end footnote], the result
+of the comparison is unspecified.
+</ins>
+<li><ins>Otherwise, 
+</ins>
+<del>Two pointers compare equal</del> if <del>they</del><ins>the pointers</ins> are both null, both
+point to the same function, or both represent the same address (3.9.2),
+<ins>they compare equal.</ins>
+<ins><li>Otherwise<del> they</del><ins>, the pointers</ins> compare unequal.</ins>
+</ul>
+</blockquote>
+
+</body></html>

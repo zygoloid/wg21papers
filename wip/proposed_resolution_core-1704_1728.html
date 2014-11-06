@@ -1,25 +1,94 @@
 <html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-<title>Core Issue XXXX: ...</title>
+<title>Core Issue 1704: Type checking in explicit instantiation of variable templates</title>
 
 <style type="text/css">
-  ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
-  del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+body { color: #000000; background-color: #FFFFFF; }
+del { text-decoration: line-through; color: #8B0040; }
+ins { text-decoration: underline; color: #005100; }
+
+blockquote.std { color: #000000; background-color: #F1F1F1;
+  border: 1px solid #D1D1D1;
+  padding-left: 0.5em; padding-right: 0.5em; }
+blockquote.stddel { text-decoration: line-through;
+  color: #000000; background-color: #FFEBFF;
+  border: 1px solid #ECD7EC;
+  padding-left: 0.5empadding-right: 0.5em; ; }
+
+blockquote.stdins { text-decoration: underline;
+  color: #000000; background-color: #C8FFC8;
+  border: 1px solid #B3EBB3; padding: 0.5em; }
+
+blockquote pre em { font-family: normal }
 </style>
 
 </head>
 
 <body>
 Richard Smith<br>
-2013-08-24
+2014-11-04
 
-<h1>Core Issue XXXX: ...</h1>
+<h1>Core Issue 1704: Type checking in explicit instantiation of variable templates</h1>
+<h1>Core Issue 1728: Type of an explicit instantiation of a variable template</h1>
 
 <p>
-Change in 7.1.5 dcl.constexpr paragraph 4:
-</p>
+Change in 14.7.2 temp.explicit paragraph 3:
+<blockquote class="std">
+If the explicit instantiation is for a class or member class, the
+<em>elaborated-type-specifier</em> in the <em>declaration</em> shall include a
+<em>simple-template-id</em><ins>; otherwise, the <em>declaration</em>
+shall be a <em>simple-declaration</em> whose <em>init-declarator-list</em> comprises
+a single <em>init-declarator</em> that does not have an <em>initializer</em></ins>.
 
-<blockquote>
-...
+If the explicit instantiation is for a function or member
+function, the <em>unqualified-id</em> in the
+<em><del>declaration</del><ins>declarator</ins></em> shall be either a
+<em>template-id</em>
+or, where all template arguments can be deduced, a <em>template-name</em> or
+<em>operator-function-id</em>.
+[&nbsp;<em>Note</em>: &hellip;&nbsp;]
+If the explicit instantiation is for a member function, a member class or
+a static data member of a class template specialization, the name of the class
+template specialization in the <em>qualified-id</em> for the member name shall be a
+<em>simple-template-id</em>.
+If the explicit instantiation is for a variable <ins>template specialization</ins>, the
+<em>unqualified-id</em> in the <em><del>declaration</del><ins>declarator</ins></em>
+shall be a <em><ins>simple-</ins>template-id</em>. An explicit
+instantiation shall appear in an enclosing namespace of its template. If the
+name declared in the explicit instantiation is an unqualified name, the
+explicit instantiation shall appear in the namespace where its template is
+declared or, if that namespace is inline (7.3.1), any namespace from its
+enclosing namespace set.
+[&nbsp;<em>Note</em>: &hellip;&nbsp;]
+[&nbsp;<em>Example</em>: &hellip;&nbsp;]
 </blockquote>
 
+<p>
+Add a new paragraph after 14.7.2 temp.explicit paragraph 9:
+<blockquote class="stdins">
+The <em>declaration</em> in an <em>explicit-instantiation</em> and the resulting
+instantiated function, variable, or class are two declarations of the same entity.
+[&nbsp;<em>Note</em>:
+These declarations are required to have matching types as specified in 3.5 [basic.link].
+[&nbsp;<em>Example</em>:
+<pre>
+  template<typename T> T var = {};
+  template float var&lt;float>;   // OK, instantiated variable has type 'float'
+  template int var&lt;int[16]>[]; // OK, absence of major array bound is permitted
+  template int *var&lt;int>;      // error: instantiated variable has type 'int'
+</pre>
+&mdash; end example&nbsp;]
+&mdash; end note&nbsp;]
+For an explicit instantiation of a variable, the <em>declaration</em> in the
+<em>explicit-instantiation</em> is not a definition.
+</blockquote>
+
+<p>
+Change in 14.7.2 temp.explicit paragraph 10:
+<blockquote class="std">
+Except for <tt>inline</tt> functions, declarations with types deduced from their
+initializer or return value (7.1.6.4), const variables of literal types,
+variables of reference types, and class template specializations, explicit
+instantiation declarations have the effect of suppressing the implicit
+instantiation of the <ins>definition of the</ins> entity to which they refer. 
+[&nbsp;<em>Note</em>:&nbsp;&hellip;&nbsp;]
 </body></html>
