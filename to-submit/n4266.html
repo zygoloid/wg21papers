@@ -55,105 +55,17 @@ td { text-align: left; vertical-align: top;
 <div style="text-align: right; float: right">
 <p>
 ISO/IEC JTC1 SC22 WG21<br>
-Dxxxx /
+N4266 /
 CWG 1657 /
 EWG 113<br>
 Richard Smith<br>
 richard@metafoo.co.uk<br>
-2014-11-04
+2014-11-05
 </div>
 
 <h1>Attributes for namespaces and enumerators</h1>
 
-<h2><a name="Motivation">Motivation</a></h2>
-
-<p>
-When
-<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2012/n3394.html">N3394</a>
-introduced the <tt>[[deprecated]]</tt> attribute to C++, there was a desire for it
-to apply to:
-
-<blockquote class="stdins">
-<ul>
-<li>classes
-<li>typedef-names
-<li>variables
-<li>functions
-<li>namespaces
-<li>enumerations
-<li>enumerators
-<li>templates
-<li>template specializations
-</ul>
-</blockquote>
-
-<p>However, attributes are not permitted on enumerators nor on namespaces.
-In response,
-<a href="http://open-std.org/JTC1/SC22/WG21/docs/cwg_closed.html#1657">CWG issue 1657</a> and
-<a href="http://cplusplus.github.io/EWG/ewg-active.html#113">EWG issue 113</a> were filed
-and received favourably.
-This paper proposes resolving these issues by allowing
-attributes to be specified on enumerators and namespaces, and extends the
-<tt>[[deprecated]]</tt> attribute to apply to these entities, as was originally
-intended.</p>
-
-<h2><a name="Discussion">Discussion</a></h2>
-
-<h3>Location of attributes on enumerators</h3>
-
-<p>Once we decide to allow attributes on enumerators, we must answer one question:
-are attributes written before or after the name of the enumerator? There are no
-grammar ambiguities in either location, so this is a free choice. Analysis of
-the grammar and prior papers results in a simple rule: attributes are written
-either
-<ul>
-<li>immediately after an entity being declared (the <i>class-key</i> or
-    <i>enum-key</i> for a type definition, the <i>identifier</i> for a
-    <i>declarator</i>, and so on), to appertain to that entity, or
-<li>at the start of a <i>statement</i> or
-    <i>declaration</i>, to appertain to that complete <i>statement</i> or every
-    <i>declarator</i> within that <i>declaration</i>.
-</ul>
-Since an <i>enumerator-definition</i> is not a <i>declaration</i> nor a <i>statement</i>, the most natural place to put the <i>attribute-specifier-seq</i> is after the <i>identifier</i>:
-
-<pre class="extract">
-enum E {
-  foobar = 0,
-  foobat [[deprecated]] = foobar
-};
-</pre>
-
-<p>This choice also preserves the ability to lay out enumerations with the
-enumerator names in a column.
-
-<h3>Attributes on namespaces</h3>
-
-<p>Namespaces can be repeatedly declared and can be reopened, and thus can
-have different attributes in different translation units or in different
-locations in the same translation unit.
-Likewise, namespaces can be anonymous or <tt>inline</tt>, and some namespace
-attributes might be problematic in such cases.
-Nonetheless, this paper proposes allowing attributes in all such cases, with
-no inherent restrictions; the specification for each individual attribute
-that can appertain to a namespace should cover how to handle any problematic
-cases. This is the status quo for attributes on other entities.
-
-<p>For consistency with classes and enumerations, the natural location for the
-<i>attribute-specifier-seq</i> is after the <tt>namespace</tt> keyword.</p>
-
-<h3>Meaning of deprecating a namespace</h3>
-
-<p>Following the lead of N3394, this paper provides no normative requirements
-on the effect of deprecating an entity. For an inline namespace, this paper
-suggests that implementations might wish to consider issuing a warning only
-if the name of the namespace is used (and not if entities within that
-namespace are named as members of a surrounding namespace). This allows a
-library author to discourage its clients from naming an inline namespace
-directly, while still allowing access to its members. With this approach,
-deprecating an unnamed namespace would have no effect, and implementations
-may wish to issue a warning on such a construct.
-
-<h2><a name="Wording">Proposed Wording</a></h2>
+<h2><a name="Wording">Wording</a></h2>
 
 <p>
 Change in 7.2 (dcl.enum) paragraph 1:

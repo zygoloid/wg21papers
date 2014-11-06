@@ -55,112 +55,15 @@ td { text-align: left; vertical-align: top;
 <div style="text-align: right; float: right">
 <p>
 ISO/IEC JTC1 SC22 WG21<br>
-Dxxxx<br>
+N4268<br>
 Richard Smith<br>
 richard@metafoo.co.uk<br>
-2014-11-04
+2014-11-05
 </div>
 
 <h1>Allow constant evaluation for all non-type template arguments</h1>
 
-<h2><a name="Motivation">Motivation</a></h2>
-
-<p>C++ supports the following kinds of non-type template parameters
-and non-type template arguments (see [temp.param]/4 and [temp.arg.nontype]/1,5):
-
-<table>
-<tr><th>Parameter type</th><th>Argument syntax</th></tr>
-<tr><td>Integral or enumeration</td>
-    <td>Arbitrary constant expression</td></tr>
-<tr><td>Pointer type</td>
-    <td>Exact syntax <tt>&entity</tt>, <tt>array</tt>, <tt>function</tt>,<br/>
-        referring to a static storage duration object or function with linkage, or<br/>
-        arbitrary constant expression that evaluates to a null pointer</td>
-<tr><td>Reference type</td>
-    <td>Exact syntax <tt>object</tt>, <tt>function</tt>,<br/>
-        referring to a static storage duration object or function with linkage</td>
-<tr><td>Pointer to member</td>
-    <td>Exact syntax <tt>&X::y</tt>, or<br/>
-        arbitrary constant expression that evaluates to a null pointer-to-member</td>
-<tr><td><tt>std::nullptr_t</tt></td>
-    <td>Arbitrary constant expression</td></tr>
-</table>
-
-<p>The syntactic restrictions for pointers, references, and pointers to members
-are awkward and prevent reasonable refactorings. For instance:
-
-<pre class="extract">
-template&lt;int *p> struct A {};
-int n;
-A&lt;&n> a; // ok
-
-constexpr int *p() { return &amp;n; }
-A&lt;p()> b; // error
-</pre>
-
-<p>The same refactorings work fine for integral types. They also work fine if
-the template argument happens to evaluate to a null pointer:
-
-<pre class="extract">
-constexpr int *q() { return nullptr; }
-A&lt;q()> c; // ok!
-</pre>
-
-<p>The historical reason for the restriction was most likely that C++
-previously did not have a sufficiently strong specification for constant
-expressions of pointer, reference, or pointer-to-member type. However, that is
-no longer the case. The status quo is that an implementation is required to
-evaluate such a template argument, but must then discard the result if it turns
-out to not be null.
-
-<p>In addition to the above, the restriction to entities with linkage is an
-artifact of exported templates, and could have been removed when the linkage
-restrictions on template type parameters were removed.
-
-<p>This paper proposes revising the above table as follows:
-
-<table>
-<tr><th>Parameter type</th><th>Argument syntax</th></tr>
-<tr><td>Integral or enumeration</td>
-    <td>Arbitrary constant expression</td></tr>
-<tr><td>Pointer type</td>
-    <td>Arbitrary constant expression that evaluates to the address of a
-        complete object with static storage duration, a function, or a null
-        pointer</td>
-<tr><td>Reference type</td>
-    <td>Arbitrary constant expression that evaluates to a glvalue referring to a
-        complete object with static storage duration or to a function.</td>
-<tr><td>Pointer to member</td>
-    <td>Arbitrary constant expression</td>
-<tr><td><tt>std::nullptr_t</tt></td>
-    <td>Arbitrary constant expression</td></tr>
-</table>
-
-<p>The restriction that the constant expression must name a complete object
-is retained to avoid aliasing problems with pointers to subobjects:
-
-<pre class="extract">
-struct A { int x, y; } a;
-template&lt;int*> struct Z;
-using B = Z&lt;&a.x + 1>;
-using C = Z&lt;&a.y>;
-// Are B and C the same type?
-</pre>
-
-<p>Additionally, the (previously implicit) restriction against string literals,
-temporaries, and <tt>typeid</tt> expressions is retained, because those
-expressions are not required to produce the same object each time they are
-evaluated.
-
-<p>This paper also proposes to allow the conversions permitted in converted
-constant expressions for all non-type template arguments. In particular, this
-allows lvalue-to-rvalue conversions (supporting <tt>constexpr</tt> globals of
-the type of the template parameter) and user-defined conversions (supporting
-arguments of literal class type with appropriate user-defined <tt>constexpr</tt>
-conversion operators). Such conversions are already permitted for non-type
-template parameters of integral or enumeration type.
-
-<h2><a name="Wording">Proposed Wording</a></h2>
+<h2><a name="Wording">Wording</a></h2>
 
 <p>
 Change in 5.19 (expr.const) paragraph 3 and convert to a bulleted list:
