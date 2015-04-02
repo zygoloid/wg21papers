@@ -18,6 +18,8 @@ DRAFT 1776
 DRAFT 1590: trivially copyable means has >=1 trivial copy or move, and a trivial dtor. extra copy is possible for trivially copyable classes. deleted special member is nontrivial (1928).
 DRAFT 1936: 14.5.6.1/5 should apply here, but don't make this a dependent name (that means we do ADL stuff). update 14.6.4 to indicate that members of unknown specializations are not bound early.
 
+allow default construction of no-capture lambdas
+
 "You gotta know when to hold 'em
 Know when to fold 'em
 Know when you need parens
