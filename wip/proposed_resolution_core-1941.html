@@ -31,6 +31,22 @@ Remove 12.9 class.inhctor, "Inheriting constructors".
 </p>
 
 <p>
+Change in 3.9 basic.types paragraph 10:
+</p>
+<blockquote>
+A type is a <em>literal type</em> if it is:
+<ul><li>&hellip;
+    <li>a class type (Clause 9) that has all of the following properties:
+      <ul><li>&hellip;
+          <li>it is an aggregate type (8.5.1) or has <ins>or inherits (7.3.3)</ins>
+              at least one <tt>constexpr</tt> constructor or constructor template
+              that is not a copy or move constructor, and
+          <li> &hellip;
+      </ul>
+</ul>
+</blockquote>
+
+<p>
 Change in 7.1.5 dcl.constexpr paragraph 5:
 </p>
 <blockquote>
@@ -332,7 +348,7 @@ while writing a message to the standard log whenever an object of class
 <p>
 If the constructor was inherited from multiple direct base classes, then the
 constructor shall be a constructor for an unambiguous base class <tt>X</tt>
-of <tt>D</tt>. The constructor is used to initialize the most-derived virtual
+of <tt>D</tt>. The constructor is used to initialize the least-derived virtual
 base class of <tt>D</tt> that is either <tt>X</tt> or derived from <tt>X</tt>.
 [ Example:
 <pre>
