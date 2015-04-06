@@ -50,8 +50,8 @@ A type is a <em>literal type</em> if it is:
 Change in 7.1.5 dcl.constexpr paragraph 5:
 </p>
 <blockquote>
-For a non-template, non-defaulted constexpr function or <del>a non-template, non-defaulted, non-inheriting</del>
-constexpr constructor, if no argument values exist such that &hellip;
+For a <del>non-template, non-defaulted</del> constexpr function or <del>a non-template, non-defaulted, non-inheriting</del>
+constexpr constructor <ins>that is neither defaulted nor a template</ins>, if no argument values exist such that &hellip;
 </blockquote>
 
 <p>
@@ -85,7 +85,7 @@ in which the <i>using-declaration</i> appears
 Only the specified name is so declared;
 specifying an enumeration name in a <i>using-declaration</i>
 does not declare its enumerators in the <i>using-declaration</i>'s declarative region.
-- end note ]
+&mdash; end note ]
 
 If a <i>using-declaration</i> names a constructor (3.4.3.1), it
 implicitly declares a set of constructors in the
@@ -101,7 +101,7 @@ a synonym for <del>a</del><ins>the</ins> set of declarations
 Only the specified name is so declared;
 specifying an enumeration name in a <i>using-declaration</i>
 does not declare its enumerators in the <i>using-declaration</i>'s declarative region.
-- end note ]
+&mdash; end note ]
 </ins>
 <ins>If the <i>using-declaration</i> names a constructor, it declares that the
 class <em>inherits</em> the set of constructor declarations introduced
@@ -164,9 +164,9 @@ override and/or hide
 member functions and member function templates
 with the same name, parameter-type-list (8.3.5), cv-qualification, and <i>ref-qualifier</i> (if any)
 in a base class (rather than conflicting).
-<ins>Such declarations are excluded from the set of declarations introduced
+<ins>Such hidden or overridden declarations are excluded from the set of declarations introduced
 by the <i>using-declaration</i>.</ins>
-<del>[ Note: For using-declarations that name a constructor, see 12.9. - end note ]</del>
+<del>[ Note: For using-declarations that name a constructor, see 12.9. &mdash; end note ]</del>
 [ Example:
 <pre>
 struct B {
@@ -202,7 +202,7 @@ Add a new paragraph after 7.3.3 namespace.udecl paragraph 15:
 </p>
 <blockquote class="ins">
 When a <i>using-declaration</i> declares that a class inherits constructors from
-another class, the default constructor, copy constructor, and move constructor (if any)
+a base class, the default constructor, copy constructor, and move constructor (if any)
 of the base class are excluded from the set of introduced declarations.
 </blockquote>
 
@@ -278,8 +278,9 @@ Change in 10 class.derived paragraph 2:
 Unless redeclared in the derived class,
 members of a base class are also considered to be members of the derived class.
 <del>The</del>
-<ins>Members of the</ins> base class <del>members</del><ins>other than constructors</ins>
+<ins>Members of a</ins> base class<del> members</del><ins> other than constructors</ins>
 are said to be <em>inherited</em> by the derived class.
+<ins>Constructors of a base class can also be inherited as described in 7.3.3.</ins>
 Inherited members can be referred to in expressions in the same manner
 as other members of the derived class, unless their names are hidden or ambiguous (10.2).
 &hellip;
@@ -354,8 +355,8 @@ base class of <tt>D</tt> that is either <tt>X</tt> or derived from <tt>X</tt>.
 <pre>
 struct B { B(int); };
 
-struct C1 : virtual B { using B::B; };
-struct C2 : virtual B { using B::B; };
+struct C1 : B { using B::B; };
+struct C2 : B { using B::B; };
 
 struct V1 : virtual B { using B::B; };
 struct V2 : virtual B { using B::B; };
@@ -380,7 +381,7 @@ D2 d2(0); // OK: initializes virtual B base class
 non-static member function inherited from multiple base classes.</em>
 
 <li>
-<p>When an object is initialized by an inheriting consturctor, the principal
+<p>When an object is initialized by an inheriting constructor, the principal
 constructor (12.6.2, 15.2) for the object is considered to have completed
 execution when the initialization of all subobjects is complete.
 </p>
@@ -422,7 +423,7 @@ combined with a set <em>S</em> defined by the form of <tt>e</tt>, as follows:
 <ul>
 <li>If <tt>e</tt> is a function call, &hellip;
 <li>If <tt>e</tt> implicitly invokes a function &hellip;
-<li><ins>If <tt>e</tt> initializes of an object of type <tt>D</tt>
+<li><ins>If <tt>e</tt> initializes an object of type <tt>D</tt>
 using an inherited constructor for a class of type <tt>B</tt> ([class.inhctor.init]),
 <em>S</em> also contains
 the sets of potential exceptions of
@@ -462,7 +463,7 @@ where S is the set of potential exceptions of the implicitly-declared <ins>speci
 <ul><li>&hellip;</ul>
 <del>
 [ Note: An instantiation of an inheriting constructor template has an implied exception specification as if it
-were a non-template inheriting constructor. - end note ]
+were a non-template inheriting constructor. &mdash; end note ]
 </del>
 [ Example: &hellip; ]
 </blockquote>
