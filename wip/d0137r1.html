@@ -551,8 +551,9 @@ or a trivial assignment operator (12.8),
 for each
 element <tt>X</tt> of <i>S(E1)</i>, if modification of <tt>X</tt>
 would have undefined behavior under 3.8 [basic.life], an object of
-the type of <tt>X</tt> is implicitly created with vacuous initialization in
-the nominated storage; the beginning of its lifetime is sequenced after
+the type of <tt>X</tt> is implicitly created in the nominated storage;
+no initialiation is performed and
+the beginning of its lifetime is sequenced after
 the value computation of the left and right operands and before the
 assignment.
 [&nbsp;<em>Note</em>:
