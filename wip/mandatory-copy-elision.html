@@ -26,7 +26,7 @@ ISO/IEC JTC1 SC22 WG21<br>
 Dxxxx<br>
 Richard Smith<br>
 richard@metafoo.co.uk<br>
-2015-09-21<br>
+2015-09-27<br>
 </div>
 
 <h1>Guaranteed copy elision through simplified value categories</h1>
@@ -96,13 +96,13 @@ why the current approach to copy elision is problematic. Here are some highlight
 
 <pre>
 struct NonMoveable {
-  NonMoveable(/*...*/);
+  NonMoveable(int);
   NonMoveable(NonMoveable&amp;) = delete;
   void NonMoveable(NonMoveable&amp;) = delete;
   std::array&lt;int, 1024> arr;
 };
 NonMoveable make() {
-  return NonMoveable(/*...*/); // ok, directly constructs returned object
+  return NonMoveable(42); // ok, directly constructs returned object
 }
 auto nm = make(); // ok, directly constructs 'nm'
 </pre>
@@ -173,10 +173,15 @@ not necessary to create this temporary object. For instance:
 NonMoveable make() {
   // The object initialized by 'make()' is initialized by the following
   // constructor call.
-  return NonMoveable(/*...*/);
+  return NonMoveable(42);
 }
 // Use 'make()' to directly initialize 'nm'. No temporary objects are created.
 auto nm = make();
+
+NonMoveable x = {5}; // ok today
+NonMoveable x = 5; // equivalent to NonMoveable x = NonMoveable(5),
+                   // ill-formed today (creates a temporary but can't move it),
+                   // ok under this proposal (does not create a temporary object)
 </pre>
 
 <p>We conclude that a prvalue expression of class or array type should
@@ -189,6 +194,8 @@ that require a temporary object to be created ("materialized") are as follows:
   <li>when member access is performed on a class prvalue
   <li>when array subscripting is performed on an array prvalue
   <li>when an array prvalue is decayed to a pointer
+  <li>when a derived-to-base conversion os performed on a class prvalue
+  <li>when a prvalue is used as a discarded value expression
 </ul>
 
 Note that the first rule here already exists in the standard, to support
@@ -219,8 +226,10 @@ the conceptual model that <tt>Type(...)</tt> creates a temporary object. However
 that model is partially an illusion: it only explains the behavior when
 <tt>Type</tt> is a class type.
 
-<h2>Proposed wording</h2>
+<h2>Acknowledgements</h2>
 
-TODO
+The author wishes to thank David Krauss and Jonathan Coe for their feedback on
+this proposal, and all the contributors to the std-proposals discussions on
+this topic for their ideas.
 
 </body></html>
