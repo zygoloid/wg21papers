@@ -1,0 +1,253 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>Wording for guaranteed copy elision through simplified value categories</title>
+
+<style type="text/css">
+  ins, ins * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del, del * { text-decoration:line-through; background-color:#FFA0A0 }
+  #hidedel:checked ~ * del, #hidedel:checked ~ * del * { display:none; visibility:hidden }
+
+blockquote { color: #000000; background-color: #F1F1F1;
+  border: 1px solid #D1D1D1;
+  padding-left: 0.5em; padding-right: 0.5em; }
+blockquote.stdins { text-decoration: underline;
+  color: #000000; background-color: #C8FFC8;
+  border: 1px solid #B3EBB3; padding: 0.5em; }
+blockquote.stddel { text-decoration: line-through;
+  color: #000000; background-color: #FFEBFF;
+  border: 1px solid #ECD7EC;
+  padding-left: 0.5em; padding-right: 0.5em; }
+</style>
+
+</head>
+
+<body>
+<div style="text-align: right; float: right">
+ISO/IEC JTC1 SC22 WG21<br>
+D0135R1<br>
+Richard Smith<br>
+richard@metafoo.co.uk<br>
+2016-02-10<br>
+</div>
+
+<!--
+
+FIXME: Feedback from rjmccall:
+
+ when an object is being initialized through a function call (either as the
+ result object or through a constructor), behavior is undefined if the object
+ is accessed through any path other than the result object or 'this' pointer,
+ respectively
+
+-->
+
+<!--
+[&nbsp;<em>Note:</em> 
+]
+-->
+
+<h1>Wording for guaranteed copy elision through simplified value categories</h1>
+
+This paper provides wording for <a href="http://wg21.link/p0135r0.html">P0135R0</a>.
+
+<p>Change in 3.10 [basic.lval] paragraph 1:
+
+<blockquote>
+Expressions are categorized according to the taxonomy in Figure 1. [Figure 1: Expression category taxonomy]
+
+<ul>
+  <li><del>An <i>lvalue</i> [&hellip;]</del>
+  <li><del>[&hellip;]</del>
+  <li><del>A <i>prvalue</i>[&hellip;]</del>
+  <li><ins>A <i>glvalue</i> is an expression whose evaluation computes the location of an object, bit-field, or function.</ins>
+  <li><ins>A <i>prvalue</i> is an expression whose evaluation initializes an object, bit-field, or the operand of an operator, as specified by the context in which it appears.</ins>
+  <li><ins>An <i>xvalue</i> is a glvalue that denotes an object or
+      bit-field whose resources can be reused (usually because it is near the
+      end of its lifetime). [&nbsp;<em>Example:</em> Certain kinds of expressions
+      involving rvalue references (8.3.2) yield xvalues, such as a call to a function whose
+      return type is an rvalue reference or a cast to an rvalue reference type.&nbsp;]</ins>
+  <li><ins>An <i>lvalue</i> is a glvalue that is not an xvalue.</ins>
+  <li><ins>An <i>rvalue</i> is a prvalue or an xvalue.</ins>
+</ul>
+
+<ins>[&nbsp;<em>Note:</em>
+Historically, lvalues and rvalues were so-called because
+they could appear on the left- and right-hand side of an
+assignment (although this is no longer generally true);
+glvalues are "generalized" lvalues,
+prvalues are "pure" rvalues,
+and xvalues are "eXpiring" lvalues.
+Despite their names, these terms classify expressions, not values.
+]</ins>
+
+Every expression belongs to exactly one of the fundamental classifications in this taxonomy: lvalue, xvalue, or prvalue. This property of an expression is called its <ins>value category</ins>. [&hellip;]
+</blockquote>
+
+<p>Insert a new paragraph after 3.10 [basic.lval] paragraph 1:
+
+<blockquote class="stdins">
+The <em>result</em> of a prvalue is the value that the expression stores into
+its context. For a prvalue of class or array type, the <em>result object</em>
+is the object initialized by the prvalue. A prvalue whose result is the value
+<tt>V</tt> is sometimes said to have or name the value <tt>V</tt>.
+The <em>result</em> of a glvalue is the entity denoted by the expression.
+</blockquote>
+
+<p>Add a new paragraph after 3.10 [basic.lval] paragraph 2 ("Whenever a glvalue appears in a context where a prvalue is expected"):
+
+<blockquote class="stdins">
+Whenever a prvalue appears in a context where an xvalue or lvalue is expected, the glvalue is converted to
+an xvalue; see [conv.rval]. [&nbsp;<em>Note</em>: This allows an rvalue reference or const lvalue reference
+to bind to a prvalue; see 8.5.3.&nbsp;]
+</blockquote>
+
+<p>Delete 3.10 [basic.lval] paragraphs 5 - 8 and change in paragraph 9:
+
+<blockquote>
+<del>If an expression can be used to modify the object to which it refers, the expression is called modifiable.</del>
+An lvalue is <em>modifiable</em> unless its type is <tt>const</tt>-qualified or is a function type.
+<ins>[&nbsp;<em>Note:</em></ins>
+A program that attempts to modify an object through a nonmodifiable lvalue <ins>expression</ins> or
+<ins>through an</ins> rvalue expression is ill-formed ([expr.ass], [expr.post.inc], [expr.pre.inc]).
+<ins>]</ins>
+</blockquote>
+
+<p>Change in 4 [conv] paragraph 1:
+
+<blockquote>
+Standard conversions are implicit conversions with built-in meaning. Clause 4 enumerates the full set of such
+conversions. A standard conversion sequence is a sequence of standard conversions in the following order:
+<ul>
+<li>
+ Zero or one conversion from the following set: lvalue-to-rvalue conversion, array-to-pointer conversion,
+ <del>and</del> function-to-pointer conversion<ins>, and temporary materialization conversion</ins>.
+<li>
+ Zero or one conversion from the following set: integral promotions, floating point promotion, integral
+ conversions, floating point conversions, floating-integral conversions, pointer conversions, pointer to
+ member conversions, and boolean conversions.
+<li>
+ Zero or one function pointer conversion.
+<li>
+  Zero or one qualification conversion.
+</ul>
+[&nbsp;<em>Note:</em>
+A standard conversion sequence can be empty, i.e., it can consist of no conversions.
+A temporary materialization conversion cannot be combined with any other conversion, as all
+later conversions act only on prvalues.
+]
+A standard conversion sequence will be applied to an expression if necessary to convert it to a required
+destination type <ins>and value category</ins>.
+</blockquote>
+
+<p>Change in 4.1 [conv.lval] paragraph 1, second footnote (footnote 55):
+
+<blockquote>
+In C++ class <ins>and array</ins> prvalues can have cv-qualified types<del>
+(because they are objects)</del>. This differs from ISO C, in which
+non-lvalues never have cv-qualified types.
+</blockquote>
+
+<p>Change in 4.1 [conv.lval] paragraph 2:
+
+<blockquote>
+When an lvalue-to-rvalue conversion is applied to an expression <tt>e</tt>, and [&hellip;] the value contained in the referenced object is not accessed.
+[&nbsp;<em>Example:</em> &hellip;&nbsp;] <del>In all other cases,</del> The result of the conversion is determined according to the following rules:
+<ul>
+<li>If T is (possibly cv-qualified) std::nullptr_t, the result is a null pointer constant (4.10).
+<li>Otherwise, if T has a class type, the conversion copy-initializes <del>a temporary of type T</del> <ins>the result object</ins> from the glvalue
+    <del>and the result of the conversion is a prvalue for the temporary</del>.
+<li>Otherwise, if the object to which the glvalue refers contains an invalid pointer value (3.7.4.2, 3.7.4.3),
+    the behavior is implementation-defined.
+<li>Otherwise, the value contained in the object indicated by the glvalue is the prvalue result.
+</ul>
+</blockquote>
+
+<p>Insert a new subclause after 4.3:
+
+<blockquote class="stdins">
+<h2>4.4 Temporary materialization conversion [conv.rval]</h2>
+<p>A prvalue of type <tt>T</tt> can be converted to an xvalue of type
+<tt>T</tt>. This conversion initializes a temporary object ([class.temporary])
+of type <tt>T</tt> from the prvalue, and produces an xvalue denoting the
+temporary object.
+[&nbsp;<em>Example:</em>
+<pre>struct X { int n; }
+int k = X().n; // ok, X() prvalue is converted to xvalue
+
+]
+</blockquote>
+
+<p>Insert a new paragraph after 5 [expr] paragraph 9 ("Whenever a glvalue expressions as an operand of an operator that expects a prvalue"):
+
+<blockquote class="stdins">
+Whenever an rvalue expression appears as an operand of an operator that expects
+an xvalue or a glvalue for that operand, the temporary materialization
+conversion ([conv.rval]) is applied to convert the expression to an xvalue.
+</blockquote>
+
+<p>Change in 5 [expr] paragraph 11:
+
+<blockquote>
+In some contexts, an expression only appears for its side effects.
+Such an expression is called a <em>discarded-value expression</em>.
+<del>The expression is evaluated and its value is discarded.</del>
+The array-to-pointer (4.2) and function-to-pointer (4.3) standard conversions are not applied.
+The lvalue-to-rvalue conversion (4.1) is applied if and
+only if the expression is a glvalue of
+<del>volatile-qualified</del> type <ins><tt>volatile T</tt></ins>
+and it is one of the following:
+[&hellip;]
+[&nbsp;<em>Note:</em> Using an overloaded operator causes a function call; the above covers only operators with built-in
+meaning. <ins>&nbsp;]
+If the expression is a prvalue after this optional conversion, a temporary
+of type <tt>T</tt> is created and initialized from the prvalue, and then discarded.
+[&nbsp;<em>Note:</em></ins>
+If the <ins>expression is an</ins> lvalue <del>is</del> of class type, it must
+have a volatile copy constructor to initialize the temporary that is the result
+of the lvalue-to-rvalue conversion. ]
+<ins>Otherwise, the expression is evaluated and its value is discarded.</ins>
+</blockquote>
+
+<em>Drafting note: it is no longer meaningful to evaluate a prvalue expression
+of class or array type without specifying an object to initialize from it, as
+the prvalue does not itself create such an object.</em>
+
+<p>Change in 5.1.2 [expr.prim.lambda] paragraph 2:
+
+<blockquote>
+The evaluation of a <em>lambda-expression</em> results in a prvalue <del>temporary (12.2). This temporary is</del> <ins>whose result object is</ins> called the <em>closure object</em>. [&hellip;]
+</blockquote>
+
+<p>Change in 5.2.1 [expr.sub] paragraph 1:
+
+<blockquote>
+A postfix expression followed by an expression in square brackets is a postfix expression. One of the expressions
+shall <del>have the</del><ins>be a glvalue of</ins> type "array of T" or <ins>a prvalue of type</ins> "pointer to T"
+and the other <del>shall have</del> <ins>be a prvalue of</ins> unscoped enumeration or integral type.
+[&hellip;] in the case of an array operand, the result <del>is an lvalue if that operand is an lvalue and an xvalue otherwise</del> <ins>has the same value category as the array operand</ins>.
+</blockquote>
+
+<p>Change in 5.2.2 [expr.call] paragraph 4:
+
+<blockquote>
+[&hellip;]
+<del>
+During the initialization of a
+parameter, an implementation may avoid the construction of extra temporaries by combining the conversions
+on the associated argument and/or the construction of temporaries with the initialization of the parameter
+(see 12.2).
+</del>
+<del>The</del>
+<ins>It is implementation-defined whether the</ins>
+lifetime of a parameter ends when the function in which it is defined returns
+<ins> or at the end of the enclosing full-expression</ins>.
+[&hellip;]
+The <del>value</del><ins>result</ins> of a function call
+is the <del>value returned by</del>
+<ins>result of the operand of the evaluated <tt>return</tt> statement ([stmt.return]) in</ins>
+the called function <ins>(if any)</ins>,
+except in a virtual function call
+if the return type of the final overrider is different
+from the return type of the statically chosen function,
+the value returned from the final overrider is converted
+to the return type of the statically chosen function.
+</blockquote>
