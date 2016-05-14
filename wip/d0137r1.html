@@ -47,13 +47,13 @@ Core Issue <a href="http://wg21.link/cwg1116">1116</a>: Aliasing of union member
 
 TODO:
 
-address the array of unsigned char problem:
- - storage is such an array
- - such an array can provide the storage for another object
-
 add annex C extension
 
 discuss the "addressable bytes of storage" question
+
+resolve 2182:
+ - the vector<T> issue: NAD, fix the library
+ - the 'struct Base {...}; struct Derived : Base {}; Derived d[20]; Base *p = d; Base *q = &p[10]; ' issue
 
 -->
 
