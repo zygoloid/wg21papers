@@ -178,11 +178,13 @@ When an lvalue-to-rvalue conversion is applied to an expression <tt>e</tt>, and 
 <p>A prvalue of type <tt>T</tt> can be converted to an xvalue of type
 <tt>T</tt>. This conversion initializes a temporary object ([class.temporary])
 of type <tt>T</tt> from the prvalue, and produces an xvalue denoting the
-temporary object.
+temporary object. <tt>T</tt> shall be a complete type. If <tt>T</tt> is
+a class type (or array thereof), the destructor is invoked implicitly
+([class.dtor]).
 [&nbsp;<em>Example</em>:
 <pre>struct X { int n; }
 int k = X().n; // ok, X() prvalue is converted to xvalue
-
+</pre>
 ]
 </blockquote>
 
@@ -372,11 +374,6 @@ and the result is an xvalue of the type referred to by <tt>T</tt>.
 
 <em>Drafting note: a temporary is materialized if the operand is a prvalue.</em>
 
-<p>
-<em>FIXME: <tt>typeid(make<X>())</tt> and <tt>sizeof(make<X>())</tt> should
-either explicitly materialize a temporary or explicitly say that they act like
-<tt>decltype</tt>.</em>
-
 <p>Change in 5.2.9 [expr.static.cast] paragraph 3:
 
 <blockquote>
@@ -428,6 +425,34 @@ The result of a reference <tt>const_cast</tt> refers to the original object
 <ins>if the operand is a glvalue and to the result of applying the temporary
 materialization conversion ([conv.rval]) otherwise</ins>.
 </blockquote>
+
+<p>Change in 5.2.8 [expr.typeid] paragraph 3:
+
+<blockquote>
+When <tt>typeid</tt> is applied to an expression other than a glvalue of a
+polymorphic class type, the result refers to a <tt>std::type_info</tt> object
+representing the static type of the expression. Lvalue-to-rvalue (4.1),
+array-to-pointer (4.2), and function-to-pointer (4.3) conversions are not
+applied to the expression.
+<del>If the type of the expression is a class type, the
+class shall be completely-defined.</del>
+<ins>If the expression is a prvalue, the temporary materialization conversion
+([conv.rval]) is applied.</ins>
+The expression is an unevaluated operand (Clause 5).
+</blockquote>
+
+<p>Change in 5.3.3 [expr.sizeof] paragraph 4:
+
+<blockquote>
+The lvalue-to-rvalue (4.1), array-to-pointer (4.2), and function-to-pointer
+(4.3) standard conversions are not applied to the operand of <tt>sizeof</tt>.
+<ins>If the operand is a prvalue, the temporary materialization conversion
+([conv.rval]) is applied.</ins>
+</blockquote>
+
+<em>Drafting note: this maintains the status quo. We could alternatively
+remove these conversions and allow <tt>typeid</tt> and <tt>sizeof</tt> to
+behave more like <tt>decltype</tt>.</em>
 
 <p>Change in 5.5 [expr.mptr.oper] paragraph 2:
 
@@ -640,6 +665,12 @@ where <tt>N</tt> is the number of elements in the initializer list.
 [&hellip;]
 </blockquote>
 
+<p>Change in 12.4 [class.dtor] paragraph 11 bullet 4:
+
+<blockquote>
+<ul><li>for a constructed temporary object when its lifetime ends (<ins>[conv.rval], </ins> [class.temporary])</ul>
+</blockquote>
+
 <p>Change in 12.8 [class.copy] bullet 31.1:
 
 <blockquote>
@@ -698,4 +729,3 @@ but it is the move construction from the <del>temporary</del>
  result object or through a constructor), behavior should be undefined if the object
  is accessed through any path other than the result object or 'this' pointer,
  respectively -- this otherwise makes returning through registers observable</em>
-
