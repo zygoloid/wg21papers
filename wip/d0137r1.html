@@ -26,43 +26,38 @@ ISO/IEC JTC1 SC22 WG21<br>
 D0137R1<br>
 Richard Smith<br>
 richard@metafoo.co.uk<br>
-2015-10-19<br>
+2016-02-29<br>
 </div>
 
-<h1>Core Issue 1776: Replacement of class objects containing reference members</h1>
+<h1>Core Issue <a href="http://wg21.link/cwg1776">1776</a>: Replacement of class objects containing reference members</h1>
 
 And also:<br>
-Core Issue 1116: Aliasing of union members<br>
-Core Issue 2151: Exception is not created<br>
+Core Issue <a href="http://wg21.link/cwg1116">1116</a>: Aliasing of union members
+</p>
+
+<h2>Changes since <a href="http://wg21.link/p0137r0">R0</a></h2>
+<ul>
+  <li>creating a new object that exactly displaces a subobject of an existing object creates a new subobject of that existing object
+  <li>assigning to a union member access expression can change the active union member
+  <li>an array of <tt>unsigned char</tt> can be used to hold other objects
+  <li>reallow casts between pointer types to work in a small handful of C-compatible cases (between a struct and its first member etc)
+</ul>
 
 <!--
 
-DONE:
-1.8p1: object occupies storage during period of construction and period of destruction
-3.8p7: add cross-reference to std::launder and a note explaining when to use it
-3.9.2p3: "pointer past the end of an object represents the address of the first byte"... no, it does not! say exactly what it does mean.
-3.9.2p3:
-  Every value of pointer type is one of the following:
-    - a pointer to
-    - a pointer past the end of
-    - a null pointer value
-    - an invalid pointer value
-3.9.2, 5.7: Replace "... element i" with "an array <ins>x</ins> of n elements [...] element x[i]".
-3.9.2p3: s/object pointer type cv T*/pointer type/
-8.3.4: add wording to say that a pointer to an array object represents the same address as a pointer to the array's first element (but you can't alias between them).
-vacuous initialization of a union should not start the lifetime of any union member
-union active member change: expr.member = blah (for builtin =) changes active member. likewise for anonymous unions.
-
-NOT DONE:
-3.9.2p3: need a pointer-to-allocated-storage? no, allocating storage gives you an array of unsigned char
-9.5p1: period of construction and destruction here too
-
 TODO:
 
-"Nonetheless": these pointer casts (transitively) should work. Define and use a "cast-equivalent pointer set" or similar?
-launder: don't increase the region of accessible storage
+address the array of unsigned char problem:
+ - storage is such an array
+ - such an array can provide the storage for another object
+
+add annex C extension
+
+discuss the "addressable bytes of storage" question
 
 -->
+
+<h2>Core wording</h2>
 
 <input type="checkbox" id="hidedel">Hide deleted text
 
@@ -75,7 +70,7 @@ The constructs in a C++
 program create, destroy, refer to, access, and manipulate objects.
 <ins>
 An <em>object</em> is created by a <em>definition</em> (3.1), by a <em>new-expression</em> (5.3.4)
-or by the implementation (9.5, 12.2) when needed.
+or as explicitly specified elsewhere (9.5, 12.2).
 </ins>
 An <del><em>object</em> is</del><ins>object occupies</ins> a region of storage <ins>in its period of construction (12.7 class.cdtor), throughout its lifetime (3.8 basic.life), and in its period of destruction (12.7 class.cdtor)</ins>.
 [&nbsp;<em>Note</em>:
@@ -96,16 +91,105 @@ or by the implementation (12.2) when needed.
   sufficiently clear with or without that change.</em>
 
 <p>
+Change in 1.8 (intro.object) paragraph 2:
+</p>
+
+<blockquote>
+Objects can contain other objects, called <em>subobjects</em>. A subobject can
+be a <em>member subobject</em> (9.2), a <em>base class subobject</em> (Clause
+10), or an array element. An object that is not a subobject of any other object
+is called a <em>complete object</em>.
+
+<ins>If an object is created in storage associated with a member subobject or
+array element <em>e</em> (which may or may not be within its lifetime),
+the created object is a subobject of <em>e</em>'s containing object if:
+<ul>
+<li>the lifetime of <em>e</em>'s containing object has begun and not ended, and
+<li>the storage for the new object exactly overlays the storage location
+associated with <em>e</em>, and
+<li>the new object is of the same type as <em>e</em> (ignoring cv-qualification).
+</ul>
+[&nbsp;<em>Note</em>: 
+If the subobject contains a reference member or a const subobject,
+the name of the original subobject cannot be used to access the new object.
+&mdash;&nbsp;<em>end note</em>&nbsp;]
+[&nbsp;<em>Example</em>:
+<pre>struct X { const int n; };
+union U { X x; float f; };
+void tong() {
+  U u = {{ 1 }};
+  u.f = 5.f;                          // OK, creates new subobject of 'u' (9.5)
+  X *p = new (&amp;u.x) X {2};            // OK, creates new subobject of 'u'
+  assert(p-&gt;n == 2);                  // OK
+  assert(*std::launder(&amp;u.x.n) == 2); // OK
+  assert(u.x.n == 2);                 // undefined behavior, 'u.x' does not name new subobject
+}</pre>
+&mdash;&nbsp;<em>end example</em>&nbsp;]
+</ins>
+</blockquote>
+
+<p>
+Add a new paragraph after 1.8 (intro.object) paragraph 2:
+</p>
+
+<blockquote class=stdins>
+If a complete object is created (5.3.4) in storage associated with another
+object <em>e</em> of type "array of <tt>N unsigned char</tt>",
+that array <em>provides storage</em> for the created object if:
+<ul>
+<li>the lifetime of <em>e</em> has begun and not ended, and
+<li>the storage for the new object fits entirely within <em>e</em>, and
+<li>there is no smaller array object that satisfies these constraints.
+</ul>
+[&nbsp;<em>Note</em>: 
+If that portion of the array previously provided storage for another
+object, the lifetime of that object ends because its storage was reused
+([basic.life]).
+&mdash;&nbsp;<em>end note</em>&nbsp;]
+[&nbsp;<em>Example</em>:
+<pre>template&lt;typename ...T>
+struct AlignedUnion {
+  alignas(T...) unsigned char data[max(sizeof(T)...)];
+};
+int f() {
+  AlignedUnion&lt;int, char> au;
+  int *p = new (au.data) int; // OK, au.data provides storage
+  char *c = new (au.data) char(); // OK, ends lifetime of *p
+  char *d = new (au.data + 1) char();
+  return *c + *d; // OK
+}
+</pre>
+&mdash;&nbsp;<em>end example</em>&nbsp;]
+</ins>
+</blockquote>
+
+<p>
+Add another new paragraph after 1.8 (intro.object) paragraph 2:
+</p>
+
+<blockquote class=stdins>
+An object <tt>a</tt> is <em>nested within</em> another object <tt>b</tt> if:
+<ul>
+  <li><tt>a</tt> is a subobject of <tt>b</tt>, or
+  <li><tt>b</tt> provides storage for <tt>a</tt>, or
+  <li>there exists an object <tt>c</tt> where <tt>a</tt> is nested within
+  <tt>c</tt>, and <tt>c</tt> is nested within <tt>b</tt>.
+</ul>
+</blockquote>
+
+<p>
 Change in 1.8 (intro.object) paragraph 6:
 </p>
 
 <blockquote>
 Unless an object is a bit-field or a base class subobject of zero size,
 the address of that object is the address of the first byte it occupies.
-Two objects <ins>with overlapping lifetimes</ins> that are not bit-fields
-may have the same address if one is a subobject of the other,
-or if at least one is a base class subobject of zero size and they are of different types;
-otherwise, they shall have distinct addresses. [Footnote: &hellip;] [Example: &hellip;]
+Two objects <ins><tt>a</tt> and <tt>b</tt> with overlapping lifetimes</ins>
+that are not bit-fields
+may have the same address if
+one is <del>a subobject of</del> <ins>nested within</ins> the other, or
+if at least one is a base class subobject of zero size and they are of different types;
+otherwise, they <del>shall</del> have distinct addresses. [Footnote: &hellip;] [Example: &hellip;]
 </blockquote>
 
 <p>
@@ -115,7 +199,7 @@ Add a new paragraph after 3.7 (basic.stc) paragraph 3:
 <blockquote class="stdins">
 When the end of the duration of a region of storage is reached,
 the values of all pointers representing the address of
-any part of the deallocated storage
+any part of that region of storage
 become invalid pointer values ([basic.compound]).
 Indirection through
 an invalid pointer value and passing an invalid pointer value to a deallocation
@@ -183,13 +267,17 @@ constructor is non-vacuous initialization.
 The lifetime of an object of type <tt>T</tt> begins when:
 <ul>
 <li>storage with the proper alignment and size for type T is obtained, and
-<li><ins>if the object is a union member or subobject thereof, that union
-member is the initialized member in the union (8.5.1, 12.6.2), and</ins>
-<li>if the object has non-vacuous initialization, its initialization is complete.
+<li>if the object has non-vacuous initialization, its initialization is complete<del>.</del><ins>,</ins>
 </ul>
-<ins>The lifetime of an object generated by the implementation to hold a union
-  member may also begin as described in 5.2.5.</ins>
-[&hellip;]
+<ins>except that if the object is a union member or subobject thereof,
+its lifetime only begins if that union
+member is the initialized member in the union (8.5.1, 12.6.2), or as described in 9.5.</ins>
+<p>
+The lifetime of an object <em>o</em> of type <tt>T</tt> ends when:
+<ul>
+<li>if T is a class type with a non-trivial destructor (12.4), the destructor call starts, or
+<li>the storage which the object occupies is <ins>released, or is</ins> reused <ins>by an object that is not nested within <em>o</em> ([intro.object])</ins> <del>or released</del>.
+</ul>
 </blockquote>
 
 <p>
@@ -238,12 +326,12 @@ Change in 3.8 (basic.life) paragraph 9:
 </p>
 
 <blockquote>
-Creating a new object at the storage location that a <tt>const</tt> <ins>complete</ins> object with static<del>,</del> <ins>or</ins> thread<del>, or automatic</del> storage
-duration occupies or<del>,</del> at the storage location that such a <tt>const</tt> object used to occupy before its lifetime
-ended results in undefined behavior. [Example: &hellip;]
+Creating a new object <del>at the storage location</del><ins>within the storage</ins> that a <tt>const</tt> <ins>complete</ins> object with static, thread, or automatic storage
+duration occupies<ins>,</ins> or<del>,</del> at the storage location that such a <tt>const</tt> object used to occupy before its lifetime
+ended<ins>,</ins> results in undefined behavior. [Example: &hellip;]
 </blockquote>
 
-<em>This is necessary to allow types such as <tt>std::optional</tt> to contain const subobjects; the existing restriction exists to allow ROMability, and so only affects complete objects and is not necessary for automatic storage duration objects.</em>
+<em>This is necessary to allow types such as <tt>std::optional</tt> to contain const subobjects; the existing restriction exists to allow ROMability, and so only affects complete objects.</em>
 
 <p>
 Change in 3.9.2 (basic.compound) paragraph 3:
@@ -295,6 +383,80 @@ Pointers to cv-qualified and cv-unqualified versions (3.9.3)
 of layout-compatible types
 shall have the same value representation and alignment requirements (3.11).
 [&nbsp;<em>Note</em>: &hellip; &mdash;&nbsp;<em>end note</em>&nbsp;]
+</blockquote>
+
+<p>
+Add a new paragraph after 3.9.2 (basic.compound) paragraph 3:
+</p>
+
+<blockquote class="stdins">
+Two objects <em>a</em> and <em>b</em> are <em>pointer-interconvertible</em> if:
+<ul>
+<li>they are the same object, or
+<li>one is a standard-layout union object and the other is a non-static data member of that object (9.5), or
+<li>one is a standard-layout class object and the other is the
+first non-static data member of that object, or, if the object has no
+non-static data members, the first base class subobject of that object (9.2),
+or
+<li>there exists an object <em>c</em> such that
+<em>a</em> and <em>c</em> are pointer-interconvertible, and
+<em>c</em> and <em>b</em> are pointer-interconvertible.
+</ul>
+If two objects are pointer-interconvertible, then they have the same address, and it is
+possible to obtain a pointer to one from a pointer to the other via a
+<tt>reinterpret_cast</tt> ([expr.reinterpret.cast]).
+[&nbsp;<em>Note</em>:
+An array object and its first element are not pointer-interconvertible, even
+though they have the same address.
+&mdash;&nbsp;<em>end note</em>&nbsp;]</ins>
+</blockquote>
+
+<p>
+Change in 4.10 (conv.ptr) paragraph 2:
+</p>
+
+<blockquote>
+A prvalue of type "pointer to cv T", where T is an object type, can be
+converted to a prvalue of type "pointer to cv void".
+<del>
+The result
+of converting
+a non-null pointer value of a pointer to object type to a "pointer to cv
+void" represents the address of the same byte in memory
+as the original
+pointer value.
+The null pointer value is converted to the null pointer value
+of the destination type.
+</del>
+<ins>The pointer value (3.9.2) is unchanged by this conversion.</ins>
+</blockquote>
+
+<p>
+Change in 5.2.9 (expr.static.cast) paragraph 13:
+</p>
+
+<blockquote>
+A prvalue of type "pointer to cv1 void" can be converted to a prvalue of type
+"pointer to cv2 T", where T is an object type and cv2 is the same
+cv-qualification as, or greater cv-qualification than, cv1. <del>The null pointer
+value is converted to the null pointer value of the destination type.</del>
+If the original pointer value represents the address A of a byte in memory and
+A <del>satisfies</del> <ins>does not satisfy</ins> the alignment requirement of T,
+then the resulting pointer value <ins>is unspecified</ins>
+<del>represents the same address as the original pointer value, that is, A</del>. 
+<ins>
+Otherwise, if the original pointer value points to or past the end of an object <em>a</em>,
+and
+there is an object <em>b</em> of type <tt>T</tt> (ignoring cv-qualification)
+that is pointer-interconvertible (3.9.2) with <em>a</em>,
+the result is a pointer to or past the end of <em>b</em>, respectively.
+Otherwise, the pointer value is unchanged by the conversion.
+</ins>
+<del>
+The result of any other such pointer conversion is unspecified.
+A value of type pointer to object converted to "pointer to cv void" and
+back, possibly with different cv-qualification, shall have its original value. 
+</del>
 </blockquote>
 
 <p>
@@ -431,6 +593,22 @@ members have the same access control (Clause 11) and provided their class is not
 <em>Prior to this change, the result of the comparison was unspecified; now, it is required to hold, because <tt>&amp;s.a + 1</tt> is treated as a pointer to an element of the "array" <tt>s.a</tt>. The value of <tt>&amp;s.b &gt; &amp;s.a + 1</tt> is now specified and is <tt>false</tt> if and only if the pointers represent the same address.</em>
 
 <p>
+Change in 5.20 expr.const paragraph 2 bullet 8:
+</p>
+
+<blockquote>
+an lvalue-to-rvalue conversion (4.1) <del>or modification (5.18, 5.2.6, 5.3.2)</del> that is applied to a glvalue that refers to a non-active member of a union or a subobject thereof;
+</blockquote>
+
+<p>
+Add a new bullet after 5.20 expr.const paragraph 2 bullet 8:
+</p>
+
+<blockquote class="stdins">
+an assignment expression (5.18) or invocation of an assignment operator (12.8) that would change the active member of a union;
+</blockquote>
+
+<p>
 Change in 9.2 class.mem paragraph 19:
 </p>
 
@@ -470,11 +648,8 @@ its first base class subobject (if any).
 [&nbsp;<em>Note</em>:&nbsp;&hellip;&mdash;<em>end note</em>&nbsp;]
 <ins>
 [&nbsp;<em>Note</em>:&nbsp;
-Nonetheless, if a pointer to the object
-is cast to a pointer to
-the type of its first subobject (or vice versa),
-the resulting pointer does not point to the
-subobject and cannot be used to access it.
+The object and its
+first subobject are pointer-interconvertible (3.9.2, 5.2.9).
 &mdash;<em>end note</em>&nbsp;]
 </ins>
 </blockquote>
@@ -510,14 +685,13 @@ standard-layout struct members; see 9.2.
 </p><p>
 The size of a union is sufficient to contain the largest of its non-static data members.
 Each non-static data member is allocated as if it were the sole member of a struct.
-All non-static data members of a union object have the same address.
 <ins>
 [&nbsp;<em>Note</em>:&nbsp;
-Nonetheless, if a pointer to a union object
-is cast to a pointer to
-the type of a non-static data member (or vice versa),
-the resulting pointer does not point to the
-subobject and cannot be used to access it.
+A union object and its non-static data members are pointer-interconvertible
+(3.9.2, 5.2.9). As a consequence,
+</ins>
+all non-static data members of a union object have the same address.
+<ins>
 &mdash;<em>end note</em>&nbsp;]
 </ins>
 </p></blockquote>
@@ -540,9 +714,10 @@ of <tt>E</tt> as follows:
   constructor that is not deleted, or an array of such types.
   <li>If <tt>E</tt> is of the form <tt>A[B]</tt> and
   is interpreted as a built-in array subscripting operator,
-  <i>S(E)</i> is <i>S(A)</i> if <tt>A</tt> is of array type,
-  is <i>S(B)</i> if <tt>B</tt> is of array type,
-  and otherwise is empty.
+  <i>S(E)</i> is
+  <i>S(A)</i> if <tt>A</tt> is of array type,
+  <i>S(B)</i> if <tt>B</tt> is of array type,
+  and empty otherwise.
   <li>Otherwise, <i>S(E)</i> is empty.
 </ul>
 In an assignment expression of the form <tt>E1 = E2</tt>
@@ -558,7 +733,7 @@ the value computation of the left and right operands and before the
 assignment.
 [&nbsp;<em>Note</em>:
 This ends the lifetime of the previously-active member of the union, if any
-(3.8 [basic.life], 9.5 [class.union]).
+(3.8 [basic.life]).
 &mdash;&nbsp;<em>end note</em>&nbsp;]
 [&nbsp;<em>Example</em>:<pre>
 union A { int x; int y[4]; };
@@ -585,6 +760,8 @@ void g() {
 &mdash;&nbsp;<em>end example</em>&nbsp;]
 </blockquote>
 
+<h2>Library wording</h2>
+
 <p>
 Add to 18.6 (support.dynamic) paragraph 1:
 </p>
@@ -602,9 +779,20 @@ Add a new subclause under 18.6 (support.dynamic):
 <blockquote class="stdins">
   <pre>template &lt;class T&gt; constexpr T* launder(T* p) noexcept;</pre>
 
-<p><em>Requires:</em> <tt>p</tt> represents the address <tt>A</tt> of a byte in memory, and an object <tt>X</tt> that is within its lifetime and whose cv-unqualified type is similar to <tt>T</tt> is located at the address <tt>A</tt>.
+<p><em>Requires:</em> <tt>p</tt> represents the address <tt>A</tt> of a byte in
+memory and an object <tt>X</tt> that is within its lifetime and whose type is
+similar to <tt>T</tt> is located at the address <tt>A</tt>.
+<!--
+All bytes of storage that would be accessible through the result are accessible
+through <tt>p</tt>.
+A byte of storage is accessible through <tt>p</tt> if it is within the storage
+occupied by the object pointed to by <tt>p</tt> or if the storage is accessible
+through another pointer value <tt>q</tt> that is either interconvertible with
+<tt>p</tt> or where <tt>p</tt> and <tt>q</tt> point to elements of the same
+array object.
+-->
 </p><p><em>Returns:</em> A value of type <tt>T *</tt> that points to <tt>X</tt>.
-</p><p><em>Remark:</em> An invocation of this function may be used in a core constant expression whenever the value of its argument may be used in a core constant expression.
+</p><p><em>Remarks:</em> An invocation of this function may be used in a core constant expression whenever the value of its argument may be used in a core constant expression.
 </p><p>
 [&nbsp;<em>Example</em>:
 </p><pre>struct X { const int n; };
@@ -613,7 +801,7 @@ const int a = p-&gt;n;
 new (p) X{5};                     // p does not point to new object ([basic.life])
                                   // because X::n is const
 const int b = p-&gt;n;               // undefined behavior
-const int c = std::launder(p)-&gt;n; // ok
+const int c = std::launder(p)-&gt;n; // OK
 </pre>
 &mdash;&nbsp;<em>end example</em>&nbsp;]
 </blockquote>
@@ -644,5 +832,6 @@ Change in 20.7.5 (ptr.align) paragraph 2:
 </li></ul>
 </blockquote>
  
+<center><b>ISO/IEC JTC1 SC22 WG21 P0137 EOM</b></center>
 
 </body></html>

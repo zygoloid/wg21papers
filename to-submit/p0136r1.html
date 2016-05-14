@@ -1,12 +1,24 @@
 <html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-<title>D0136R1: Rewording inheriting constructors (core issue 1941 et al)</title>
-
-<!-- TODO: Add Annex C section -->
+<title>P0136R1: Rewording inheriting constructors (core issue 1941 et al)</title>
 
 <style type="text/css">
+blockquote.std { color: #000000; background-color: #F1F1F1;
+                 border: 1px solid #D1D1D1;
+                 padding-left: 0.5em; padding-right: 0.5em; }
+blockquote.stddel { text-decoration: line-through;
+                    color: #000000; background-color: #FFEBFF;
+                    border: 1px solid #ECD7EC;
+                    padding-left: 0.5em; padding-right: 0.5em; }
+
+blockquote.stdins { text-decoration: underline;
+                    color: #000000; background-color: #C8FFC8;
+                    border: 1px solid #B3EBB3; padding: 0.5em; }
+
   ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
   del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
   .ins { background-color:#C0FFC0 }
+
+  h3 { margin-top:0 }
 </style>
 
 </head>
@@ -14,8 +26,7 @@
 <body>
 <div style="text-align: right; float: right">
 ISO/IEC JTC1 SC22 WG21<br>
-D0136R1<br>
-Revises: P0136R0<br>
+P0136R1<br>
 Richard Smith<br>
 richard@metafoo.co.uk<br>
 2015-10-19<br>
@@ -25,140 +36,15 @@ richard@metafoo.co.uk<br>
 
 <p>Fixing:</p>
 <b><ul>
-<li><a href="wg21.link/cwg1573">Core Issue 1573</a>: Inherited constructor characteristics
-<li><a href="wg21.link/cwg1645">Core Issue 1645</a>: Identical inheriting constructors via default arguments
-<li><a href="wg21.link/cwg1715">Core Issue 1715</a>: Access and inherited constructor templates
-<li><a href="wg21.link/cwg1736">Core Issue 1736</a>: Inheriting constructor templates in a local class
-<li><a href="wg21.link/cwg1903">Core Issue 1903</a>: What declarations are introduced by a non-member using-declaration?
-<li><a href="wg21.link/cwg1941">Core Issue 1941</a>: SFINAE and inherited constructor default arguments
-<li><a href="wg21.link/cwg1959">Core Issue 1959</a>: Inadvertently inherited copy constructor
-<li><a href="wg21.link/cwg1991">Core Issue 1991</a>: Inheriting constructors vs default arguments
+<li><a href="http://wg21.link/cwg1573">Core Issue 1573</a>: Inherited constructor characteristics
+<li><a href="http://wg21.link/cwg1645">Core Issue 1645</a>: Identical inheriting constructors via default arguments
+<li><a href="http://wg21.link/cwg1715">Core Issue 1715</a>: Access and inherited constructor templates
+<li><a href="http://wg21.link/cwg1736">Core Issue 1736</a>: Inheriting constructor templates in a local class
+<li><a href="http://wg21.link/cwg1903">Core Issue 1903</a>: What declarations are introduced by a non-member using-declaration?
+<li><a href="http://wg21.link/cwg1941">Core Issue 1941</a>: SFINAE and inherited constructor default arguments
+<li><a href="http://wg21.link/cwg1959">Core Issue 1959</a>: Inadvertently inherited copy constructor
+<li><a href="http://wg21.link/cwg1991">Core Issue 1991</a>: Inheriting constructors vs default arguments
 </ul></b>
-
-<h2>Changes since N4429</h2>
-
-<ul>
-  <li>in 7.3.3p15, don't restrict the set of inherited members</li>
-  <li>in 7.3.3.p17, make explicit that no access check is performed in "<tt>using Base::Base;</tt>"</li>
-  <li>in 7.3.3.p18, make it clearer that the accessibility of the base class is not considered when using a constructor inherited from a base class</li>
-  <li>in 12.6.3.p1, make it clearer that we don't default-initialize the chosen base class</li>
-  <li>in 12.6.3.p2, give a more complex example showing the Y != X case</li>
-  <li>in 12.6.3, directly initialize the class from which the constructor was originally inherited rather than proceeding recursively, and clarify that parameter initialization is sequenced before subobject initialization</li>
-</ul>
-
-<h2>Overview</h2>
-
-<p>
-There are a number of active core issues relating to inheriting constructors,
-with a single common theme: an inheriting constructor does not act like any
-other form of <em>using-declaration</em>. The reason for this is that all other
-<em>using-declaration</em>s make some set of declarations visible to name lookup
-in another context, but an inheriting constructor declaration declares a new
-constructor (or set thereof) that merely delegates to the original.
-
-<p>
-After some discussion in CWG, it is believed that these issues can all be
-resolved by changing the meaning of an inheriting constructor declaration from
-declaring a set of new constructors, to making a set of base class constructors
-visible in a derived class <em>as if</em> they were derived class constructors.
-(When such a constructor is used, the additional derived class subobjects will
-also be implicitly constructed as if by a defaulted default constructor.)
-Put another way:
-<strong>this proposal makes inheriting a constructor act just like
-inheriting any other base class member, to the extent possible</strong>.
-
-<p>
-This change does affect the meaning and validity of some programs, but
-these changes improve the consistency and comprehensibility of C++. CWG
-wishes to treat this change as a DR against C++11.
-
-<h2>Examples of behavior changes</h2>
-
-<ul>
-<li>SFINAE on inheriting constructors now works reliably
-<pre>
-struct A {
-  template&lt;typename T> A(T, typename enable_if&lt;sizeof(T) == 4, int>::type = 0);
-};
-struct B : A {
-  using A::A; // formerly declared
-              //   #1: B(T)
-              //   #2: B(T, typename enable_if&lt;...>::type)
-              // now makes A::A(T, typename enable_if&lt;...>::type = 0)
-              // visible as a constructor of B
-  B(...);
-};
-B b(123ull);  // now ok; used to ignore SFINAE condition and select inherited constructor #1
-</pre>
-
-<li>Hiding works the same as for other member <em>using-declarations</em> in the presence of default arguments
-<pre>
-struct A {
-  A(int a, int b = 0);
-  void f(int a, int b = 0);
-};
-struct B : A {
-  B(int a);      using A::A;
-  void f(int a); using A::f;
-};
-struct C : A {
-  C(int a, int b = 0);      using A::A;
-  void f(int a, int b = 0); using A::f;
-};
-
-B b(0); // was ok, now ambiguous
-b.f(0); // ambiguous (unchanged)
-
-C c(0); // was ambiguous, now ok
-c.f(0); // ok (unchanged)
-</pre>
-
-<li>Inheriting constructor parameters are no longer copied
-<pre>
-struct A { A(const A&amp;) = delete; A(int); };
-struct B { B(A); void f(A); };
-struct C : B { using B::B; using B::f; };
-C c({0}); // was ill-formed, now ok (no copy made)
-c.f({0}); // ok (unchanged)
-</pre>
-
-<li>Ellipsis parameters used to be unimplementable on some ABIs
-<pre>
-struct A { A(const char *, ...); };
-struct B : A { using A::A; };
-B b("%d %d", 1, 2); // ok, now implementable
-</pre>
-
-<li>Access check now exactly matches the base class member
-<pre>
-class A {
-public:
-  template&lt;typename T> A(T, typename T::type);
-private:
-  A(int);
-  friend void f();
-};
-class B {
-  typedef int type;
-  friend class A;
-};
-struct C : A {
-  using A::A;
-};
-
-void f() {
-  A a1(B(), 0); // ok (unchanged)
-  C c1(B(), 0); // was ill-formed (implicit C constructor can't access B::type), now ok
-
-  A a2(42); // ok (unchanged, f is a friend)
-  C c2(42); // was ill-formed (implicit C constructor can't access A constructor), now ok
-}
-C c3(123); // still ill-formed, no access to A(int) constructor
-</pre>
-This access behavior differs from that of a normal member
-<em>using-declaration</em>,
-but matches the existing design of inheriting constructors.
-</ul>
 
 <h2>Proposed wording</h2>
 
@@ -169,7 +55,7 @@ Remove 12.9 class.inhctor, "Inheriting constructors".
 <p>
 Change in 3.9 basic.types paragraph 10:
 </p>
-<blockquote>
+<blockquote class="std">
 A type is a <em>literal type</em> if it is:
 <ul><li>&hellip;
     <li>a class type (Clause 9) that has all of the following properties:
@@ -186,7 +72,7 @@ A type is a <em>literal type</em> if it is:
 <p>
 Change in 7.1.5 dcl.constexpr paragraph 5:
 </p>
-<blockquote>
+<blockquote class="std">
 For a <del>non-template, non-defaulted</del> constexpr function or <del>a non-template, non-defaulted, non-inheriting</del>
 constexpr constructor <ins>that is neither defaulted nor a template</ins>, if no argument values exist such that &hellip;
 </blockquote>
@@ -194,7 +80,7 @@ constexpr constructor <ins>that is neither defaulted nor a template</ins>, if no
 <p>
 Change in 7.3.3 namespace.udecl paragraph 1:
 </p>
-<blockquote>
+<blockquote class="std">
 A <i>using-declaration</i> introduces a
 <del>name</del><ins>set of declarations</ins>
 into the declarative region
@@ -248,7 +134,7 @@ by the <i>using-declaration</i> from the nominated base class.</ins>
 <p>
 Change in 7.3.3 namespace.udecl paragraph 3:
 </p>
-<blockquote>
+<blockquote class="std">
 In a <i>using-declaration</i> used as a <i>member-declaration</i>, the <i>nested-name-specifier</i> shall name a base class of the
 class being defined. If such a <i>using-declaration</i> names a constructor, the <i>nested-name-specifier</i> shall name a
 direct base class of the class being defined<del>; otherwise it introduces the set of declarations found by member
@@ -258,7 +144,7 @@ name lookup (10.2, 3.4.3.1)</del>. [ Example ]
 <p>
 Change in 7.3.3 namespace.udecl paragraph 4:
 </p>
-<blockquote>
+<blockquote class="std">
 [ Note ]
 If <del>an</del><ins> a constructor or</ins> assignment operator brought from a
 base class into a derived class <del>scope</del> has the signature of a copy/move
@@ -274,14 +160,14 @@ as described below.
 <p>
 Change in 7.3.3 namespace.udecl paragraph 8:
 </p>
-<blockquote>
+<blockquote class="std">
 A <i>using-declaration</i> <del>for</del><ins>that names</ins> a class member shall be a <i>member-declaration</i>. [ Example ]
 </blockquote>
 
 <p>
 Change in 7.3.3 namespace.udecl paragraph 11:
 </p>
-<blockquote>
+<blockquote class="std">
 <ins>[ Note:</ins>
 For a <i>using-declaration</i> that names a namespace,</ins>
 members added to the namespace after the <i>using-declaration</i> are not <ins>in the set of introduced declarations,
@@ -293,7 +179,7 @@ Thus, additional overloads &hellip;
 <p>
 Change in 7.3.3 namespace.udecl paragraph 15:
 </p>
-<blockquote>
+<blockquote class="std">
 When a <i>using-declaration</i> brings <del>names</del><ins>declarations</ins>
 from a base class into a derived class <del>scope</del>,
 member functions and member function templates in the derived class
@@ -337,7 +223,7 @@ D2 d2(0);    // calls D2::D2(int)
 <p>
 Change in 7.3.3 namespace.udecl paragraph 16:
 </p>
-<blockquote>
+<blockquote class="std">
 For the purpose of overload resolution, the functions
 <del>which</del><ins>that</ins> are introduced by a <i>using-declaration</i> into a
 derived class <del>will be</del><ins>are</ins> treated as though they were members of the derived class. In particular, the implicit
@@ -356,7 +242,7 @@ the base class from which the constructor originated are implicitly initialized
 <p>
 Change in 7.3.3 namespace.udecl paragraph 17:
 </p>
-<blockquote>
+<blockquote class="std">
 <ins>In a <i>using-declaration</i> that does not name a constructor,
 all members of the set of introduced declarations</ins>
 <del>The access rules for inheriting constructors are specified in 12.9;
@@ -370,7 +256,7 @@ no access check is performed.</ins>
 <p>
 Change in 7.3.3 namespace.udecl paragraph 18:
 </p>
-<blockquote>
+<blockquote class="std">
 <del>The alias</del><ins>A synonym</ins> created by <del>the</del><ins>a</ins> <i>using-declaration</i>
 has the usual accessibility for a <i>member-declaration</i>.
 <del>
@@ -386,7 +272,7 @@ corresponding base class, and the accessibility of the <i>using-declaration</i> 
 <p>
 Change in 9.2 class.mem paragraph 2:
 </p>
-<blockquote>
+<blockquote class="std">
 A class is considered a completely-defined object type (3.9) (or complete type) at the closing <tt>}</tt> of the
 <i>class-specifier</i>.
 Within the class <i>member-specification</i>, the class is regarded as complete within function bodies,
@@ -403,7 +289,7 @@ Otherwise it is regarded as incomplete within its own class <i>member-specificat
 <p>
 Change in 10 class.derived paragraph 2:
 </p>
-<blockquote>
+<blockquote class="std">
 &hellip;
 Unless redeclared in the derived class,
 members of a base class are also considered to be members of the derived class.
@@ -419,7 +305,7 @@ as other members of the derived class, unless their names are hidden or ambiguou
 <p>
 Add a new subclause after 12.6.2 class.base.init:
 </p>
-<blockquote class="ins">
+<blockquote class="stdins">
 <h3>12.6.3 Initialization by inherited constructor [class.inhctor.init]</h3>
 
 <ol>
@@ -537,7 +423,7 @@ execution when the initialization of all subobjects is complete.
 <p>
 Do not change 15.2 except.ctor paragraph 3:
 </p>
-<blockquote>
+<blockquote class="std">
 For an object of class type of any storage duration whose initialization or destruction is terminated by an
 exception, the destructor is invoked for each of the object's fully constructed subobjects, that is, for each
 subobject for which the principal constructor (12.6.2) has completed execution
@@ -549,7 +435,7 @@ the variant members of a union-like class are not destroyed. &hellip;
 <p>
 Change in 15.2 except.ctor paragraph 4:
 </p>
-<blockquote>
+<blockquote class="std">
 Similarly, if the <del>non-delegating</del><ins>principal</ins> constructor for an object has completed execution
 and a delegating constructor for that object exits with an exception, the object's destructor is invoked. Such destruction is sequenced
 before entering a handler of the function-try-block of a delegating constructor for that object, if any.
@@ -558,7 +444,7 @@ before entering a handler of the function-try-block of a delegating constructor 
 <p>
 Change in 15.4 except.spec paragraph 15:
 <p>
-<blockquote>
+<blockquote class="std">
 The <em>set of potential exceptions of an expression</em> <tt>e</tt>
 is empty if <tt>e</tt> is a core constant expression (5.20).
 Otherwise, it is the union of the sets of potential exceptions
@@ -587,7 +473,7 @@ from <i>brace-or-equal-initializer</i>s (12.6.2).</ins>
 <p>
 Change in 15.4 except.spec paragraph 16:
 <p>
-<blockquote>
+<blockquote class="std">
 Given a<ins>n implicitly-declared special</ins>
 member function <tt>f</tt> of some class <tt>X</tt>,
 <del>
@@ -600,7 +486,7 @@ the <em>set of potential exceptions of the implicitly-declared <ins>special</ins
 <p>
 Change in 15.4 except.spec paragraph 17:
 <p>
-<blockquote>
+<blockquote class="std">
 An <del>inheriting constructor (12.9) and an</del>
 implicitly-declared special member function (Clause 12)
 <del>are</del><ins>is</ins> considered to have an implicit exception specification,
@@ -612,6 +498,33 @@ where S is the set of potential exceptions of the implicitly-declared <ins>speci
 were a non-template inheriting constructor. &mdash; end note ]
 </del>
 [ Example: &hellip; ]
+</blockquote>
+
+<p>Add a subclause to Annex C:</p>
+
+<blockquote class="stdins">
+<h3>Clause 12: Special member functions [special]</h3>
+<b>Change:</b> Inheriting a constructor no longer injects a
+constructor into the derived class.<br>
+<b>Rationale:</b> Better interaction with other language features.<br>
+<b>Effect on original feature:</b>
+Valid C++2014 code that uses inheriting constructors may not be valid or may
+have different semantics. A <em>using-declaration</em> that names a constructor
+now makes the corresponding base class constructors visible to initializations
+of the derived class rather than declaring additional derived class constructors.
+<pre>
+struct A {
+  template&lt;typename T> A(T, typename T::type = 0);
+  A(int);
+};
+struct B : A {
+  using A::A;
+  B(int);
+};
+B b(42L); // now calls B(int), used to call B&lt;long>(long),
+          // which called A(int) due to substitution failure
+          // in A&lt;long>(long).
+</pre>
 </blockquote>
 
 </body></html>
