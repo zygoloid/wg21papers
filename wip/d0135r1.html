@@ -16,6 +16,22 @@ blockquote.stddel { text-decoration: line-through;
   color: #000000; background-color: #FFBBBB;
   border: 1px solid #ECB7B7;
   padding-left: 0.5em; padding-right: 0.5em; }
+
+blockquote.clause { counter-reset: pnum; }
+blockquote.clause > p:before {
+  font-weight: bold;
+}
+blockquote.clause > p:not(.ins):before {
+  counter-increment: pnum;
+  content: counter(pnum) ". ";
+}
+blockquote.clause > p.ins:before {
+  content: counter(pnum) "+. ";
+}
+blockquote.clause > p.ins {
+  text-decoration: underline;
+  color: #000000; background-color: #C8FFC8;}
+}
 </style>
 
 </head>
@@ -82,7 +98,7 @@ Every expression belongs to exactly one of the fundamental classifications in th
 
 <blockquote class="stdins">
 The <em>result</em> of a prvalue is the value that the expression stores into
-its context. For a prvalue of class or array type, the <em>result object</em>
+its context. The <em>result object</em> of a prvalue
 is the object initialized by the prvalue. A prvalue whose result is the value
 <tt>V</tt> is sometimes said to have or name the value <tt>V</tt>.
 The <em>result</em> of a glvalue is the entity denoted by the expression.
@@ -285,7 +301,8 @@ The type of the prvalue may be incomplete.
 
 <p>Change in 5.2.3 [expr.type.conv] (<b>alternative 1</b>):
 
-<blockquote>
+<blockquote class="clause">
+<p>
 A <em>simple-type-specifier</em> (7.1.6.2) or <em>typename-specifier</em>
 (14.6) followed by a parenthesized <em>expression-list</em> constructs a value
 of the specified type given the expression list. If the expression list is a
@@ -331,7 +348,8 @@ direct-list-initialized (8.5.4) with the specified
 </blockquote>
 
 <p>Change in 5.2.3 [expr.type.conv] (<b>alternative 2</b>):
-<blockquote>
+<blockquote class="clause">
+<p>
 A <em>simple-type-specifier</em> (7.1.6.2) or <em>typename-specifier</em> (14.6)
 followed by a parenthesized <em>expression<del>-list</del></em>
 <del>
@@ -350,7 +368,10 @@ direct-initialized (8.5) with that parenthesized <em>expression-list</em> or
 For an expression of the form <tt>T()</tt>, <tt>T</tt> shall not be an array type.
 </ins>
 
-<del>[&hellip;&nbsp;rest of 5.2.3 as quoted above&nbsp;&hellip;]</del>
+<del>[&hellip;]</del>
+
+<p><del>[&hellip;]</del>
+<p><del>[&hellip;]</del>
 </blockquote>
 
 <p>Change in 5.2.5 [expr.ref] paragraph 2:
@@ -510,6 +531,13 @@ third operand depending on the value of the first operand.
 </del>
 </blockquote>
 
+<p>Change in 5.19 [expr.comma] paragraph 1:
+
+<blockquote>
+[&hellip;]
+If the value of the right operand is a temporary <ins>expression</ins> (12.2), the result is that temporary <ins>expression</ins>.
+</blockquote>
+
 <p>Change in 6.6.3 [stmt.return] paragraph 2:
 
 <blockquote>
@@ -592,7 +620,7 @@ type is the destination type or a derived class thereof, and we'll either
 use the result directly (if it's a prvalue of the right type) or call a
 constructor next.</em>
 
-<p>Change in 8.5.3 [decl.init.ref] bullet 5.2.1
+<p>Change in 8.5.3 [decl.init.ref] bullet 5.2.1:
 
 <blockquote>
 If the initializer expression
@@ -623,6 +651,109 @@ int &&b = int(); // used to not bind directly, now does</pre>
 This does not appear to affect any of the places where we use the term "bind directly".
 </em>
 
+<!-- The idea: we actually just want to implicitly convert to cv1 T1.
+But if that conversion uses a conversion function, we want to apply some
+restrictions to its result type. So we perform just that one part of
+the copy-initialization rules and then recurse back to this section to
+do the rest.
+
+The first alternative attempted to use the same recursion pattern for the
+case where we're not going to use a conversion function, but that fails for
+binding a reference to a bit-field, where we need to explicitly create a
+temporary to avoid infinite recursion. The second alternative more directly
+expresses the intent. -->
+
+<p>Change in 8.5.3 [decl.init.ref] bullet 5.2.2 (<b>alternative 1</b>):
+
+<blockquote>
+Otherwise
+<ul>
+<li>
+If T1 or T2 is a class type and T1 is not reference-related to T2,
+user-defined conversions are considered using the rules for
+copy-initialization of an object of type “cv1 T1” by user-defined conversion
+(8.5, 13.3.1.4, 13.3.1.5); the program is ill-formed if the corresponding
+non-reference copy-initialization would be ill-formed.
+The result of the
+call to the conversion function, as described for the non-reference
+copy-initialization,
+is then used to direct-initialize the reference. For
+this direct-initialization, user-defined conversions are not considered.
+<li>
+Otherwise, <del>a temporary of type "cv1 T1" is created and copy-initialized (8.5)
+from the initializer expression. The reference is then bound to the temporary.</del>
+<ins>the initializer expression is implicitly converted to a prvalue
+of type "cv T1". The temporary materialization conversion is applied
+and the reference is bound to the result.
+</ins>
+</ul>
+If T1 is reference-related to T2:
+<ul>
+<li>cv1 shall be the same cv-qualification as, or greater cv-qualification than, cv2; and
+<li>if the reference is an rvalue reference, the initializer expression shall not be an lvalue.
+</ul>
+[&nbsp;<em>Example</em>: &hellip;&nbsp;]
+In all cases except the last (i.e.,
+<del>
+creating and initializing a temporary from the initializer expression
+</del>
+<ins>implicitly converting the initializer expression to the underlying type of the reference</ins>),
+the reference is said to <em>bind directly</em> to the initializer expression.
+</blockquote>
+
+<p>Change in 8.5.3 [decl.init.ref] bullet 5.2.2 (<b>alternative 2</b>):
+
+<blockquote>
+Otherwise<ins>, the initializer expression is implicitly converted to a prvalue
+of type "cv T1"</ins>
+<ul>
+<li>
+<del>
+If T1 or T2 is a class type and T1 is not reference-related to T2,
+user-defined conversions are considered using the rules for
+copy-initialization of an object of type “cv1 T1” by user-defined conversion
+(8.5, 13.3.1.4, 13.3.1.5)
+</del>
+; the program is ill-formed if the corresponding
+non-reference copy-initialization would be ill-formed.
+<del>
+The result of the
+call to the conversion function, as described for the non-reference
+copy-initialization,
+is then used to direct-initialize the reference.
+For
+this direct-initialization, user-defined conversions are not considered.
+</del>
+<ins>
+The temporary materialization conversion is applied
+and the reference is bound to the result.
+</ins>
+<li>
+<del>
+Otherwise, a temporary of type "cv1 T1" is created and copy-initialized (8.5)
+from the initializer expression. The reference is then bound to the temporary.
+</del>
+</ul>
+<ins>
+If the implicit conversion invokes a conversion function,
+the immediate initialization expression is the call to the conversion
+function; otherwise, it is the initialization expression.
+For an immediate initialization expression of type "cv3 T3"
+where</ins>
+<del>If</del> T1 is reference-related to T<del>2</del><ins>3</ins>:
+<ul>
+<li>cv1 shall be the same cv-qualification as, or greater cv-qualification than, cv<del>2</del><ins>3</ins>; and
+<li>if the reference is an rvalue reference, the <ins>immediate</ins> initializer expression shall not be an lvalue.
+</ul>
+[&nbsp;<em>Example</em>: &hellip;&nbsp;]
+In all cases except the last (i.e.,
+<del>
+creating and initializing a temporary from the initializer expression
+</del>
+<ins>implicitly converting the initializer expression to the underlying type of the reference</ins>),
+the reference is said to <em>bind directly</em> to the initializer expression.
+</blockquote>
+
 <p>Change in 8.5.4 [dcl.init.list] bullet 3.5:
 
 <blockquote>
@@ -647,8 +778,9 @@ Otherwise, if <tt>T</tt> is a reference type, a prvalue <del>temporary</del>
 of the type referenced by <tt>T</tt> is <ins>generated that initializes its
 result object by</ins> copy-list-initializ<del>ed</del><ins>ation</ins>
 or direct-list-initializ<del>ed</del><ins>ation</ins>, depending on the kind
-of initialization for the reference, and the reference is bound to
-that <del>temporary</del><ins>prvalue</ins>.
+of initialization for the reference<del>, and the reference is bound to
+that temporary</del>.
+<ins>The prvalue is then used to direct-initialize the reference.</ins>
 [&nbsp;<em>Note</em>: As usual, the binding will fail and the program is
 ill-formed if the reference type is an lvalue reference to a non-const type. ]
 </blockquote>
@@ -663,6 +795,125 @@ initializer list as if the implementation
 <del>elements of type</del> <tt>const E</tt><ins>"</ins>,
 where <tt>N</tt> is the number of elements in the initializer list.
 [&hellip;]
+</blockquote>
+
+<p>Change in 12.2 [class.temporary]:
+
+<blockquote class="clause">
+<p class="stdpar">
+<del>Temporaries of class type</del>
+<ins>Temporary objects</ins>
+are created
+<del>in various contexts:</del>
+<ins>
+when a prvalue is materialized so that it can be used as a glvalue ([conv.rval])
+[&nbsp;<em>Footnote</em>:
+This occurs when
+</ins>
+<ul><li>binding a reference to a prvalue (8.5.3<ins>, 5.2.3, 5.2.7, 5.2.9, 5.2.11, 5.4</ins>),
+<ins>
+<li>when initializing an object of type <tt>std::initializer_list&lt;T&gt;</tt> from a 
+<i>braced-init-list</i> (8.5.4),
+<li>when performing member access on a class prvalue (5.2.5, 5.5),
+<li>when performing subscripting on an array prvalue (5.2.1),
+<li>for certain unevaluated operands (5.2.8, 5.3.3),
+<li>and when the prvalue appears as a discarded-value expression (5).
+</ul>
+]
+</ins>
+<del>
+returning a prvalue (6.6.3),
+a conversion that creates a prvalue (4.1, 5.2.9, 5.2.11, 5.4),
+</del>
+<ins>
+when needed by the implementation to pass or return an object of
+trivially-copyable type (see below),
+and when</ins>
+throwing an exception (15.1)<del>,
+and
+in some initializations (8.5)</del>.
+[ Note: The lifetime of exception objects is described in 15.1. ]
+Even when the creation of the temporary object is
+unevaluated (Clause 5) <del>or otherwise avoided (12.8)</del>,
+all the semantic
+restrictions shall be respected as if the temporary object had been created and
+later destroyed.
+[ Note: This includes accessibility (11) and whether it is
+deleted, for the constructor selected and for the destructor. However, in the
+special case of a function call used as the operand of a <em>decltype-specifier</em>
+(5.2.2), no temporary is introduced, so the foregoing does not apply to the
+prvalue of any such function call. ]
+
+<p>
+<ins>The materialization of a temporary object is generally delayed as
+long as possible in order to avoid creating unnecessary
+temporaries.</ins>
+[&nbsp;<em>Example</em>:
+Consider the following code:
+<pre>
+class X {
+public:
+  X(int);
+  X(const X&amp;);
+  X&amp; operator=(const X&amp;); ~X();
+};
+class Y {
+public:
+  Y(int); Y(Y&amp;&amp;); ~Y();
+};
+X f(X);
+Y g(Y);
+void h() {
+  X a(1);
+  X b = f(X(2));
+  Y c = g(Y(3));
+  a = f(a);
+}
+</pre>
+<del>
+An implementation might use a temporary in which to construct X(2) before
+passing it to f() using X’s copy constructor; alternatively,</del>
+X(2) <del>might be</del> <ins>is</ins>
+constructed in the space used to hold <del>the</del> <ins><tt>f</tt>'s</ins> argument.
+Likewise,
+<del>
+an implementation
+might use a temporary in which to construct Y(3) before passing it to g() using
+Y’s move constructor; alternatively,</del>
+Y(3) <del>might be</del> <ins>is</ins>
+constructed in the space used to hold the argument.
+Also, <del>
+a temporary might be used to hold the result
+of f(X(2)) before copying it to b using X’s copy constructor; alternatively,
+</del>
+f()'s result <del>might be</del> <ins>is</ins> constructed <ins>directly</ins> in b.
+Likewise, <del>a temporary might be used to
+hold the result of g(Y(3)) before moving it to c using Y’s move constructor;
+alternatively,</del>
+g()'s result <del>might be</del> <ins>is</ins> constructed <ins>directly</ins> in c.
+On the other hand, the
+expression <tt>a = f(a)</tt> requires a temporary for the result of <tt>f(a)</tt>,
+which is
+<del>then assigned to <tt>a</tt></del>
+<ins>created so that the reference parameter of <tt>A::operator=(const A&amp;)</tt>
+  can bind to it</ins>
+. ]
+
+<p class="ins">
+When an object of class type <tt>X</tt> is passed to or returned from a function, if
+each copy constructor, move constructor, and destructor of <tt>X</tt> is either trivial
+or deleted, and <tt>X</tt> has at least one non-deleted copy or move constructor,
+implementations are permitted to create a temporary object to hold the function
+parameter or result object. The temporary object is constructed
+from the function argument or return value, respectively,
+and the function's parameter or return object is initialized as if by
+using the trivial constructor to copy the temporary (even if that constructor
+would not be selected by overload resolution to perform a copy or move of the
+object).
+[Note: This latitude is granted to allow objects of class type to be passed to
+or returned from functions in registers. ]
+
+<p> [&hellip;]
 </blockquote>
 
 <p>Change in 12.4 [class.dtor] paragraph 11 bullet 4:
@@ -719,9 +970,39 @@ but it is the move construction from the <del>temporary</del>
 <ins>local automatic</ins> object to <tt>t2</tt> that is elided.
 </blockquote>
 
-<p><em>FIXME: 13.3.3.1/7: create no temporary object</em>
-<p><em>FIXME: ensure that lifetime extension looks through non-copies that used to be copies</em>
-<p><em>FIXME: incorporate fixed version of core issue 1590</em>
+<p>Change in 13.3.1 [over.match.funcs] paragraph 5:
+
+<blockquote>
+During overload resolution, the implied object argument is indistinguishable
+from other arguments. The implicit object parameter, however, retains its
+identity since
+<del>
+conversions on the corresponding argument shall obey these
+additional rules:</del>
+<ul>
+<li><del>no temporary object can be introduced to hold the argument for the implicit object parameter; and</del>
+<li>no user-defined conversions can be applied to achieve a type match with it.
+</ul>
+[&hellip;]
+</blockquote>
+
+<p>Change in 13.3.3.1 [over.best.ics] paragraph 7:
+
+<blockquote>
+In all contexts, when converting to the implicit object parameter or when
+converting to the left operand of an assignment operation only standard
+conversion sequences <del>that create no temporary object for the result</del>
+are allowed.
+</blockquote>
+
+<em>Drafting note: standard conversion sequences never create temporary
+objects, so this wording appears to be redundant before this change, and after
+this change it would prevent cases like <tt>X().f()</tt>, which creates a
+temporary object while binding the implicit object parameter to the
+<tt>X()</tt> prvalue.</em>
+
+<p><em>FIXME: more checking of clause 13 onwards</em>
+<p><em>FIXME: array to pointer decay needs to materialize the array</em>
 
 <p><em>FIXME:
 
