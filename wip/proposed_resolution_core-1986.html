@@ -1,0 +1,49 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue XXXX: ...</title>
+
+<style type="text/css">
+  ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2013-08-24
+
+<h1>Core Issue XXXX: ...</h1>
+
+<p>
+Change in 3.6.2 basic.start.init paragraph 4:
+</p>
+
+<blockquote>
+It is implementation-defined whether the dynamic initialization of a non-local
+variable with static storage duration is done before the first statement of
+main.
+<del>
+If the initialization is deferred to some point in time after the first
+statement of main, it shall occur before the first odr-use (3.2) of any
+function or variable defined in the same translation unit as the variable to be
+initialized.
+</del>
+<ins>
+For a variable V with thread or static storage duration, let X be the set of
+all variables with the same storage duration as V that are defined in the same
+translation unit as V. If the observable behavior of the abstract machine (1.8
+[intro.object]) depends on the value of V through an evaluation E,
+and there is no variable in X the end of whose initialization happens after E,
+<!--
+and E is not
+sequenced before the end of the initialization of any variable in X,
+-->
+then the
+end of the initialization of all variables in X happens before E.
+</ins>
+[Footnote: A non-local variable with static storage duration
+having initialization with side-effects must be initialized even if it is not
+odr-used (3.2, 3.7.1).]
+</blockquote>
+
+</body></html>
