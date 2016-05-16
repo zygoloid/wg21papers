@@ -187,6 +187,16 @@ When an lvalue-to-rvalue conversion is applied to an expression <tt>e</tt>, and 
 </ul>
 </blockquote>
 
+<p>Change in 4.2 [conv.array] paragraph 1:
+
+<blockquote>
+  An lvalue or rvalue of type "array of N T"
+  or "array of unknown bound of T"
+  can be converted to a prvalue of type "pointer to T".
+  <ins>The temporary materialization conversion ([conv.rval]) is applied.</ins>
+  The result is a pointer to the first element of the array.
+</blockquote>
+
 <p>Add a new subclause after 4.3:
 
 <blockquote class="stdins">
@@ -808,23 +818,23 @@ are created
 <ins>
 when a prvalue is materialized so that it can be used as a glvalue ([conv.rval])
 [&nbsp;<em>Footnote</em>:
-This occurs when
+This occurs
 </ins>
-<ul><li>binding a reference to a prvalue (8.5.3<ins>, 5.2.3, 5.2.7, 5.2.9, 5.2.11, 5.4</ins>),
+<ul><li><ins>when</ins> binding a reference to a prvalue (8.5.3<ins>, 5.2.3, 5.2.7, 5.2.9, 5.2.11, 5.4</ins>),</ul>
 <ins>
+<ul>
 <li>when initializing an object of type <tt>std::initializer_list&lt;T&gt;</tt> from a 
 <i>braced-init-list</i> (8.5.4),
 <li>when performing member access on a class prvalue (5.2.5, 5.5),
-<li>when performing subscripting on an array prvalue (5.2.1),
-<li>for certain unevaluated operands (5.2.8, 5.3.3),
-<li>and when the prvalue appears as a discarded-value expression (5).
+<li>when performing an array-to-pointer conversion or subscripting on an array prvalue (5.2.1),
+<li>for certain unevaluated operands (5.2.8, 5.3.3), and
+<li>when a prvalue appears as a discarded-value expression (5).
 </ul>
 ]
 </ins>
 <del>
 returning a prvalue (6.6.3),
-a conversion that creates a prvalue (4.1, 5.2.9, 5.2.11, 5.4),
-</del>
+a conversion that creates a prvalue (4.1, 5.2.9, 5.2.11, 5.4)</del>,
 <ins>
 when needed by the implementation to pass or return an object of
 trivially-copyable type (see below),
@@ -847,7 +857,7 @@ prvalue of any such function call. ]
 <p>
 <ins>The materialization of a temporary object is generally delayed as
 long as possible in order to avoid creating unnecessary
-temporaries.</ins>
+temporary objects.</ins>
 [&nbsp;<em>Example</em>:
 Consider the following code:
 <pre>
@@ -874,28 +884,29 @@ void h() {
 An implementation might use a temporary in which to construct X(2) before
 passing it to f() using X’s copy constructor; alternatively,</del>
 X(2) <del>might be</del> <ins>is</ins>
-constructed in the space used to hold <del>the</del> <ins><tt>f</tt>'s</ins> argument.
-Likewise,
-<del>
-an implementation
+constructed in the space used to hold <del>the</del> <ins><tt>f()</tt>'s</ins> argument<del>.
+Likewise, an implementation
 might use a temporary in which to construct Y(3) before passing it to g() using
 Y’s move constructor; alternatively,</del>
+<ins>and</ins>
 Y(3) <del>might be</del> <ins>is</ins>
-constructed in the space used to hold the argument.
-Also, <del>
+constructed in the space used to hold <del>the</del> <ins><tt>g()</tt>'s</ins> argument.
+<del>Also,
 a temporary might be used to hold the result
 of f(X(2)) before copying it to b using X’s copy constructor; alternatively,
 </del>
-f()'s result <del>might be</del> <ins>is</ins> constructed <ins>directly</ins> in b.
-Likewise, <del>a temporary might be used to
+<ins>Likewise,</ins>
+f()'s result <del>might be</del> <ins>is</ins> constructed <ins>directly</ins> in b<del>.
+Likewise, a temporary might be used to
 hold the result of g(Y(3)) before moving it to c using Y’s move constructor;
 alternatively,</del>
+<ins>and</ins>
 g()'s result <del>might be</del> <ins>is</ins> constructed <ins>directly</ins> in c.
 On the other hand, the
 expression <tt>a = f(a)</tt> requires a temporary for the result of <tt>f(a)</tt>,
 which is
 <del>then assigned to <tt>a</tt></del>
-<ins>created so that the reference parameter of <tt>A::operator=(const A&amp;)</tt>
+<ins>materialized so that the reference parameter of <tt>A::operator=(const A&amp;)</tt>
   can bind to it</ins>
 . ]
 
@@ -1002,7 +1013,6 @@ temporary object while binding the implicit object parameter to the
 <tt>X()</tt> prvalue.</em>
 
 <p><em>FIXME: more checking of clause 13 onwards</em>
-<p><em>FIXME: array to pointer decay needs to materialize the array</em>
 
 <p><em>FIXME:
 
