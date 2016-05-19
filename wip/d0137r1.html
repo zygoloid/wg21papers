@@ -49,7 +49,11 @@ TODO:
 
 add annex C extension
 
+rules for access to elements of an array that provides storage for an object
+
 discuss the "addressable bytes of storage" question
+ - can launder allow us to address bytes of storage we couldn't before?
+   necessary for hubert's object splitting optimization
 
 resolve 2182:
  - the vector<T> issue: NAD, fix the library
@@ -326,8 +330,8 @@ Change in 3.8 (basic.life) paragraph 9:
 </p>
 
 <blockquote>
-Creating a new object <del>at the storage location</del><ins>within the storage</ins> that a <tt>const</tt> <ins>complete</ins> object with static, thread, or automatic storage
-duration occupies<ins>,</ins> or<del>,</del> at the storage location that such a <tt>const</tt> object used to occupy before its lifetime
+Creating a new object <del>at the storage location</del> <ins>within the storage</ins> that a <tt>const</tt> <ins>complete</ins> object with static, thread, or automatic storage
+duration occupies<ins>,</ins> or<del>, at the storage location</del> <ins>within the storage</ins> that such a <tt>const</tt> object used to occupy before its lifetime
 ended<ins>,</ins> results in undefined behavior. [Example: &hellip;]
 </blockquote>
 
@@ -349,7 +353,10 @@ Change in 3.9.2 (basic.compound) paragraph 3:
 A <del>valid</del> value of a<del>n object</del> pointer type <ins>that is a pointer to or past the end of an object</ins> <del>represents either
 the address</del> <ins><em>represents the address</em></ins>
 of <del>a</del> <ins>the first</ins> byte in memory (1.7 intro.memory)
-<ins>that the object occupies or the first byte in memory after the end of the
+<ins>occupied by the object
+[&nbsp;<em>Footnote</em>: For an object that is not within its lifetime, this is the
+first byte in memory that it will occupy or used to occupy.&nbsp;]
+or the first byte in memory after the end of the
 storage occupied by the object, respectively</ins>
 <del>or a null pointer (4.10)</del>.
 <del>
@@ -366,8 +373,7 @@ considered to point to an unrelated object of the
 that might be located at that address.
 <del>
 There are further restrictions on pointers to
-objects with dynamic storage duration; see 3.7.4.3.
-</del>
+objects with dynamic storage duration; see 3.7.4.3.</del>
 <ins>
 A pointer acquires an invalid pointer value
 when the storage it denotes
