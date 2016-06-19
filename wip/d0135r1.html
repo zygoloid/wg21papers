@@ -638,29 +638,38 @@ Unlike the preceding rule, parentheses have no special meaning in this context.
 [&nbsp;<em>Example</em>: &hellip;&nbsp;]
 </blockquote>
 
-<p>Add a new bullet before 8.5 [dcl.init] bullet 17.6.1:
+<p>Change in 8.5 [dcl.init] bullet 17.6:
 
-<blockquote class="stdins">
+<blockquote>
+If the destination type is a (possibly cv-qualified) class type):
+<ul><li>
+<ins>
 If the initializer expression is a prvalue and the cv-unqualified version of
 the source type is the same class as the class of the destination,
 the initializer expression is used to initialize the destination object.
 [&nbsp;<em>Example</em>:
 <tt>T x = T(T(T()));</tt> calls the <tt>T</tt> default constructor to
 initialize <tt>x</tt>. ]
-</blockquote>
-
-<p>Change in 8.5 [dcl.init] bullet 17.6.2:
-
-<blockquote>
+</ins>
+<li>
+<ins>Otherwise, if</ins> <del>If</del> the initialization is
+direct-initialization, or if it is copy-initialization where the cv-unqualified
+version of the source type is the same class as, or a derived class of, the
+class of the destination, constructors are considered. [&hellip;]
+<li>
 Otherwise (i.e., for the remaining copy-initialization cases), user-defined
 conversion sequences that can convert from the source type to the destination
 type or (when a conversion function is used) to a derived class thereof are
 enumerated as described in 13.3.1.4, and the best one is chosen through
 overload resolution (13.3). If the conversion cannot be done or is ambiguous,
 the initialization is ill-formed. The function selected is called with the
-initializer expression as its argument<del>; if the function is a constructor, the
-call initializes a temporary of the cv-unqualified version of the destination
-type. The temporary is a prvalue</del>. The <del>result of the</del> call
+initializer expression as its argument;
+if the function is a constructor, the call
+<ins>is a prvalue</ins>
+<del>initializes a temporary</del>
+of the cv-unqualified version of the destination type
+<ins>whose return object is initialized by the constructor</ins>.
+<del>The temporary is a prvalue.</del> The <del>result of the</del> call
 <del>(which is the temporary for the constructor case)</del> is
 <del>then</del> used to direct-initialize,
 according to the rules above, the object that is the destination of the
@@ -672,13 +681,6 @@ the intermediate result directly into the object being initialized; see 12.2,
 12.8.
 </del>
 </blockquote>
-
-<em>Drafting note: if we select a constructor, we next visit the new bullet
-above and are done. If we select a conversion function, the subsequent
-direct-initialization will never re-enter this bullet because the operand's
-type is the destination type or a derived class thereof, and we'll either
-use the result directly (if it's a prvalue of the right type) or call a
-constructor next.</em>
 
 <p>Change in 8.5.3 [decl.init.ref] bullet 5.2.1:
 
@@ -926,7 +928,9 @@ restrictions shall be respected as if the temporary object had been created and
 later destroyed.
 [ Note: This includes accessibility (11) and whether it is
 deleted, for the constructor selected and for the destructor. However, in the
-special case of a function call used as the operand of a <em>decltype-specifier</em>
+special case of
+<del>a function call used as</del>
+the operand of a <em>decltype-specifier</em>
 (5.2.2), no temporary is introduced, so the foregoing does not apply to the
 prvalue of any such function call. ]
 
@@ -994,7 +998,8 @@ implementations are permitted to create a temporary object to hold the function
 parameter or result object. The temporary object is constructed
 from the function argument or return value, respectively,
 and the function's parameter or return object is initialized as if by
-using the trivial constructor to copy the temporary (even if that constructor
+using the non-deleted trivial constructor to copy the temporary (even if that
+constructor is inaccessible or
 would not be selected by overload resolution to perform a copy or move of the
 object).
 [Note: This latitude is granted to allow objects of class type to be passed to
