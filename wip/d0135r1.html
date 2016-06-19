@@ -303,20 +303,19 @@ the value returned from the final overrider is converted
 to the return type of the statically chosen function.
 </blockquote>
 
-<p>Change in 5.2.2 [expr.call] paragraph 11:
+<p>Delete 5.2.2 [expr.call] paragraph 11:
 
-<!-- FIXME: Move to description of decltype. -->
-<blockquote>
+<blockquote class="stddel">
 If a function call is a prvalue of object type:
 <ul><li>
 if the function call is either
 <ul><li>the operand of a <em>decltype-specifier</em> or
 <li>the right operand of a comma operator that is the operand of a <em>decltype-specifier</em>,</ul>
-<del>a temporary object is not introduced for the prvalue</del>
-<ins>the temporary materialization conversion is not applied ([conv.rval]) and
-no result object is provided for the call</ins>.
+a temporary object is not introduced for the prvalue.
 The type of the prvalue may be incomplete.
-[&hellip;]
+[&nbsp;<em>Note</em>: &hellip;&nbsp;]
+[&nbsp;<em>Note</em>: &hellip;&nbsp;]
+<li>otherwise, the type of the prvalue shall be complete.
 </blockquote>
 
 <!--
@@ -603,6 +602,40 @@ The copy-initialization of the
 <del>returned entity</del> <ins>result of the call</ins>
 
 is sequenced before [&hellip;]
+</blockquote>
+
+<p>Change in 7.1.6.2 [dcl.type.simple] paragraph 5:
+
+<blockquote>
+<ins>If the operand of a <em>decltype-specifier</em> is a prvalue,
+the temporary materialization conversion is not applied ([conv.rval])
+and no result object is provided for the prvalue.
+The type of the prvalue may be incomplete.</ins>
+[&nbsp;<em>Note</em>:
+<del>
+in the case where the operand of a <em>decltype-specifier</em> is a function
+call and the return type of the function is a class type, a special rule
+(5.2.2) ensures that the return type is not required to be complete (as it
+would be if the call appeared in a sub-expression or outside of a
+<em>decltype-specifier</em>).</del>
+<ins>
+As a result, storage is not allocated for the prvalue and it is not destroyed.
+Thus, a class type is not instantiated as a result of being the type of a
+function call in this context.
+</ins>
+In this context, the common purpose of writing the expression is merely to refer
+to its type. In that sense, a <em>decltype-specifier</em> is analogous to a use
+of a <em>typedef-name</em>, so the usual reasons for requiring a complete type
+do not apply.  In particular, it is not necessary to allocate storage for a
+temporary object or to enforce the semantic constraints associated with
+invoking the type's destructor.
+]
+<ins>
+[&nbsp;<em>Note</em>:
+Unlike the preceding rule, parentheses have no special meaning in this context.
+]
+</ins>
+[&nbsp;<em>Example</em>: &hellip;&nbsp;]
 </blockquote>
 
 <p>Add a new bullet before 8.5 [dcl.init] bullet 17.6.1:
