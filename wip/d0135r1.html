@@ -33,7 +33,6 @@ blockquote.clause > p.ins {
   color: #000000; background-color: #C8FFC8;}
 }
 </style>
-
 </head>
 
 <body>
@@ -101,6 +100,13 @@ The <em>result</em> of a prvalue is the value that the expression stores into
 its context. The <em>result object</em> of a prvalue
 is the object initialized by the prvalue. A prvalue whose result is the value
 <tt>V</tt> is sometimes said to have or name the value <tt>V</tt>.
+Because there are no objects of type <tt>void</tt>, a prvalue of type
+(possibly cv-qualified) <tt>void</tt> has no result object.
+[&nbsp;<em>Note</em>:
+Except when the prvalue is the operand of a <em>decltype-specifier</em>,
+a prvalue of class or array type always has a result object.
+For a discarded prvalue, a temporary object is materialized; see [expr].
+]
 The <em>result</em> of a glvalue is the entity denoted by the expression.
 </blockquote>
 
@@ -203,7 +209,9 @@ When an lvalue-to-rvalue conversion is applied to an expression <tt>e</tt>, and 
 <h2>4.4 Temporary materialization conversion [conv.rval]</h2>
 <p>A prvalue of type <tt>T</tt> can be converted to an xvalue of type
 <tt>T</tt>. This conversion initializes a temporary object ([class.temporary])
-of type <tt>T</tt> from the prvalue, and produces an xvalue denoting the
+of type <tt>T</tt> from the prvalue
+by evaluating the prvalue with the temporary object as its result object,
+and produces an xvalue denoting the
 temporary object. <tt>T</tt> shall be a complete type. If <tt>T</tt> is
 a class type (or array thereof), the destructor is invoked implicitly
 ([class.dtor]).
@@ -218,7 +226,7 @@ int k = X().n; // ok, X() prvalue is converted to xvalue
 
 <blockquote class="stdins">
 Whenever an rvalue expression appears as an operand of an operator that expects
-an xvalue or a glvalue for that operand, the temporary materialization
+a glvalue for that operand, the temporary materialization
 conversion ([conv.rval]) is applied to convert the expression to an xvalue.
 </blockquote>
 
@@ -297,6 +305,7 @@ to the return type of the statically chosen function.
 
 <p>Change in 5.2.2 [expr.call] paragraph 11:
 
+<!-- FIXME: Move to description of decltype. -->
 <blockquote>
 If a function call is a prvalue of object type:
 <ul><li>
@@ -304,11 +313,13 @@ if the function call is either
 <ul><li>the operand of a <em>decltype-specifier</em> or
 <li>the right operand of a comma operator that is the operand of a <em>decltype-specifier</em>,</ul>
 <del>a temporary object is not introduced for the prvalue</del>
-<ins>no result object is provided for the call</ins>.
+<ins>the temporary materialization conversion is not applied ([conv.rval]) and
+no result object is provided for the call</ins>.
 The type of the prvalue may be incomplete.
 [&hellip;]
 </blockquote>
 
+<!--
 <p>Change in 5.2.3 [expr.type.conv] (<b>alternative 1</b>):
 
 <blockquote class="clause">
@@ -356,24 +367,30 @@ of the specified type
 direct-list-initialized (8.5.4) with the specified
 <em>braced-init-list</em><del>, and its value is that temporary object as a prvalue</del>.
 </blockquote>
+-->
 
-<p>Change in 5.2.3 [expr.type.conv] (<b>alternative 2</b>):
+<p>Change in 5.2.3 [expr.type.conv]<!-- (<b>alternative 2</b>)-->:
 <blockquote class="clause">
 <p>
 A <em>simple-type-specifier</em> (7.1.6.2) or <em>typename-specifier</em> (14.6)
-followed by a parenthesized <em>expression<del>-list</del></em>
-<del>
-constructs a value of the specified type given the expression list. If the
-expression list is a single expression, the type conversion expression</del>
+followed by a parenthesized <ins>optional</ins> <em>expression-list</em>
+<ins>
+or by a <em>braced-init-list</em> (the initializer)
+</ins>
+constructs a value of the specified type given the <del>expression list</del> <ins>initializer</ins>. If the
+<del>expression list</del> <ins>initializer</ins> is a <ins>parenthesized</ins>
+single expression,
+the type conversion expression</del>
 is equivalent (in definedness, and if defined in meaning) to the corresponding
 cast expression (5.4).
 <ins>
-In all other cases, a <em>simple-type-specifier</em> or <em>typename-specifier</em>
-followed by a parenthesized <em>expression-list</em>
-or by a <em>braced-init-list</em>
+  If the type is (possibly cv-qualified) <tt>void</tt> and
+  the initializer is <tt>()</tt>,
+  the expression
+is a prvalue of the specified type that performs no initialization.
+Otherwise, the expression
 is a prvalue of the specified type whose result object is
-direct-initialized (8.5) with that parenthesized <em>expression-list</em> or
-<em>braced-init-list</em> (interpreted as an <em>initializer</em>).
+direct-initialized (8.5) with the initializer.
 
 For an expression of the form <tt>T()</tt>, <tt>T</tt> shall not be an array type.
 </ins>
@@ -673,7 +690,7 @@ binding a reference to a bit-field, where we need to explicitly create a
 temporary to avoid infinite recursion. The second alternative more directly
 expresses the intent. -->
 
-<p>Change in 8.5.3 [decl.init.ref] bullet 5.2.2 (<b>alternative 1</b>):
+<p>Change in 8.5.3 [decl.init.ref] bullet 5.2.2<!-- (<b>alternative 1</b>)-->:
 
 <blockquote>
 Otherwise
@@ -681,7 +698,7 @@ Otherwise
 <li>
 If T1 or T2 is a class type and T1 is not reference-related to T2,
 user-defined conversions are considered using the rules for
-copy-initialization of an object of type “cv1 T1” by user-defined conversion
+copy-initialization of an object of type "cv1 T1" by user-defined conversion
 (8.5, 13.3.1.4, 13.3.1.5); the program is ill-formed if the corresponding
 non-reference copy-initialization would be ill-formed.
 The result of the
@@ -711,6 +728,7 @@ creating and initializing a temporary from the initializer expression
 the reference is said to <em>bind directly</em> to the initializer expression.
 </blockquote>
 
+<!--
 <p>Change in 8.5.3 [decl.init.ref] bullet 5.2.2 (<b>alternative 2</b>):
 
 <blockquote>
@@ -721,7 +739,7 @@ of type "cv T1"</ins>
 <del>
 If T1 or T2 is a class type and T1 is not reference-related to T2,
 user-defined conversions are considered using the rules for
-copy-initialization of an object of type “cv1 T1” by user-defined conversion
+copy-initialization of an object of type "cv1 T1" by user-defined conversion
 (8.5, 13.3.1.4, 13.3.1.5)
 </del>
 ; the program is ill-formed if the corresponding
@@ -763,6 +781,7 @@ creating and initializing a temporary from the initializer expression
 <ins>implicitly converting the initializer expression to the underlying type of the reference</ins>),
 the reference is said to <em>bind directly</em> to the initializer expression.
 </blockquote>
+-->
 
 <p>Change in 8.5.4 [dcl.init.list] bullet 3.5:
 
@@ -805,6 +824,30 @@ initializer list as if the implementation
 <del>elements of type</del> <tt>const E</tt><ins>"</ins>,
 where <tt>N</tt> is the number of elements in the initializer list.
 [&hellip;]
+</blockquote>
+
+<p>Change in 12.1 [class.ctor] paragraph 12:
+
+<blockquote>
+During the construction of a<ins>n</ins>
+<del><tt>const</tt></del> object,
+if the value of the object or any of
+its subobjects is accessed through a glvalue that is not obtained, directly or
+indirectly, from the constructor's <tt>this</tt> pointer,
+the value of the object or subobject thus obtained is unspecified.
+[&nbsp;<em>Example</em>:
+<pre>
+&hellip;
+<ins>
+extern struct D d;
+struct D {
+  D(int a) : a(a), b(d.a) {}
+  int a, b;
+};
+D d = D(1); // value of d.b is unspecified
+</ins>
+</pre>
+&nbsp;]
 </blockquote>
 
 <p>Change in 12.2 [class.temporary]:
@@ -968,11 +1011,12 @@ Thing f() {
 Thing t2 = f();
 </pre>
 
-Here </del>the criteria for elision can be combined to eliminate two calls to the
-copy constructor of class <tt>Thing</tt>: the</del> copying of the local automatic object <tt>t</tt>
+Here the criteria for elision can <del>be combined to</del> eliminate <del>two calls to the
+copy constructor of class <tt>Thing</tt>:</del> the copying of the local automatic object <tt>t</tt>
 into the <del>temporary</del> <ins>result</ins> object for the <del>return
 value of</del> function <ins>call</ins> <tt>f()</tt>
-<del>and the copying of that temporary object into object <tt>t2</tt></del>.
+<del>and the copying of that temporary object into object <tt>t2</tt></del>
+<ins>which is the global object <tt>t2</tt></ins>.
 Effectively, the construction of the local object <tt>t</tt>
 can be viewed as directly initializing the global object <tt>t2</tt>,
 and that object's destruction will occur at program exit.
@@ -1012,11 +1056,33 @@ this change it would prevent cases like <tt>X().f()</tt>, which creates a
 temporary object while binding the implicit object parameter to the
 <tt>X()</tt> prvalue.</em>
 
-<p><em>FIXME: more checking of clause 13 onwards</em>
+<p>Change in 13.3.3.1.4 [over.ics.ref] paragraph 3:
 
-<p><em>FIXME:
+<blockquote>
+[&hellip;]
+[&nbsp;<em>Note</em>:
+This means, for example, that a candidate function cannot be a viable function
+if it has a non-const lvalue reference parameter (other than the implicit
+object parameter) and the corresponding argument <del>is a temporary or</del>
+would require <del>one</del> <ins>a temporary</ins> to be created
+to initialize the lvalue reference (see 8.5.3).
+]
+</blockquote>
 
- when an object is being initialized through a function call (either as the
- result object or through a constructor), behavior should be undefined if the object
- is accessed through any path other than the result object or 'this' pointer,
- respectively -- this otherwise makes returning through registers observable</em>
+<p>Change in 15.1 [except.throw] paragraph 3:
+
+<blockquote>
+Throwing an exception copy-initializes (8.5, 12.8) a temporary object, called
+the <em>exception object</em>.
+<del>The temporary is an</del> <ins>An</ins> lvalue
+<ins>denoting the temporary</ins>
+<del>and</del> is used to initialize the
+variable declared in the matching handler (15.3).
+[&hellip;]
+</blockquote>
+
+<p>Change in table 19 [defaultconstructible]:
+
+<blockquote>
+a<ins>n</ins> <del>temporary</del> object of type <tt>T</tt> is value-initialized or aggregate-initialized
+</blockquote>
