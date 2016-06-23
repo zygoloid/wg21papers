@@ -23,10 +23,10 @@ blockquote.stddel { text-decoration: line-through;
 <body>
 <div style="text-align: right; float: right">
 ISO/IEC JTC1 SC22 WG21<br>
-D0137R1<br>
+P0137R1<br>
 Richard Smith<br>
 richard@metafoo.co.uk<br>
-2016-02-29<br>
+2016-06-23<br>
 </div>
 
 <h1>Core Issue <a href="http://wg21.link/cwg1776">1776</a>: Replacement of class objects containing reference members</h1>
@@ -47,17 +47,20 @@ Core Issue <a href="http://wg21.link/cwg1116">1116</a>: Aliasing of union member
 
 TODO:
 
-add annex C extension
-
-rules for access to elements of an array that provides storage for an object
-
 discuss the "addressable bytes of storage" question
  - can launder allow us to address bytes of storage we couldn't before?
    necessary for hubert's object splitting optimization
+proposed answer: no; see launder wording
 
-resolve 2182:
- - the vector<T> issue: NAD, fix the library
- - the 'struct Base {...}; struct Derived : Base {}; Derived d[20]; Base *p = d; Base *q = &p[10]; ' issue
+discuss 2182:
+ - the vector<T> issue: vector<T>::data() and the contiguous iterator
+   guarantees are the problem here (under-encapsulation)
+   to make this work we need to either chnage what pointer arithmetic means, or
+   give the library a way to create a notional array object without initializing
+   its elements; the latter seems superior
+ - the 'struct Base {...}; struct Derived : Base {}; Derived d[20]; Base *p = d;
+   Base *q = &p[10]; ' issue; this is relatively easy to support in [expr.add]
+retain this as separate issue rather than folding it in here?
 
 -->
 
@@ -73,8 +76,11 @@ Change in 1.8 (intro.object) paragraph 1:
 The constructs in a C++
 program create, destroy, refer to, access, and manipulate objects.
 <ins>
-An <em>object</em> is created by a <em>definition</em> (3.1), by a <em>new-expression</em> (5.3.4)
-or as explicitly specified elsewhere (9.5, 12.2).
+An <em>object</em> is created
+by a <em>definition</em> (3.1),
+by a <em>new-expression</em> (5.3.4),
+when implicitly changing the active member of a union ([class.union]),
+or when a temporary object is created ([conv.rval], [class.temporary]).
 </ins>
 An <del><em>object</em> is</del><ins>object occupies</ins> a region of storage <ins>in its period of construction (12.7 class.cdtor), throughout its lifetime (3.8 basic.life), and in its period of destruction (12.7 class.cdtor)</ins>.
 [&nbsp;<em>Note</em>:
@@ -115,7 +121,8 @@ associated with <em>e</em>, and
 </ul>
 [&nbsp;<em>Note</em>: 
 If the subobject contains a reference member or a const subobject,
-the name of the original subobject cannot be used to access the new object.
+the name of the original subobject cannot be used to access the new object
+([basic.life]).
 &mdash;&nbsp;<em>end note</em>&nbsp;]
 [&nbsp;<em>Example</em>:
 <pre>struct X { const int n; };
@@ -375,7 +382,7 @@ that might be located at that address.
 There are further restrictions on pointers to
 objects with dynamic storage duration; see 3.7.4.3.</del>
 <ins>
-A pointer acquires an invalid pointer value
+A pointer value becomes invalid
 when the storage it denotes
 reaches the end of its storage duration; see [basic.stc].
 </ins>
@@ -451,11 +458,11 @@ A <del>satisfies</del> <ins>does not satisfy</ins> the alignment requirement of 
 then the resulting pointer value <ins>is unspecified</ins>
 <del>represents the same address as the original pointer value, that is, A</del>. 
 <ins>
-Otherwise, if the original pointer value points to or past the end of an object <em>a</em>,
+Otherwise, if the original pointer value points to an object <em>a</em>,
 and
 there is an object <em>b</em> of type <tt>T</tt> (ignoring cv-qualification)
 that is pointer-interconvertible (3.9.2) with <em>a</em>,
-the result is a pointer to or past the end of <em>b</em>, respectively.
+the result is a pointer to <em>b</em>.
 Otherwise, the pointer value is unchanged by the conversion.
 </ins>
 <del>
@@ -786,19 +793,25 @@ Add a new subclause under 18.6 (support.dynamic):
   <pre>template &lt;class T&gt; constexpr T* launder(T* p) noexcept;</pre>
 
 <p><em>Requires:</em> <tt>p</tt> represents the address <tt>A</tt> of a byte in
-memory and an object <tt>X</tt> that is within its lifetime and whose type is
-similar to <tt>T</tt> is located at the address <tt>A</tt>.
-<!--
-All bytes of storage that would be accessible through the result are accessible
-through <tt>p</tt>.
-A byte of storage is accessible through <tt>p</tt> if it is within the storage
-occupied by the object pointed to by <tt>p</tt> or if the storage is accessible
-through another pointer value <tt>q</tt> that is either interconvertible with
-<tt>p</tt> or where <tt>p</tt> and <tt>q</tt> point to elements of the same
-array object.
--->
+memory. An object <tt>X</tt> that is within its lifetime ([basic.life])
+and whose type is
+similar ([conv.qual]) to <tt>T</tt> is located at the address <tt>A</tt>.
+All bytes of storage that would be reachable through the result are reachable
+through <tt>p</tt> (see below).
+
 </p><p><em>Returns:</em> A value of type <tt>T *</tt> that points to <tt>X</tt>.
 </p><p><em>Remarks:</em> An invocation of this function may be used in a core constant expression whenever the value of its argument may be used in a core constant expression.
+A byte of storage is reachable through a pointer value that points
+to an object <tt>Y</tt> if it is within the storage occupied by <tt>Y</tt>,
+an object that is pointer-interconvertible with <tt>Y</tt>,
+or the immediately-enclosing array object if <tt>Y</tt> is an array element.
+The program is ill-formed if <tt>T</tt> is a function type or (possibly
+cv-qualified) <tt>void</tt>.
+</p><p><em>Notes:</em> If a new object is created in storage occupied by an
+existing object of the same type, a pointer to the original object can
+be used to refer to the new object unless the type contains const or
+reference members; in the latter cases, this function can be used to
+obtain a usable pointer to the new object. See [basic.life].
 </p><p>
 [&nbsp;<em>Example</em>:
 </p><pre>struct X { const int n; };
@@ -838,6 +851,10 @@ Change in 20.7.5 (ptr.align) paragraph 2:
 </li></ul>
 </blockquote>
  
+<h2>Feature test macro</h2>
+
+<p>The feature test macro <tt>__cpp_lib_launder</tt> is proposed for the library portion of this paper.
+
 <center><b>ISO/IEC JTC1 SC22 WG21 P0137 EOM</b></center>
 
 </body></html>

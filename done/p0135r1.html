@@ -38,16 +38,11 @@ blockquote.clause > p.ins {
 <body>
 <div style="text-align: right; float: right">
 ISO/IEC JTC1 SC22 WG21<br>
-D0135R1<br>
+P0135R1<br>
 Richard Smith<br>
 richard@metafoo.co.uk<br>
-2016-03-01<br>
+2016-06-20<br>
 </div>
-
-<!--
-[&nbsp;<em>Note</em>:
-]
--->
 
 <h1>Wording for guaranteed copy elision through simplified value categories</h1>
 
@@ -69,8 +64,8 @@ Expressions are categorized according to the taxonomy in Figure 1. [Figure 1: Ex
   <li><del>An <i>lvalue</i> [&hellip;]</del>
   <li><del>[&hellip;]</del>
   <li><del>A <i>prvalue</i>[&hellip;]</del>
-  <li><ins>A <i>glvalue</i> is an expression whose evaluation computes the location of an object, bit-field, or function.</ins>
-  <li><ins>A <i>prvalue</i> is an expression whose evaluation initializes an object, bit-field, or the operand of an operator, as specified by the context in which it appears.</ins>
+  <li><ins>A <i>glvalue</i> is an expression whose evaluation determines the identity of an object, bit-field, or function.</ins>
+  <li><ins>A <i>prvalue</i> is an expression whose evaluation initializes an object or a bit-field, or computes the value of the operand of an operator, as specified by the context in which it appears.</ins>
   <li><ins>An <i>xvalue</i> is a glvalue that denotes an object or
       bit-field whose resources can be reused (usually because it is near the
       end of its lifetime). [&nbsp;<em>Example</em>: Certain kinds of expressions
@@ -97,11 +92,13 @@ Every expression belongs to exactly one of the fundamental classifications in th
 
 <blockquote class="stdins">
 The <em>result</em> of a prvalue is the value that the expression stores into
-its context. The <em>result object</em> of a prvalue
-is the object initialized by the prvalue. A prvalue whose result is the value
+its context.
+A prvalue whose result is the value
 <tt>V</tt> is sometimes said to have or name the value <tt>V</tt>.
-Because there are no objects of type <tt>void</tt>, a prvalue of type
-(possibly cv-qualified) <tt>void</tt> has no result object.
+The <em>result object</em> of a prvalue
+is the object initialized by the prvalue;
+a prvalue that is used to compute the value of an operand of an operator
+or that has type (possibly cv-qualified) <tt>void</tt> has no result object.
 [&nbsp;<em>Note</em>:
 Except when the prvalue is the operand of a <em>decltype-specifier</em>,
 a prvalue of class or array type always has a result object.
@@ -140,35 +137,6 @@ A program that attempts to modify an object through a nonmodifiable lvalue <ins>
 <ins>through an</ins> rvalue expression is ill-formed ([expr.ass], [expr.post.inc], [expr.pre.inc]).
 <ins>]</ins>
 </blockquote>
-
-<!--
-<p>Change in 4 [conv] paragraph 1:
-
-<blockquote>
-Standard conversions are implicit conversions with built-in meaning. Clause 4 enumerates the full set of such
-conversions. A standard conversion sequence is a sequence of standard conversions in the following order:
-<ul>
-<li>
- Zero or one conversion from the following set: lvalue-to-rvalue conversion, array-to-pointer conversion,
- <del>and</del> function-to-pointer conversion<ins>, and temporary materialization conversion</ins>.
-<li>
- Zero or one conversion from the following set: integral promotions, floating point promotion, integral
- conversions, floating point conversions, floating-integral conversions, pointer conversions, pointer to
- member conversions, and boolean conversions.
-<li>
- Zero or one function pointer conversion.
-<li>
-  Zero or one qualification conversion.
-</ul>
-[&nbsp;<em>Note</em>:
-A standard conversion sequence can be empty, i.e., it can consist of no conversions.
-A temporary materialization conversion cannot be combined with any other conversion, as all
-later conversions act only on prvalues.
-]
-A standard conversion sequence will be applied to an expression if necessary to convert it to a required
-destination type <ins>and value category</ins>.
-</blockquote>
--->
 
 <p>Change in 4.1 [conv.lval] paragraph 1, second footnote (footnote 55):
 
@@ -212,9 +180,12 @@ When an lvalue-to-rvalue conversion is applied to an expression <tt>e</tt>, and 
 of type <tt>T</tt> from the prvalue
 by evaluating the prvalue with the temporary object as its result object,
 and produces an xvalue denoting the
-temporary object. <tt>T</tt> shall be a complete type. If <tt>T</tt> is
-a class type (or array thereof), the destructor is invoked implicitly
-([class.dtor]).
+temporary object. <tt>T</tt> shall be a complete type.
+[&nbsp;<em>Note</em>:
+If <tt>T</tt> is
+a class type (or array thereof),
+it must have an accessible and non-deleted destructor; see [class.dtor].
+]
 [&nbsp;<em>Example</em>:
 <pre>struct X { int n; }
 int k = X().n; // ok, X() prvalue is converted to xvalue
@@ -239,7 +210,7 @@ Such an expression is called a <em>discarded-value expression</em>.
 The array-to-pointer (4.2) and function-to-pointer (4.3) standard conversions are not applied.
 The lvalue-to-rvalue conversion (4.1) is applied if and
 only if the expression is a glvalue of
-<del>volatile-qualified</del> type <ins><tt>volatile T</tt></ins>
+volatile-qualified type
 and it is one of the following:
 [&hellip;]
 [&nbsp;<em>Note</em>: Using an overloaded operator causes a function call; the above covers only operators with built-in
@@ -268,11 +239,8 @@ The evaluation of a <em>lambda-expression</em> results in a prvalue <del>tempora
 <blockquote>
 A postfix expression followed by an expression in square brackets is a postfix expression. One of the expressions
 shall <del>have the</del><ins>be a glvalue of</ins> type "array of T" or <ins>a prvalue of type</ins> "pointer to T"
-and the other <del>shall have</del> <ins>be a prvalue of</ins> unscoped enumeration or integral type.
+and the other shall <del>have</del> <ins>be a prvalue of</ins> unscoped enumeration or integral type.
 [&hellip;] in the case of an array operand, the result is an lvalue if that operand is an lvalue and an xvalue otherwise.
-<!--
-[&hellip;] in the case of an array operand, the result <del>is an lvalue if that operand is an lvalue and an xvalue otherwise</del> <ins>has the same value category as the array operand</ins>.
--->
 </blockquote>
 
 <p>Change in 5.2.2 [expr.call] paragraph 4:
@@ -318,57 +286,7 @@ The type of the prvalue may be incomplete.
 <li>otherwise, the type of the prvalue shall be complete.
 </blockquote>
 
-<!--
-<p>Change in 5.2.3 [expr.type.conv] (<b>alternative 1</b>):
-
-<blockquote class="clause">
-<p>
-A <em>simple-type-specifier</em> (7.1.6.2) or <em>typename-specifier</em>
-(14.6) followed by a parenthesized <em>expression-list</em> constructs a value
-of the specified type given the expression list. If the expression list is a
-single expression, the type conversion expression is equivalent (in
-definedness, and if defined in meaning) to the corresponding cast expression
-(5.4). If the type specified is a class type, the class type shall be complete.
-
-If the expression list specifies more than a single value, the type shall be a
-class with a suitably declared constructor (8.5, 12.1), and the expression
-<tt>T(x1, x2, ...)</tt>
-is
-<del>equivalent in effect to the declaration <tt>T t</tt></del>
-<ins>a prvalue of type <tt>T</tt> whose result object is direct-initialized
-with
-the <em>initializer</em></ins>
-<tt>(x1, x2, ...)</tt><del><tt>;</tt>
-for some invented temporary variable <tt>t</tt>, with the result being the
-value of <tt>t</tt> as a prvalue</del> <ins>([dcl.init])</ins>.
-
-<p>
-The expression <tt>T()</tt>, where <tt>T</tt> is a
-<em>simple-type-specifier</em> or <em>typename-specifier</em>
-for a non-array complete object type or the (possibly cv-qualified) <tt>void</tt> type,
-<del>creates</del> <ins>is</ins> a prvalue of <del>the specified type</del>
-<ins>type <tt>T</tt></ins>, whose
-<del>value</del>
-<ins>result object</ins> is <del>that produced by</del>
-value-initializ<del>ing</del><ins>ed</ins> (8.5)
-<del>an object of type <tt>T</tt></del>; no initialization is done for the
-<tt>void()</tt> case. [&nbsp;<em>Note</em>: if <tt>T</tt> is a non-class type
-that is cv-qualified, the cv-qualifiers are discarded when determining the type
-of the resulting prvalue (Clause 5). ]
-
-<p>
-Similarly, a <em>simple-type-specifier</em> or <em>typename-specifier</em>
-followed by a <em>braced-init-list</em>
-<ins>is a prvalue</ins>
-<del>creates a temporary object</del>
-of the specified type
-<ins>whose result object is</ins>
-direct-list-initialized (8.5.4) with the specified
-<em>braced-init-list</em><del>, and its value is that temporary object as a prvalue</del>.
-</blockquote>
--->
-
-<p>Change in 5.2.3 [expr.type.conv]<!-- (<b>alternative 2</b>)-->:
+<p>Change in 5.2.3 [expr.type.conv]:
 <blockquote class="clause">
 <p>
 A <em>simple-type-specifier</em> (7.1.6.2) or <em>typename-specifier</em> (14.6)
@@ -512,40 +430,7 @@ unambiguous and accessible base class. The result is an object or a function of
 the type specified by the second operand.
 </blockquote>
 
-<p>Change in 5.5 [expr.mptr.oper] paragraph 6:
-
-<blockquote>
-[&hellip;]
-In a <tt>.*</tt> expression whose object expression <del>is</del>
-<ins>was</ins> an rvalue <ins>prior to the application of the temporary
-materialization conversion ([conv.rval])</ins>, the program is
-ill-formed if the second operand is a pointer to member function with
-<em>ref-qualifier</em> <tt>&</tt>.
-[&hellip;]
-</blockquote>
-
-<p>Change in 5.16 [expr.cond] bullet 3.3.1:
-
-<blockquote>
-if <tt>E1</tt> and <tt>E2</tt> have class type,
-and the underlying class types
-are the same or one is a base class of the other:
-<tt>E1</tt> can be converted to match <tt>E2</tt>
-if the class of <tt>T2</tt> is
-the same type as, or a base class of,
-the class of <tt>T1</tt>,
-and the cv-qualification of <tt>T2</tt> is
-the same cv-qualification as, or a greater cv-qualification than,
-the cv-qualification of <tt>T1</tt>.
-If the conversion is applied,
-<tt>E1</tt> is changed to a prvalue of type <tt>T2</tt>
-<del>by copy-initializing a temporary of type <tt>T2</tt></del>
-<ins>that copy-initializes its return object</ins>
-from <tt>E1</tt>
-<del>and using that temporary as the converted operand</del>.
-</blockquote>
-
-<p>Change in 5.16 [expr.cond] bullet 6.1:
+<p>Change in 5.16 [expr.cond] bullet 7.1:
 
 <blockquote>
 The second and third operands have the same type; the result is of that type
@@ -713,19 +598,7 @@ int &&b = int(); // used to not bind directly, now does</pre>
 This does not appear to affect any of the places where we use the term "bind directly".
 </em>
 
-<!-- The idea: we actually just want to implicitly convert to cv1 T1.
-But if that conversion uses a conversion function, we want to apply some
-restrictions to its result type. So we perform just that one part of
-the copy-initialization rules and then recurse back to this section to
-do the rest.
-
-The first alternative attempted to use the same recursion pattern for the
-case where we're not going to use a conversion function, but that fails for
-binding a reference to a bit-field, where we need to explicitly create a
-temporary to avoid infinite recursion. The second alternative more directly
-expresses the intent. -->
-
-<p>Change in 8.5.3 [decl.init.ref] bullet 5.2.2<!-- (<b>alternative 1</b>)-->:
+<p>Change in 8.5.3 [decl.init.ref] bullet 5.2.2:
 
 <blockquote>
 Otherwise
@@ -763,61 +636,6 @@ creating and initializing a temporary from the initializer expression
 the reference is said to <em>bind directly</em> to the initializer expression.
 </blockquote>
 
-<!--
-<p>Change in 8.5.3 [decl.init.ref] bullet 5.2.2 (<b>alternative 2</b>):
-
-<blockquote>
-Otherwise<ins>, the initializer expression is implicitly converted to a prvalue
-of type "cv T1"</ins>
-<ul>
-<li>
-<del>
-If T1 or T2 is a class type and T1 is not reference-related to T2,
-user-defined conversions are considered using the rules for
-copy-initialization of an object of type "cv1 T1" by user-defined conversion
-(8.5, 13.3.1.4, 13.3.1.5)
-</del>
-; the program is ill-formed if the corresponding
-non-reference copy-initialization would be ill-formed.
-<del>
-The result of the
-call to the conversion function, as described for the non-reference
-copy-initialization,
-is then used to direct-initialize the reference.
-For
-this direct-initialization, user-defined conversions are not considered.
-</del>
-<ins>
-The temporary materialization conversion is applied
-and the reference is bound to the result.
-</ins>
-<li>
-<del>
-Otherwise, a temporary of type "cv1 T1" is created and copy-initialized (8.5)
-from the initializer expression. The reference is then bound to the temporary.
-</del>
-</ul>
-<ins>
-If the implicit conversion invokes a conversion function,
-the immediate initialization expression is the call to the conversion
-function; otherwise, it is the initialization expression.
-For an immediate initialization expression of type "cv3 T3"
-where</ins>
-<del>If</del> T1 is reference-related to T<del>2</del><ins>3</ins>:
-<ul>
-<li>cv1 shall be the same cv-qualification as, or greater cv-qualification than, cv<del>2</del><ins>3</ins>; and
-<li>if the reference is an rvalue reference, the <ins>immediate</ins> initializer expression shall not be an lvalue.
-</ul>
-[&nbsp;<em>Example</em>: &hellip;&nbsp;]
-In all cases except the last (i.e.,
-<del>
-creating and initializing a temporary from the initializer expression
-</del>
-<ins>implicitly converting the initializer expression to the underlying type of the reference</ins>),
-the reference is said to <em>bind directly</em> to the initializer expression.
-</blockquote>
--->
-
 <p>Change in 8.5.4 [dcl.init.list] bullet 3.5:
 
 <blockquote>
@@ -839,7 +657,8 @@ from a class of the same type (8.5)</del>.
 
 <blockquote>
 Otherwise, if <tt>T</tt> is a reference type, a prvalue <del>temporary</del>
-of the type referenced by <tt>T</tt> is <ins>generated that initializes its
+of the type referenced by <tt>T</tt> is <ins>generated.
+The prvalue initializes its
 result object by</ins> copy-list-initializ<del>ed</del><ins>ation</ins>
 or direct-list-initializ<del>ed</del><ins>ation</ins>, depending on the kind
 of initialization for the reference<del>, and the reference is bound to
@@ -859,30 +678,6 @@ initializer list as if the implementation
 <del>elements of type</del> <tt>const E</tt><ins>"</ins>,
 where <tt>N</tt> is the number of elements in the initializer list.
 [&hellip;]
-</blockquote>
-
-<p>Change in 12.1 [class.ctor] paragraph 12:
-
-<blockquote>
-During the construction of a<ins>n</ins>
-<del><tt>const</tt></del> object,
-if the value of the object or any of
-its subobjects is accessed through a glvalue that is not obtained, directly or
-indirectly, from the constructor's <tt>this</tt> pointer,
-the value of the object or subobject thus obtained is unspecified.
-[&nbsp;<em>Example</em>:
-<pre>
-&hellip;
-<ins>
-extern struct D d;
-struct D {
-  D(int a) : a(a), b(d.a) {}
-  int a, b;
-};
-D d = D(1); // value of d.b is unspecified
-</ins>
-</pre>
-&nbsp;]
 </blockquote>
 
 <p>Change in 12.2 [class.temporary]:
