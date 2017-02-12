@@ -1,0 +1,66 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 2174: Unclear rules for friend definitions in templates</title>
+
+<style type="text/css">
+  ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2016-11-10
+
+<h1>Core Issue 2174: Unclear rules for friend definitions in templates</h1>
+<h1>Core Issue 2263: Default argument instantiation for <tt>friend</tt>s</h1>
+
+Delete 14.5.4 [temp.friend] paragraph 4:
+
+<blockquote>
+  <del>
+When a function is defined in a friend function declaration in a class template, the function is instantiated when the function is odr-used (3.2 [basic.def.odr]). The same restrictions on multiple declarations and definitions that apply to non-template function declarations and definitions also apply to these implicit definitions.
+</del>
+</blockquote>
+
+Change 14.7.1 [temp.inst] paragraph 1 and split it into two paragraphs as follows:
+
+<blockquote>
+... &mdash; end note ]
+
+<p>
+The implicit instantiation of a class template specialization causes the implicit instantiation of the declarations, but not of the definitions, default arguments, or exception-specifications of the class member functions, member classes, scoped member enumerations, static data members<ins>,</ins> <del>and</del> member templates<ins>, and friends</ins>; and it causes the implicit instantiation of the definitions of unscoped member enumerations and member anonymous unions. However, for the purpose of determining whether an instantiated redeclaration <del>of a member</del> is valid according to <ins>3.2 [basic.def.odr] and</ins> 9.2 [class.mem], a declaration that corresponds to a definition in the template is considered to be a definition. [Example:
+<pre>
+template&lt;class T, class U>
+struct Outer {
+  template&lt;class X, class Y> struct Inner;
+  template&lt;class Y> struct Inner&lt;T, Y>;     // #1a
+  template&lt;class Y> struct Inner&lt;T, Y> { }; // #1b; OK: valid redeclaration of #1a // #2
+  template&lt;class Y> struct Inner&lt;U, Y> { }; // error at #2
+};
+Outer&lt;int, int> outer;
+</pre>
+<tt>Outer&lt;int, int>::Inner&lt;int, Y></tt> is redeclared at #1b. (It is not
+defined but noted as being associated with a definition in <tt>Outer&lt;T,
+  U></tt>.) #2 is also a redeclaration of #1a. It is noted as associated with a
+definition, so it is an invalid redeclaration of the same partial
+specialization.
+<ins>
+<pre>
+template&lt;typename T> struct Friendly {
+  template&lt;typename U> friend int f(U) { return sizeof(T); }
+};
+Friendly&lt;char> fc;
+Friendly&lt;float> ff; // ill-formed: produces second definition of f(U)
+</pre>
+</ins>
+&mdash; end example ]
+</blockquote>
+
+Change 14.7.1 [temp.inst] paragraph 3 as follows:
+
+<blockquote>
+  Unless a function template specialization has been explicitly instantiated or explicitly specialized, the function template specialization is implicitly instantiated when the specialization is referenced in a context that requires a function definition to exist. <ins>A function whose declaration was instantiated from a friend function definition is implicitly instantiated when it is referenced in a context that requires a function definition to exist.</ins> Unless a call is to a function template explicit specialization or to a member function of an explicitly specialized class template, a default argument for a function template or a member function of a class template is implicitly instantiated when the function is called in a context that requires the value of the default argument.
+</blockquote>
+
+</body></html>

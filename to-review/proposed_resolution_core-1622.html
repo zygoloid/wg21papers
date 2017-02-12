@@ -1,0 +1,43 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 1622: Empty aggregate initializer for union</title>
+
+<style type="text/css">
+  ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2016-11-11
+
+<h1>Core Issue 1622: Empty aggregate initializer for union</h1>
+
+<p>
+Change in 8.6.1 dcl.init.aggr paragraph 8:
+</p>
+
+<blockquote>
+<del>If there are fewer initializer-clauses in the list than there are elements
+in the aggregate, then</del>
+Each <ins>non-variant</ins> element <ins>of the aggregate that is</ins>
+not explicitly
+initialized <ins>is</ins> <del>shall be</del> initialized from its default
+member initializer (9.2) or,
+if there is no default member initializer,
+<ins>copy-initialized</ins>
+from an empty initializer list (8.6.4).
+<ins>
+If the aggregate is a union and the initializer list
+is empty, then
+<ul>
+  <li>
+  if any union member has a default member initializer, that member is initialized from its default member initializer;
+  <li>
+  otherwise, the first member of the union (if any) is copy-initialized from an empty initializer list.
+</ul>
+</ins>
+</blockquote>
+
+</body></html>

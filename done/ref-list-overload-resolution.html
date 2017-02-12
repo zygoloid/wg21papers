@@ -1,0 +1,55 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue XXXX: ...</title>
+
+<style type="text/css">
+  ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2016-11-08
+
+<h1>Core Issue XXXX: ...</h1>
+
+<p>
+Change in 13.3.3.1 over.best.ics paragraph 5:
+</p>
+
+<blockquote>
+<del>For the case where</del> <ins>If</ins> the parameter type is a reference, see 13.3.3.1.4<ins>;
+if not, and the argument is a <em>braced-init-list</em>, see [over.ics.list]</ins>.
+</blockquote>
+
+<p>
+Change in 13.3.3.1.4 over.ics.ref paragraph 2:
+</p>
+
+<blockquote>
+When a parameter of reference type is not bound directly to an argument
+expression, the conversion sequence is the one required to convert the argument
+<del>expression</del> to the underlying type of the reference according to
+13.3.3.1.
+Conceptually, this conversion sequence corresponds to copy-initializing a
+temporary of the underlying type with the argument <del>expression</del>.
+Any difference in top-level cv-qualification is subsumed by the initialization
+itself and does not constitute a conversion.
+<ins>[Example:
+  <em>Editing note: copy from 13.3.3.1.5 paragraph 8</em>
+  ]</ins>
+</blockquote>
+
+<p>
+Delete 13.3.3.1.5 over.ics.list paragraph 8:
+</p>
+
+<blockquote>
+<del>
+Otherwise, if the parameter is a reference, see 13.3.3.1.4.
+[Note] [Example]
+</del>
+</blockquote>
+
+</body></html>

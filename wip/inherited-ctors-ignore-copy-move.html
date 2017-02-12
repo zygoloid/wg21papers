@@ -1,0 +1,53 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue XXXX: Base class copy and move constructors should not be inherited</title>
+
+<style type="text/css">
+  ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2016-11-27
+
+<h1>Core Issue XXXX: Base class copy and move constructors should not be inherited</h1>
+
+<p>
+Change in [over.match.funcs]p8:
+</p>
+
+<blockquote>
+A defaulted move constructor or assignment operator (12.8)
+that is defined as deleted
+is excluded from the set of candidate functions in all contexts.
+<ins>
+A constructor that is a direct member of a class <tt>C</tt>
+and has a first parameter of type "reference to <i>cv</i> <tt>C</tt>"
+(including such a constructor instantiated from a template)
+is excluded from the set of candidate functions
+when used to construct an object
+of type derived from <tt>C</tt> (12.6.3 [class.inhctor.init])
+with an argument list containing a single argument.
+[&nbsp;<em>Example</em>:
+<pre>
+struct X { X(X &amp;&amp;); };
+struct A {
+  A(const A&amp;);       // #1
+  A(A &amp;&amp;) = default; // #2, defined as deleted (12.8 [class.copy])
+  template&lt;typename T&gt;
+    A(T &amp;&amp;);         // #3
+  union { X x; };
+};
+struct B : A {
+  using A::A;
+  B(...);
+};
+B b = A(); // calls B::B(...): #1, #2, and #3 are excluded from candidate set
+</pre>
+&mdash; <em>end example</em>&nbsp;]
+</ins>
+</blockquote>
+
+</body></html>

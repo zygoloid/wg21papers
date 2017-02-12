@@ -1,0 +1,38 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 1839: Lookup of block-scope extern declarations</title>
+
+<style type="text/css">
+  ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2016-12-12
+
+<h1>Core Issue 1839: Lookup of block-scope <tt>extern</tt> declarations</h1>
+
+<p>
+Change in 3.5 basic.link paragraph 6:
+</p>
+
+<blockquote>
+The name of a function declared in block scope and the name of a variable
+declared by a block scope <tt>extern</tt> declaration have linkage.
+<ins>A prior declaration is looked up (3.4.1 [basic.lookup.unqual])
+without considering scopes that are outside the innermost enclosing
+namespace scope.</ins>
+If
+<ins>this lookup finds a</ins>
+<del>there is a visible</del>
+declaration of <del>an</del> <ins>a namespace scope</ins> entity with linkage having the same
+name and type<del>, ignoring entities declared outside the innermost enclosing
+namespace scope</del>, the block scope declaration declares that same entity and
+receives the linkage of the previous declaration. If there is more than one
+such matching entity, the program is ill-formed. Otherwise, if no matching
+entity is found, the block scope entity receives external linkage.
+</blockquote>
+
+</body></html>

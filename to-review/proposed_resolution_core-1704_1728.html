@@ -25,7 +25,7 @@ blockquote pre em { font-family: normal }
 
 <body>
 Richard Smith<br>
-2014-11-04
+2016-12-12
 
 <h1>Core Issue 1704: Type checking in explicit instantiation of variable templates</h1>
 <h1>Core Issue 1728: Type of an explicit instantiation of a variable template</h1>
@@ -63,7 +63,7 @@ enclosing namespace set.
 </blockquote>
 
 <p>
-Add a new paragraph after 14.7.2 temp.explicit paragraph 9:
+Add a new paragraph after 14.7.2 temp.explicit paragraph 4:
 <blockquote class="stdins">
 The <em>declaration</em> in an <em>explicit-instantiation</em> and the resulting
 instantiated function, variable, or class are two declarations of the same entity.
@@ -71,21 +71,29 @@ instantiated function, variable, or class are two declarations of the same entit
 These declarations are required to have matching types as specified in 3.5 [basic.link].
 [&nbsp;<em>Example</em>:
 <pre>
-  template<typename T> T var = {};
+  template&lt;typename T> T var = {};
   template float var&lt;float>;   // OK, instantiated variable has type 'float'
   template int var&lt;int[16]>[]; // OK, absence of major array bound is permitted
   template int *var&lt;int>;      // error: instantiated variable has type 'int'
+
+  template&lt;typename T> auto av = T();
+  template int av<int>;           // OK, variable with type 'int' can be redeclared with type 'auto'
+
+  template&lt;typename T> auto f() {}
+  template void f<int>();         // error: function with deduced return type redeclared with non-deduced return type (7.1.7.4 [dcl.spec.auto])
 </pre>
 &mdash; end example&nbsp;]
 &mdash; end note&nbsp;]
-For an explicit instantiation of a variable, the <em>declaration</em> in the
-<em>explicit-instantiation</em> is not a definition.
+Despite its syntactic form, the <em>declaration</em> in an
+<em>explicit-instantiation</em> for a variable is not itself a definition,
+and does not conflict with the definition instantiated by
+an explicit instantiation definition for that variable.
 </blockquote>
 
 <p>
 Change in 14.7.2 temp.explicit paragraph 10:
 <blockquote class="std">
-Except for <tt>inline</tt> functions, declarations with types deduced from their
+Except for <tt>inline</tt> functions and variables, declarations with types deduced from their
 initializer or return value (7.1.6.4), const variables of literal types,
 variables of reference types, and class template specializations, explicit
 instantiation declarations have the effect of suppressing the implicit

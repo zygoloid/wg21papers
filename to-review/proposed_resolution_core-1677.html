@@ -1,0 +1,81 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 1677: Constant initialization via aggregate initialization</title>
+
+<style type="text/css">
+  ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2016-11-10
+
+<h1>Core Issue 1677: Constant initialization via aggregate initialization</h1>
+
+<em>Drafting note: this depends on the changes in p0507r0 for core issue 1343</em>
+
+<p>
+Change in 3.6.2 basic.start.init paragraph 2:
+</p>
+
+<blockquote>
+  A <em>constant initializer</em> for <del>an object</del>
+  <ins>a variable or temporary object</ins> <tt>o</tt>
+  is an
+  <del>expression that</del>
+  <ins>initializer whose full-expression</ins>
+  is a constant expression, except
+  that <ins>if <tt>o</tt> is an object,</ins>
+  <del>it</del> <ins>such an initializer</ins>
+  may also invoke <tt>constexpr</tt> constructors for <tt>o</tt>
+  and its subobjects even if those objects are of non-literal class types.
+  [ Note: Such a class may have a non-trivial destructor - end note ] 
+  <em>Constant initialization</em> is performed
+  <del>:</del>
+
+<ul>
+<li>
+<del>
+  if each full-expression (including implicit conversions) that appears in the
+  initializer of a reference with static or thread storage duration is a
+  constant expression (5.20) and the reference is bound to a glvalue
+  designating an object with static storage duration, to a temporary object
+  (see 12.2) or subobject thereof, or to a function;
+  [&hellip;]
+</del>
+</li>
+
+<li>
+if <del>an object</del> <ins>a variable or temporary object</ins>
+with static or thread storage duration
+is initialized by a
+<del>
+constructor call, and if the initialization
+full-expression is a</del>
+constant initializer for the <del>object</del> <ins>entity</ins><del>;</del>
+</li>
+
+<li>
+<del>
+if an object with static or thread storage duration
+is not initialized by a
+constructor call and
+if either the object
+is value-initialized
+or every full-expression that appears in its initializer is a constant expression</del>.
+</li>
+</ul>
+If constant initialization is not performed, [&hellip;]
+</blockquote>
+
+<p>Change in 5.20 [expr.const] paragraph 2:
+
+<blockquote>
+<del>A <em>conditional-expression</em></del>
+<ins>An expression</ins>
+<tt>e</tt> is a <em>core constant expression</em> unless [&hellip;]
+</blockquote>
+
+</body></html>
