@@ -1,0 +1,182 @@
+<pre class='metadata'>
+Title: Implicit creation of objects for low-level object manipulation
+Shortname: d0593
+Revision: 1
+Date: 2017-07-07
+Editor: Richard Smith, Google, richard@metafoo.co.uk
+Former Editor: Ville Voutilainen, ville.voutilainen@gmail.com
+Abstract: This paper proposes that objects of sufficiently trivial types be created on-demand as necessary to give programs defined behavior.
+
+Status: D
+Group: wg21
+Audience: SG12
+URL: http://wg21.link/p0593r1
+Markup Shorthands: markdown yes
+</pre>
+
+Motivating examples
+===================
+
+Idiomatic C code as C++
+-----------------------
+
+Consider the following natural C program:
+
+```
+struct X { int a, b; };
+X *make_x() {
+  X *p = (X*)malloc(sizeof(struct X));
+  p->a = 1;
+  p->b = 2;
+  return p;
+}
+```
+
+When compiled with a C++ compiler, this code has undefined behavior, because
+`p->a` attempts to write to an `int` subobject of an `X` object, and this
+program never created either an `X` object nor an `int` subobject.
+
+Per [intro.object]p1,
+
+<blockquote>
+An *object* is created by a definition, by a *new-expression*, when
+implicitly changing the active member of a union, or when a temporary
+object is created.
+</blockquote>
+
+... and this program did none of these things.
+
+Objects provided as byte representation
+---------------------------------------
+
+Suppose a C++ program is given a sequence of bytes (perhaps from disk or from a
+network), and it knows those bytes are a valid representation of type `T`. How
+can it efficiently obtain a `T *` that can be legitimately used to access the
+object?
+
+Example: (many details omitted for brevity)
+
+```
+void process(Stream *stream) {
+  unique_ptr<char[]> buffer = stream->read();
+  if (buffer[0] == FOO)
+    process_foo(reinterpret_cast<Foo*>(buffer.get())); // #1
+  else
+    process_bar(reinterpret_cast<Bar*>(buffer.get())); // #2
+}
+```
+
+This code leads to undefined behavior today: within `Stream::read`, no `Foo` or
+`Bar` object is created, and so any attempt to access a `Foo` object through the
+`Foo*` produced by the cast at #1 would result in undefined behavior.
+
+Dynamic construction of arrays
+------------------------------
+
+Consider this program that attempts to implement a type like `std::vector`:
+
+```
+template<typename T> struct Vec {
+  char *buf = nullptr, *buf_end_size = nullptr, *buf_end_capacity = nullptr;
+  void reserve(std::size_t n) {
+    char *newbuf = (char*)::operator new(n * sizeof(T), std::align_val_t(alignof(T)));
+    std::uninitialized_copy(begin(), end(), (T*)newbuf); // #a
+
+    ::operator delete(buf, std::align_val_t(alignof(T)));
+    buf_end_size = newbuf + sizeof(T) * size(); // #b
+    buf_end_capacity = newbuf + sizeof(T) * n;  // #c
+    buf = newbuf;
+  }
+  void push_back(T t) {
+    if (buf_end_size == buf_end_capacity)
+      reserve(std::max<std::size_t>(size() * 2, 1));
+    new (buf_end_size) T(t);
+    buf_end_size += sizeof(T); // #d
+  }
+  T *begin() { return (T*)buf; }
+  T *end() { return (T*)buf_end_size; }
+  std::size_t size() { return end() - begin(); } // #e
+};
+int main() {
+  Vec<int> v;
+  v.push_back(1);
+  v.push_back(2);
+  v.push_back(3);
+  for (int n : v) { /*...*/ } // #f
+}
+```
+
+In practice, this code works across a range of existing implementations, but
+according to the C++ object model, undefined behavior occurs at points #a, #b,
+#c, #d, and #e, because they attempt to perform pointer arithmetic on a region
+of allocated storage that does not contain an array object.
+
+At locations #b, #c, and #d, the arithmetic is performed on a `char*`, and at
+locations #a, #e, and #f, the arithmetic is performed on a `T*`. Ideally, a
+solution to this problem would imbue both calculations with defined behavior.
+
+Use of the value of `offsetof`
+------------------------------
+
+The C++ standard library provides an `offsetof` macro that permits the
+determination of the byte offset from the start of a standard-layout class type
+to a named member. However, there is no easy way to use the resulting value to
+navigate within allocated storage:
+
+```
+struct X { int a; /*...*/ int n; };
+const auto off = offsetof(X, n);
+X x;
+char *p = reinterpret_cast<char*>(&x); // #1
+char *q = p + off;                     // #2
+int *r = reinterpret_cast<int*>(q);    // #3
+int *s = std::launder(r);              // #4
+```
+
+Here, step #1 is valid, and produces a `char*` that points to the `X` object.
+Since the pointee type and the pointed-to object type are not compatible, this
+pointer cannot actually be used to access the object.
+
+Step #2 *results in undefined behavior*, because `char *p` does not point to an
+array object, and pointer arithmetic is only defined on arrays.
+
+If we assume that step #2 resulted in `q` representing the address of the
+storage containing `x.n`, then step #3 is valid, and produces the same pointer
+value (the only side-condition is that the pointer is suitably aligned, and
+that side-condition is met).
+
+Step #4 is valid, and obtains the desired pointer that actually points to the
+`int` subobject of the `X` object.
+
+Approach
+========
+
+Following discussion in SG12, the proposed approach has the following components:
+
+  * We identify some array types as being "storage types". These are the types
+    that can be used to hold arbitrary objects, for instance by placement new.
+    C++17 already has some support for such types via the "provides storage"
+    rules.
+ 
+  * Allocation functions (in particular, `::operator new` and `std::malloc`)
+    are modeled as implicitly creating an object of such a storage type
+    within the returned storage.
+ 
+  * We identify some types ("implicit object types") as being suitable for
+    implicit object creation. These are the types for which we wish to permit
+    objects to come into existence automatically.
+ 
+  * When a program attempts to perform class member access on an implicit object
+    type via a pointer to (an element of) a storage type, an object of the
+    relevant type is implicitly created.
+  
+  * When a program attempts to perform array indexing on a pointer to an object
+    that is not an array element, and the storage for that object is provided
+    by some other array object that provides storage for a contiguous sequence
+    of objects of the same type, the behavior is as if an array object contains
+    those objects.
+
+Each of these points will be covered in more detail below.
+
+Storage types
+-------------
