@@ -1,0 +1,200 @@
+<!doctype html>
+<title>Recursive lambdas</title>
+
+<style type="text/css">
+  ins, ins * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del, del * { text-decoration:line-through; background-color:#FFA0A0 }
+  #hidedel:checked ~ * del, #hidedel:checked ~ * del * { display:none; visibility:hidden }
+
+blockquote { color: #000000; background-color: #F1F1F1;
+  border: 1px solid #D1D1D1;
+  padding-left: 0.5em; padding-right: 0.5em; }
+blockquote.stdins { text-decoration: underline;
+  color: #000000; background-color: #C8FFC8;
+  border: 1px solid #B3EBB3; padding: 0.5em; }
+blockquote.stddel { text-decoration: line-through;
+  color: #000000; background-color: #FFEBFF;
+  border: 1px solid #ECD7EC;
+  padding-left: 0.5em; padding-right: 0.5em; }
+</style>
+
+<div style="text-align: right; float: right">
+ISO/IEC JTC1 SC22 WG21<br>
+DxxxxR0<br>
+Richard Smith<br>
+richard@metafoo.co.uk<br>
+2017-10-14<br>
+</div>
+
+<h1>Recursive lambdas</h1>
+
+<h2>Motivation</h2>
+
+<p>
+Lambdas are a useful tool for local code refactoring.
+However, we sometimes want to use the lambda from within
+itself, either to permit direct recursion or to allow the
+closure to be registered as a continuation. This is
+surprisingly difficult to accomplish well in current C++.
+
+<p>
+Example:
+
+<pre>
+void read(Socket sock, OutputBuffer buff) {
+  sock.readsome([&] (Data data) {
+    buff.append(data);
+    sock.readsome(/*current lambda*/);
+  });
+}
+</pre>
+
+<p>
+One natural attempt to reference a lambda from itself
+is to store it in a variable and capture that variable
+by reference:
+
+<pre>
+auto on_read = [&] (Data data) {
+  buff.append(data);
+  sock.readsome(on_read);
+};
+</pre>
+
+However, this is not possible due to a semantic circularity:
+the type of the <tt>auto</tt> variable is not deduced until
+after the lambda-expression is processed, which means the
+lambda-expression cannot reference the variable.
+
+<p>
+Another natural approach is to use a <tt>std::function</tt>:
+
+<pre>
+std::function<void(Data)> on_read = [&] (Data data) {
+  buff.append(data);
+  sock.readsome(on_read);
+};
+</pre>
+
+This approach compiles, but typically introduces an abstraction
+penalty: the <tt>std::function</tt> may incur a memory allocation
+and the invocation of the lambda will typically require an indirect
+call.
+
+<p>
+For a zero-overhead solution, there is often no better approach
+than defining a local class type explicitly.
+
+<h2>Proposal</h2>
+
+<p>
+This paper proposes allowing a lambda to refer to itself within
+its own definition. Specifically, a lambda will be permitted to
+provide a name prior to its parameter list (mirroring the syntax
+for a regular function), and within the body of the lambda, that
+name will be an lvalue denoting the <tt>*this</tt> of the closure
+object.
+
+<pre>
+auto visit_tree = [&] <b>visit</b>(Tree *node) -> void { // <i>self parameter </i>visit<i> names lambda object</i>
+  if (node->left) <b>visit</b>(node->left);              // <i>and can be used to make recursive calls</i>
+  out &lt;&lt; node->value;
+  if (node->right) <b>visit</b>(node->right);
+};
+// <i>the name </i>visit<i> is not in scope here</i>
+</pre>
+
+<p>
+There is still an apparent circularity in these rules:
+when a lambda has a capture-default
+(<tt>[&]</tt> or <tt>[=]</tt>),
+we do not know the
+semantic properties of the closure type until we reach
+the end of the lambda's body, because we do not know
+which local variables it captures.
+We propose resolving this by treating the closure type
+as an incomplete type within the body of the lambda if
+the lambda has a capture-default. The self parameter
+of such a lambda can still have its call operator invoked
+and can be captured by reference in nested lambdas, but
+cannot be copied.
+
+<pre>
+auto copy = [&] copysome() {
+  // ok, captures self parameter of lambda 'copysome'
+  // by reference
+  sock1.readsome([&] on_read(Data data) {
+    // ok, can call copysome even though type is incomplete
+    sock2.writesome(std::ref(copysome));
+  });
+};
+</pre>
+
+For uses where the lambda needs to be copied, the user
+code will need to explicitly specify a list of captures:
+
+<pre>
+// ok, captures must be specified explicitly
+sock.readsome([&sock, &buff] on_read(Data data) {
+  buff.append(data);
+  sock.readsome(on_read);
+  // ...
+});
+</pre>
+
+If the lambda does not specify an explicit return type,
+recursive calls will not be possible until the first
+<tt>return</tt> statement has been seen,
+as a consequence of the usual <tt>auto</tt> return type
+deduction rules applied to the lambda's
+<tt>operator()</tt> function.
+
+<pre>
+auto bad_fib = [] fib(int n) {
+  // error, return type for closure's operator() not yet deduced
+  return fib(n-1) + fib(n-2);
+};
+auto less_bad_fib = [] fib(int n) {
+  if (n == 0 || n == 1) return 1;
+  return fib(n-1) + fib(n-2); // ok
+};
+</pre>
+
+<h2>Alternatives</h2>
+
+<ul>
+<li>
+Allow an <tt>auto</tt> variable to be referenced in its
+initializer in this special case.
+<br><b>Pro:</b> no new syntax required, avoids duplicating
+variable name
+<br><b>Con:</b> requires a variable declaration, adds a
+special case and extra complexity to the language rules
+
+<li>
+Allow <tt>this</tt> to be used to refer to the enclosing
+closure object within a lambda.
+<br><b>Con:</b> conflicts with existing use for denoting
+enclosing member function's <tt>this</tt> parameter, does
+not handle nested lambdas
+
+<li>
+Permit arbitrary use of self parameter within a lambda,
+by giving it a dependent type and substituting the actual
+type after parsing.
+<br><b>Pro:</b> allows full use of self parameter in
+lambda with capture-default
+<br><b>Con:</b> adds complexity and creates cases where
+<tt>typename</tt> and <tt>template</tt> keywords would
+surprisingly be necessary
+
+<li>
+Treat self parameter as a name for the closure type's
+<tt>operator()</tt> function, rather than as a synoynm
+for the lambda object.
+<br><b>Pro:</b> consistent rule for all lambdas, regardless
+of capture-default
+<br><b>Con:</b> does not permit lambda to pass itself
+(by copy or reference), requires special-case rule to
+support use (mutual recursion) within nested lambdas
+</ul>
