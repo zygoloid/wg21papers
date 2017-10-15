@@ -10,7 +10,7 @@
 
 <body>
 Richard Smith<br>
-2016-11-27
+2017-01-12
 
 <h1>Core Issue XXXX: Base class copy and move constructors should not be inherited</h1>
 
@@ -23,28 +23,58 @@ A defaulted move constructor or assignment operator (12.8)
 that is defined as deleted
 is excluded from the set of candidate functions in all contexts.
 <ins>
-A constructor that is a direct member of a class <tt>C</tt>
-and has a first parameter of type "reference to <i>cv</i> <tt>C</tt>"
+A constructor inherited from class type <tt>C</tt> (12.6.3 [class.inhctor.init])
+that has a first parameter of type "reference to <tt>P</tt>"
 (including such a constructor instantiated from a template)
 is excluded from the set of candidate functions
-when used to construct an object
-of type derived from <tt>C</tt> (12.6.3 [class.inhctor.init])
-with an argument list containing a single argument.
+when constructing an object of type <i>cv</i> <tt>D</tt>
+if the argument list has exactly one argument
+and <tt>D</tt> is reference-related to <tt>P</tt>
+and <tt>P</tt> is reference-related to <tt>C</tt>.
+<!--
+An inherited constructor
+has a first parameter of type &quot;reference to <i>cv</i> <tt>C</tt>&quot;
+(including such a constructor instantiated from a template)
+is excluded from the set of candidate functions
+when used to construct an object of type <tt>D</tt>
+with an argument list containing a single argument
+if <tt>C</tt> is reference-related to <tt>D</tt>.
+====
+<p>
+Add a new paragraph after [over.best.ics]p4 (before "For the case where the
+parameter type is a reference"):
+</p>
+
+<blockquote>
+<ins>
+If the target is the first parameter
+of an inherited constructor (12.6.3 [class.inhctor.init])
+first declared in class type <tt>C</tt>
+with an argument list that has exactly one expression,
+an implicit conversion sequence cannot be formed
+if <tt>C</tt> is reference-related to
+the type that the argument would have
+after the application of the user-defined conversion (if any)
+and before the final standard conversion sequence.
+-->
 [&nbsp;<em>Example</em>:
 <pre>
-struct X { X(X &amp;&amp;); };
 struct A {
-  A(const A&amp;);       // #1
-  A(A &amp;&amp;) = default; // #2, defined as deleted (12.8 [class.copy])
-  template&lt;typename T&gt;
-    A(T &amp;&amp;);         // #3
-  union { X x; };
+  A();
+  A(A &amp;&amp;);                       // #1
+  template&lt;typename T&gt; A(T &amp;&amp;);  // #2
 };
 struct B : A {
   using A::A;
-  B(...);
+  B(const B &amp;);       // #3
+  B(B &amp;&amp;) = default;  // #4, implicitly deleted
+
+  struct X { X(X &amp;&amp;) = delete; } x;
 };
-B b = A(); // calls B::B(...): #1, #2, and #3 are excluded from candidate set
+extern B b1;
+B b2 = static_cast&lt;B&amp;&amp;&gt;(b1); // calls #3: #1, #2, and #4 are not viable
+struct C { operator B&amp;&amp;(); };
+B b3 = C(); // calls #3
 </pre>
 &mdash; <em>end example</em>&nbsp;]
 </ins>
