@@ -29,34 +29,8 @@ that has a first parameter of type "reference to <tt>P</tt>"
 is excluded from the set of candidate functions
 when constructing an object of type <i>cv</i> <tt>D</tt>
 if the argument list has exactly one argument
-and <tt>D</tt> is reference-related to <tt>P</tt>
-and <tt>P</tt> is reference-related to <tt>C</tt>.
-<!--
-An inherited constructor
-has a first parameter of type &quot;reference to <i>cv</i> <tt>C</tt>&quot;
-(including such a constructor instantiated from a template)
-is excluded from the set of candidate functions
-when used to construct an object of type <tt>D</tt>
-with an argument list containing a single argument
-if <tt>C</tt> is reference-related to <tt>D</tt>.
-====
-<p>
-Add a new paragraph after [over.best.ics]p4 (before "For the case where the
-parameter type is a reference"):
-</p>
-
-<blockquote>
-<ins>
-If the target is the first parameter
-of an inherited constructor (12.6.3 [class.inhctor.init])
-first declared in class type <tt>C</tt>
-with an argument list that has exactly one expression,
-an implicit conversion sequence cannot be formed
-if <tt>C</tt> is reference-related to
-the type that the argument would have
-after the application of the user-defined conversion (if any)
-and before the final standard conversion sequence.
--->
+and <tt>C</tt> is reference-related to <tt>P</tt>
+and <tt>P</tt> is reference-related to <tt>D</tt>.
 [&nbsp;<em>Example</em>:
 <pre>
 struct A {
