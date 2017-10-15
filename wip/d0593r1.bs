@@ -115,39 +115,6 @@ At locations #b, #c, and #d, the arithmetic is performed on a `char*`, and at
 locations #a, #e, and #f, the arithmetic is performed on a `T*`. Ideally, a
 solution to this problem would imbue both calculations with defined behavior.
 
-Use of the value of `offsetof`
-------------------------------
-
-The C++ standard library provides an `offsetof` macro that permits the
-determination of the byte offset from the start of a standard-layout class type
-to a named member. However, there is no easy way to use the resulting value to
-navigate within allocated storage:
-
-```
-struct X { int a; /*...*/ int n; };
-const auto off = offsetof(X, n);
-X x;
-char *p = reinterpret_cast<char*>(&x); // #1
-char *q = p + off;                     // #2
-int *r = reinterpret_cast<int*>(q);    // #3
-int *s = std::launder(r);              // #4
-```
-
-Here, step #1 is valid, and produces a `char*` that points to the `X` object.
-Since the pointee type and the pointed-to object type are not compatible, this
-pointer cannot actually be used to access the object.
-
-Step #2 *results in undefined behavior*, because `char *p` does not point to an
-array object, and pointer arithmetic is only defined on arrays.
-
-If we assume that step #2 resulted in `q` representing the address of the
-storage containing `x.n`, then step #3 is valid, and produces the same pointer
-value (the only side-condition is that the pointer is suitably aligned, and
-that side-condition is met).
-
-Step #4 is valid, and obtains the desired pointer that actually points to the
-`int` subobject of the `X` object.
-
 Approach
 ========
 
