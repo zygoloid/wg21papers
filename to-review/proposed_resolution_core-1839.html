@@ -10,7 +10,7 @@
 
 <body>
 Richard Smith<br>
-2016-12-12
+2017-10-14
 
 <h1>Core Issue 1839: Lookup of block-scope <tt>extern</tt> declarations</h1>
 
@@ -22,8 +22,7 @@ Change in 3.5 basic.link paragraph 6:
 The name of a function declared in block scope and the name of a variable
 declared by a block scope <tt>extern</tt> declaration have linkage.
 <ins>A prior declaration is looked up (3.4.1 [basic.lookup.unqual])
-without considering scopes that are outside the innermost enclosing
-namespace scope.</ins>
+in the innermost enclosing namespace scope.</ins>
 If
 <ins>this lookup finds a</ins>
 <del>there is a visible</del>
