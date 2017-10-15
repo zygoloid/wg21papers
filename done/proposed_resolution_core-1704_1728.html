@@ -25,7 +25,7 @@ blockquote pre em { font-family: normal }
 
 <body>
 Richard Smith<br>
-2016-12-12
+2017-05-08
 
 <h1>Core Issue 1704: Type checking in explicit instantiation of variable templates</h1>
 <h1>Core Issue 1728: Type of an explicit instantiation of a variable template</h1>
@@ -65,10 +65,11 @@ enclosing namespace set.
 <p>
 Add a new paragraph after 14.7.2 temp.explicit paragraph 4:
 <blockquote class="stdins">
-The <em>declaration</em> in an <em>explicit-instantiation</em> and the resulting
-instantiated function, variable, or class are two declarations of the same entity.
+The <em>declaration</em> in an <em>explicit-instantiation</em> and
+the <em>declaration</em> produced by the corresponding substitution into the
+templated function, variable, or class are two declarations of the same entity.
 [&nbsp;<em>Note</em>:
-These declarations are required to have matching types as specified in 3.5 [basic.link].
+These declarations are required to have matching types as specified in 3.5 [basic.link], except as specified in 15.4 [except.spec].
 [&nbsp;<em>Example</em>:
 <pre>
   template&lt;typename T> T var = {};
@@ -77,10 +78,10 @@ These declarations are required to have matching types as specified in 3.5 [basi
   template int *var&lt;int>;      // error: instantiated variable has type 'int'
 
   template&lt;typename T> auto av = T();
-  template int av<int>;           // OK, variable with type 'int' can be redeclared with type 'auto'
+  template int av&lt;int>;           // OK, variable with type 'int' can be redeclared with type 'auto'
 
   template&lt;typename T> auto f() {}
-  template void f<int>();         // error: function with deduced return type redeclared with non-deduced return type (7.1.7.4 [dcl.spec.auto])
+  template void f&lt;int>();         // error: function with deduced return type redeclared with non-deduced return type (7.1.7.4 [dcl.spec.auto])
 </pre>
 &mdash; end example&nbsp;]
 &mdash; end note&nbsp;]
