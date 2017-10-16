@@ -1,0 +1,115 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 1901: punctuator referenced but not defined</title>
+
+<style type="text/css">
+  ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+
+  p.grammarlhs { margin-bottom: 0 }
+  p.grammarrhs { margin-left:8em; margin-top:0; margin-bottom:0; text-indent:-4em }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2017-10-15
+
+<h1>Core Issue 1901: <i>punctuator</i> referenced but not defined</h1>
+
+<p>
+Change in 5.5 lex.digraph paragraph 2:
+</p>
+
+<blockquote>
+In all respects of the language <ins>except in an <i>attribute-token</i> ([dcl.attr.grammar])</ins>,
+each alternative token behaves the same, respectively, as its primary token,
+except for its spelling. [&hellip;]
+</blockquote>
+
+<p>
+Change in 5.6 lex.token grammar:
+</p>
+
+<blockquote>
+<p class="grammarlhs"><i>token:</i>
+<p class="grammarrhs"><i>identifier</i>
+<p class="grammarrhs"><i>keyword</i>
+<p class="grammarrhs"><i>literal<ins>-token</ins></i>
+<p class="grammarrhs"><i><del>operator</del></i>
+<p class="grammarrhs"><i><del>punctuator</del></i>
+<p class="grammarrhs"><i><ins>symbol</ins></i>
+
+<p class="grammarlhs"><ins><i>literal-token:</i></ins>
+<p class="grammarrhs"><i><ins>integer-literal</ins></i>
+<p class="grammarrhs"><i><ins>floating-literal</ins></i>
+<p class="grammarrhs"><i><ins>character-literal</ins></i>
+<p class="grammarrhs"><i><ins>string-literal</ins></i>
+<p class="grammarrhs"><i><ins>user-defined-literal</ins></i>
+
+<p class="grammarlhs"><ins><i>symbol:</i></ins>
+<p class="grammarrhs"><ins>one of
+<tt>{ } [ ] ( ) ; : ... ? :: . .* + - * / % ^ &amp; | ~ ! = &lt; &gt; += -= *= /= %= ^= &amp;= |= &lt;&lt; &gt;&gt; &lt;&lt;= &gt;&gt;= == != &lt;= &gt;= &amp;&amp; || ++ -- , -&gt;* -&gt;</tt></ins>
+</blockquote>
+
+<p>
+Change in 5.6 lex.token paragraph 1:
+</p>
+
+<blockquote>
+There are <del>five</del> <ins>four</ins> kinds of tokens: identifiers, keywords, literals, <del>operators, and other separators</del> <ins>and symbols</ins>.
+<del>Blanks, horizontal and vertical tabs, newlines, formfeeds, and comments (collectively, "white space"), as described below, are ignored except as they serve to separate tokens.
+[ <i>Note:</i> Some white space is required to separate otherwise adjacent identifiers, keywords, numeric literals, and alternative tokens containing alphabetic characters. &mdash; <i>end note</i> ]</del>
+<ins>
+Each <i>preprocessing-token</i> resulting from translation phase 6
+is converted into the corresponding <i>token</i> as follows:
+<ul>
+<li>If the <i>preprocessing-token</i> is an <i>identifier</i> or is
+one of the <i>preprocessing-op-or-punc</i> tokens <tt>new</tt> or <tt>delete</tt>,
+the resulting <i>token</i> is a <i>keyword</i> if it is listed in Table 5,
+and otherwise is an <i>identifier</i>.
+<li>Otherwise, if the <i>preprocessing-token</i> is a
+<i>pp-number</i> with the lexical form of an <i>integer-literal</i> or <i>floating-literal</i>,
+or is a
+<i>character-literal</i> or <i>string-literal</i>,
+the resulting <i>token</i> is of the corresponding form.
+<li>Otherwise, if the <i>preprocessing-token</i> is a
+<i>pp-number</i> with the lexical form of a
+<i>user-defined-integer-literal</i> or <i>user-defined-floating-literal</i>
+or is a
+<i>user-defined-character-literal</i> or <i>user-defined-string-literal</i>,
+the resulting <i>token</i> is a <i>user-defined-literal</i>.
+<li>Otherwise, if the <i>preprocessing-token</i> is a <i>preprocessing-op-or-punc</i>,
+and there is a corresponding <i>symbol</i>
+(after converting alternative token representations to their primary tokens),
+the resulting <i>token</i> is that <i>symbol</i>.
+<li>Otherwise, the program is ill-formed.
+</ul>
+[ <i>Note:</i> Within an <i>attribute-token</i> ([dcl.attr.grammar]),
+a <i>token</i> formed from a <i>preprocessing-token</i> that satisfies the
+syntactic requirements of an <i>identifier</i> is considered to be an
+<i>identifier</i> with the spelling of the <i>preprocessing-token</i>. ]
+</ins>
+</blockquote>
+
+<p><em>Drafting note: we had no specification for the conversion from
+  preprocessing-tokens to tokens, and the implied lexical rules had various
+  ambiguities. The discussion of whitespace was out of place; whitespace
+  is removed at the start of phase 7, before we consider forming tokens.</em>
+
+<p><em>Drafting note: the preprocessing tokens "true", "false", and "nullptr"
+  are lexically keywords (and are referred to as such in [lex.bool] and in
+  [lex.nullptr]). However, they are listed as productions for the "literal"
+  grammar term. We resolve this by not listing "literal" as a kind of token,
+  and instead pushing the kinds of "token" down a level and excluding these
+  cases.</em>
+
+<p>Delete in 5.12 lex.operators paragraph 1:</p>
+
+<blockquote>
+[&hellip;] <del>Each <i>preprocessing-op-or-punc</i> is converted to a single token in translation phase 7 (5.2).</del>
+</blockquote>
+
+<em>Drafting note: this is untrue; no such conversion is possible for <tt>#</tt>, <tt>##</tt>, <tt>%:</tt>, or <tt>%:%:</tt>.</em>
+
+</body></html>

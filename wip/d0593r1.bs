@@ -237,6 +237,20 @@ Thus we retain the property (essential to modern scalar type-based
 alias analysis) that loads of some scalar type can be considered to
 not alias earlier stores of unrelated scalar types.
 
+Constant expressions
+--------------------
+
+Constant expression evaluation is currently very conservative with regard to
+object creation. There is a tension here: on the one hand, constant expression
+evaluation gives us an opportunity to disallow runtime program semantics that
+we consider undesirable or problematic, and on the other hand, users strongly
+desire a full compile-time evaluation mechanism with the same semantics as the
+base language.
+
+Following the existing conservatism in constant expression evaluation (eg, the
+disallowance of changing the active member of a union), we propose that the
+implicit creation of objects should *not* be performed during such evaluation.
+
 Practical examples
 ------------------
 

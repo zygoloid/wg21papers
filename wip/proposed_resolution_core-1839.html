@@ -10,13 +10,19 @@
 
 <body>
 Richard Smith<br>
-2017-10-14
+2017-10-16
 
 <h1>Core Issue 1839: Lookup of block-scope <tt>extern</tt> declarations</h1>
 
 <p>
 Change in 3.5 basic.link paragraph 6:
 </p>
+
+<!--
+  TDOO:
+  The prior declaration should be looked up as if declared directly in the innermost enclosing nameslace.
+  This isn't unqualified lookup at all. Pay particular attention to inline namespace behavior.0:wq
+-->
 
 <blockquote>
 The name of a function declared in block scope and the name of a variable
@@ -26,9 +32,8 @@ in the innermost enclosing namespace scope.</ins>
 If
 <ins>this lookup finds a</ins>
 <del>there is a visible</del>
-declaration of <del>an</del> <ins>a namespace scope</ins> entity with linkage having the same
-name and type<del>, ignoring entities declared outside the innermost enclosing
-namespace scope</del>, the block scope declaration declares that same entity and
+declaration of an entity <del>with linkage</del> having the same
+name and type, the block scope declaration declares that same entity and
 receives the linkage of the previous declaration. If there is more than one
 such matching entity, the program is ill-formed. Otherwise, if no matching
 entity is found, the block scope entity receives external linkage.

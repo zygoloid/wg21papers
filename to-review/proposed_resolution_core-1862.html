@@ -1,0 +1,172 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 1862: Determining "corresponding members" for friendship</title>
+
+<style type="text/css">
+  ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2017-10-15
+
+<h1>Core Issue 1862: Determining "corresponding members" for friendship</h1>
+
+<b>From issues list:</b>
+
+During the discussion of issue 1804, it was noted that the process of determining whether a member of an explicit or partial specialization corresponds to a member of the primary template is not well specified. In particular, it should be clarified that the primary template should not be instantiated during this process; instead, the template arguments from the specialization should simply be substituted into the member declaration.
+
+<p>
+<em>Drafting notes:</em>
+
+<ul>
+<li>
+  <em>
+  The rules for the primary template case are similarly unclear. Do we
+  apply the same rule, or only befriend members instantiated from a matching
+  member of the primary template? Is the program valid if the primary template
+  has no such member? This wording chooses to make the rule consistent across all cases.</em>
+
+<li>
+  <em>It's unclear what should happen if the template parameters between the friend and class template don't match. Example:</em>
+
+<pre>
+template&lt;typename T> struct A { void f(); };
+struct B {
+  template&lt;typename T> friend void A&lt;T*>::f();
+};
+</pre>
+
+<em>Is this ill-formed, or does it befriend the <tt>f()</tt> member of every specialization matching <tt>A&lt;T*></tt>?
+In this wording, we choose to support such uses.</em>
+
+<li>
+<em>The following example is given in [temp.friend]p4:</em>
+
+<pre>
+template&lt;class T> friend void A&lt;T>::D::g();
+</pre>
+
+<em>but this is not valid per the wording (before or after) and it's not clear what interpretation of the words would permit it. Also, the claim that this does not befriend</em> <tt>A&lt;int>::D::g()</tt> <em>in the example because it was not instantiated from the</em> <tt>D</tt> <em>in the primary template runs contrary to the direction of this issue.</em>
+
+<li>
+<em>The existing wording did not disallow the C++11 friend type syntax</em>
+
+<pre>
+template&lt;typename T> friend typename X&lt;T>::U;
+</pre>
+
+<em>but such friend declarations are not supportable, as they may name an arbitrary typedef.</em>
+</ul>
+
+<!--
+
+<p>
+Change in 17.6.4 temp.friend paragraph 4:
+</p>
+
+<blockquote>
+A member of a class template may be declared to be a friend of a non-template class.
+In this case, the corresponding member of every specialization of
+the primary class template and
+class template partial specializations thereof
+is a friend of the class granting friendship.
+<ins>A member of a class template specialization instantiated from the primary
+template corresponds to such a friend declaration if the member was instantiated from
+the declared member of the primary class template, if such a member exists.</ins>
+<del>For</del>
+<ins>A member of an</ins>
+explicit specialization<del>s and</del> <ins>or of a</ins>
+specialization<del>s</del> of <ins>a</ins> partial specialization<del>s,</del>
+<ins>corresponds to such a friend declaration
+if substituting the template arguments of the class template specialization
+into the friend declaration
+produces a declaration with</ins>
+<del>the corresponding member is the member (if any) that has</del>
+the same name,
+kind (type, function, class template, or function template),
+template parameters, and
+signature
+as the member of the <ins>specialization</ins> <del>class template instantiation that would otherwise have been generated</del>.
+[&nbsp;<i>Example:</i> &hellip; ]
+</blockquote>
+
+-->
+
+<p>
+Change in 17.6.4 temp.friend paragraph 4:
+</p>
+
+<blockquote>
+<ins>A template friend declaration may declare</ins>
+a member of a
+<ins>dependent type</ins>
+<del>class template</del>
+<del>may be declared</del> to be a friend <del>of a non-template class</del>.
+<ins>The friend declaration shall declare a function or
+specify a type with an <i>elaborated-type-specifier</i>,
+in either case with a <i>nested-name-specifier</i> ending with
+a <i>simple-template-id</i>, <em>C</em>,
+whose <i>template-name</i> names a class template.
+The template parameters of the template friend declaration shall be deducible from <em>C</em> ([temp.deduct.type]).</ins>
+In this case,
+<ins>a member of a specialization <em>S</em> of the class template</ins>
+<del>the corresponding member of every specialization of
+the primary class template and
+class template partial specializations thereof</del>
+is a friend of the class granting friendship
+<del>. For explicit specializations and specializations of partial specializations,
+the corresponding member is the member (if any) that has
+the same name,
+kind (type, function, class template, or function template),
+template parameters, and
+signature
+</del>
+<ins>if
+deduction of the template parameters of <em>C</em> from <em>S</em> succeeds,
+and substituting the deduced template arguments
+into the friend declaration
+produces a declaration that would be
+a valid redeclaration
+</ins>
+of the member of the <ins>specialization</ins> <del>class template instantiation that would otherwise have been generated</del>.
+[&nbsp;<i>Example:</i>
+<pre>
+template&lt;class T> struct A {
+  struct B { };
+  void f();
+  struct D {
+    void g();
+  };
+  <ins>T h();</ins>
+  <ins>template&lt;T U> T i();</ins>
+};
+template&lt;> struct A&lt;int> {
+  struct B { };
+  int f();
+  struct D {
+    void g();
+  };
+  <ins>template&lt;int U> int i();</ins>
+};
+<ins>template&lt;> struct A&lt;float*> {
+  int *h();
+};</ins>
+class C {
+  template&lt;class T> friend struct A&lt;T>::B;    // grants friendship to A&lt;int>::B even though
+                                              // it is not a specialization of A&lt;T>::B
+  template&lt;class T> friend void A&lt;T>::f();    // does not grant friendship to A&lt;int>::f()
+                                              // because its return type does not match
+  template&lt;class T> friend void A&lt;T>::D::g(); // <del>does not grant friendship to A&lt;int>::D::g()</del> <ins>ill-formed, A&lt;T>::D does not end with a <i>simple-template-id</i></ins>
+                                              <del>// because A&lt;int>::D is not a specialization of A&lt;T>::D</del>
+  <ins>template&lt;class T> friend int *A&lt;T*>::h();   // grants friendship to A&lt;int*>::h() and A&lt;float*>::h()</ins>
+  <ins>template&lt;class T> template&lt;T U>             // grants friendship to instantiations of A&lt;T>::i() and to A&lt;int>::i()
+    friend T A&lt;T>::i();                       // and thereby to all specializations of those function templates</ins>
+};
+</pre>
+&mdash; <i>end example</i>&nbsp;]
+</blockquote>
+
+</body></html>
