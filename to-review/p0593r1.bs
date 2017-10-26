@@ -1,8 +1,8 @@
 <pre class='metadata'>
 Title: Implicit creation of objects for low-level object manipulation
-Shortname: d0593
+Shortname: p0593
 Revision: 1
-Date: 2017-07-07
+Date: 2017-10-16
 Editor: Richard Smith, Google, richard@metafoo.co.uk
 Former Editor: Ville Voutilainen, ville.voutilainen@gmail.com
 Abstract: This paper proposes that objects of sufficiently trivial types be created on-demand as necessary to give programs defined behavior.
