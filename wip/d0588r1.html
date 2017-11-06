@@ -1,0 +1,416 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>D0588R1: Simplifying implicit lambda capture</title>
+
+<style type="text/css">
+ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+
+blockquote {
+  color: #000000; background-color: #F1F1F1;
+  border: 1px solid #D1D1D1;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stdins {
+  color: #000000; background-color: #C8FFC8;
+  border: 1px solid #B3EBB3;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stddel {
+  text-decoration: line-through;
+  color: #000000; background-color: #FFEBFF;
+  border: 1px solid #ECD7EC;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2017-10-26
+
+<h1>D0588R1: Simplifying implicit lambda capture</h1>
+
+<b>Also:</b><br>
+<a href="http://wg21.link/cwg1913">Core Issue 1913</a>: <tt>decltype((x))</tt> in <i>lambda-expression</i>s<br>
+
+<p>
+Change in 6 basic paragraph 3:
+</p>
+
+<blockquote>
+An <i>entity</i> is a value, object, reference, <ins>structured binding</ins>,
+function, enumerator, type, class member, bit-field,
+template, template specialization, namespace, or parameter pack.
+</blockquote>
+
+<p>
+Add a new paragraph after 6 basic paragraph 6 ("A <i>variable</i> is &hellip;"):
+</p>
+
+<blockquote class="stdins">
+A <i>local entity</i> is a variable
+with automatic storage duration ([basic.stc.auto]),
+a structured binding whose corresponding variable is such an entity,
+or the <tt>*this</tt> object ([expr.prim.this]).
+</blockquote>
+
+<p>
+Change in 6.2 basic.def.odr paragraph 3, splitting into paragraphs as indicated:
+</p>
+
+<blockquote>
+A variable x whose name appears as a potentially-evaluated expression ex is odr-used by ex unless applying the
+lvalue-to-rvalue conversion (7.1) to x yields a constant expression (8.20) that does not invoke any non-trivial
+functions and, if x is an object, ex is an element of the set of potential results of an expression e, where
+either the lvalue-to-rvalue conversion (7.1) is applied to e, or e is a discarded-value expression (Clause 8).
+
+<p>
+<ins>
+A structured binding is odr-used if it appears as a potentially-evaluated
+expression.
+</ins>
+
+<p>
+this is odr-used if it appears as a potentially-evaluated expression (including as the result of the implicit
+transformation in the body of a non-static member function (12.2.2)).
+
+<p>
+A virtual member function is odr-used if it is not pure.
+A function whose name appears as a potentially-evaluated expression
+is odr-used if it is the unique lookup result or the selected member
+of a set of overloaded functions &hellip;
+
+<p>
+An allocation or deallocation function for a class is odr-used by a <i>new-expression</i> &hellip;
+
+<p>
+An assignment operator function in a class is odr-used by an implicitly-defined copy assignment or move-assignment function for another class as specified in 15.8.
+A constructor for a class is odr-used as specified in 11.6.
+A destructor for a class is odr-used if it is potentially invoked (15.4).
+</blockquote>
+
+<em>Drafting note: we may wish to further constrain what qualifies as an odr-use
+of a structured binding when we start to allow structured binding declarations
+to be declared <tt>constexpr</tt>.</em>
+
+<p>
+Add a new paragraph before 6.2 basic.def.odr paragraph 4 ("Every program shall contain exactly one definition"):
+</p>
+
+<blockquote class="stdins">
+If a local entity is odr-used in a declarative region in which it is not
+referenceable ([expr.prim.lambda.capture]), the program is ill-formed.
+</blockquote>
+
+<p>
+Change in 6.3.3 basic.scope.block paragraph 2:
+</p>
+
+<blockquote>
+<ins>
+The block scope corresponding to a <i>compound-statement</i> of a
+<i>function-body</i>, <i>function-try-block</i>, or a <i>handler</i>
+in the <i>handler-seq</i> of a <i>function-try-block</i> is a
+<i>function definition scope</i>.
+A function parameter (including one appearing in a <i>lambda-declarator</i>) or
+a function-local predefined variable in a function definition
+([dcl.fct.def.general])
+is considered to be declared in each function definition scope of the function.
+</ins>
+The potential scope of a function parameter name
+<del>(including one appearing in a lambda-declarator)</del> or
+of a function-local predefined variable
+</del>in a function definition (11.4)</del>
+begins at its point of declaration.
+If the function has a function-try-block
+the potential scope of a parameter or of a function-local predefined variable
+ends at the end of the last associated handler,
+otherwise it ends at the end of the outermost block of the function definition.
+<ins>[&nbsp;<i>Note</i>:</ins>
+A parameter name <del>shall</del> <ins>can</ins>not be redeclared
+in the outermost block of the function definition
+nor in the outermost block of any handler associated
+with a function-try-block.
+<ins>]</ins>
+</blockquote>
+
+<p>
+Change in 8.1.4.1 expr.prim.id.unqual paragraph 1, inserting a paragraph break as shown:
+</p>
+
+<blockquote>
+[&hellip;]
+<del>The type of the expression is the type of the <i>identifier</i>.</del>
+
+<p>
+The result is the entity denoted by the identifier.
+<ins>
+If the entity is a capturable local entity ([expr.prim.lambda.capture]) and
+referencing it from outside of an unevaluated operand within the declarative
+region where the <i>unqualified-id</i> appears would result in some
+intervening <i>lambda-expression</i> capturing it by copy,
+the type of the expression is
+the type of a class member access expression ([expr.ref])
+naming the non-static data member
+that would be declared for such a capture in the closure object of the
+innermost such intervening <i>lambda-expression</i>.
+[&nbsp;<i>Note</i>: If that <i>lambda-expression</i> is not declared
+<tt>mutable</tt>, the type of such an identifier denoting a non-reference
+variable will be <tt>const</tt> qualified. ]
+Otherwise, the type of the expression is the type of the result.
+[&nbsp;<i>Note</i>: The type will be adjusted as described in Clause [expr] if
+it is <i>cv</i>-qualified or is a reference type. ]</ins>
+The expression is an lvalue if the entity is a function, variable, or data member and a prvalue otherwise; it is a bit-field if the identifier designates a bit-field.
+
+<p>
+<ins>[&nbsp;<i>Example</i>:</ins>
+<pre><ins>void f() {
+  float x, &r = x;
+  [=] {
+    decltype(x) y1; // y1 has type float
+    decltype((x)) y2 = y1; // y2 has type float const& because this lambda is not mutable and x is an lvalue
+    decltype(r) r1 = y1; // r1 has type float&
+    decltype((r)) r2 = y2; // r2 has type float const&
+  };
+}
+</ins>
+</pre>
+<ins>]</ins>
+</blockquote>
+
+<em>Drafting note: the above example is moved from 8.1.5.2 expr.prim.lambda.capture paragraph 14 with minor changes.</em>
+
+<p>
+Change in 8.1.5.2 expr.prim.lambda.capture paragraph 3:
+</p>
+
+<blockquote>
+[&hellip;]
+<del>The <i>reaching scope</i> of a local lambda expression
+is the set of enclosing scopes
+up to and including the innermost enclosing function and its parameters.
+[&nbsp;<i>Note</i>: This reaching scope includes any intervening
+<i>lambda-expressions</i>. ]
+</del>
+</blockquote>
+
+<p>
+Change in 8.1.5.2 expr.prim.lambda.capture paragraph 4:
+</p>
+
+<blockquote>
+The identifier in a <i>simple-capture</i> is looked up
+using the usual rules for unqualified name lookup (6.4.1);
+each such lookup shall find <del>an</del> <ins>a local</ins> entity.
+<ins>The <i>simple-capture</i>s <tt>this</tt> and <tt>* this</tt> denote the
+local entity <tt>*this</tt>.</ins>
+An entity that is designated by a <i>simple-capture</i> is said to be
+<i>explicitly captured</i><del>, and shall be *this
+(when the simple-capture is “this” or “* this”) or a variable with automatic
+storage duration declared in the reaching scope of the local lambda expression</del>.
+</blockquote>
+
+<p>
+Add a new paragraph prior to 8.1.5.2 expr.prim.lambda.capture paragraph 7:
+</p>
+
+<blockquote class="stdins">
+A local entity is <i>referenceable</i> in a declarative region if
+<ul>
+<li>
+the declarative region and each enclosing declarative region that does not
+enclose the point at which the entity is introduced is a block scope
+([basic.scope.block]),
+where <tt>*this</tt> is considered to be introduced within the
+innermost enclosing class or function definition scope,
+<li>
+no such intervening block scope
+is a function definition scope,
+<li>
+for <tt>*this</tt>, if the innermost enclosing class or function definition
+scope is a function definition scope, the corresponding function is a
+non-static member function, and
+<li>
+for each such intervening block scope
+corresponding to the <i>compound-statement</i> 
+of a <i>lambda-expression</i>, that intervening <i>lambda-expression</i>
+has a <i>simple-capture</i> naming the entity
+or
+has a <i>capture-default</i>.
+</ul>
+A local entity is <i>capturable</i> in a declarative region if
+it is referenceable and there is at least one such intervening
+<i>lambda-expression</i>.
+</blockquote>
+
+<em>Question for CWG: should this wording be located somewhere else, such
+as [basic.def.odr] or [basic.scope.declarative]?</em>
+
+<p>
+Change in 8.1.5.2 expr.prim.lambda.capture paragraph 7:
+</p>
+
+<blockquote>
+<ins>
+For the purposes of lambda capture, expressions denote local entities as follows:
+<ul>
+<li>An <i>id-expression</i> that names a local entity denotes that entity;
+an <i>id-expression</i> that names one or more non-static class members
+denotes <tt>*this</tt>.
+<li>A <tt>this</tt> expression denotes <tt>*this</tt>.
+<li>A <i>lambda-expression</i> denotes the local entities named by its
+<i>simple-capture</i>s.
+</ul>
+If an expression denotes a local entity
+within a declarative region in which it is capturable, and
+the expression is potentially evaluated
+ignoring the effect of any enclosing <tt>typeid</tt> expressions
+([expr.typeid]),
+the entity is said to be <i>implicitly captured</i>
+by each intervening</ins>
+<del>A</del> <i>lambda-expression</i>
+with an associated <i>capture-default</i>
+that does not explicitly capture <ins>it.</ins>
+<del>*this or a variable with automatic storage duration
+(this excludes any id-expression that has been found to refer to an
+init-capture’s associated non-static data member),
+is said to <i>implicitly capture</i>
+the entity (i.e., *this or a variable)
+if the
+<i>compound-statement</i>:
+<ul>
+<li>odr-uses (6.2) the entity (in the case of a variable),
+<li>odr-uses (6.2) this (in the case of the object designated by *this), or
+<li>names the entity in a potentially-evaluated expression (6.2) where the enclosing full-expression depends
+on a generic lambda parameter declared within the reaching scope of the lambda-expression.
+</ul>
+</del>
+[&nbsp;<i>Example</i>:
+<pre>
+void f(int, const int (&)[2] = {})<ins>;</ins> <del>{ }</del>   // #1
+void f(const int&, const int (&)[1])<ins>;</ins> <del>{ }</del> // #2
+void test() {
+  const int x = 17;
+  auto g = [](auto a) {
+    f(x); // OK: calls #1, does not capture x
+  };
+
+<ins>
+  auto g1 = [=](auto a) {
+    f(x); // OK: calls #1, captures x
+  };
+</ins>
+
+  auto g2 = [=](auto a) {
+    int selector[sizeof(a) == 1 ? 1 : 2]{};
+    f(x, selector); // OK: <del>is a dependent expression, so</del> captures x<ins>, might call #1 or #2</ins>
+  };
+}
+</pre>
+<ins>
+Within <tt>g1</tt>, an implementation might optimize away the capture of
+<tt>x</tt> as it is not odr-used.
+</ins>
+]
+<del>
+All such implicitly captured entities shall be declared
+within the reaching scope of the lambda expression.
+[&nbsp;<i>Note</i>:
+The implicit capture of an entity by a nested lambda-expression
+can cause its implicit capture by the containing lambda-expression (see below). Implicit odr-uses of this can result in implicit capture. ]
+</del>
+</blockquote>
+
+<p>
+Change in 8.1.5.2 expr.prim.lambda.capture paragraph 8:
+</p>
+
+<blockquote>
+An entity is captured if it is captured explicitly or implicitly.
+An entity captured by a lambda-expression is odr-used (6.2)
+in the scope containing the lambda-expression.
+<del>
+If *this is captured by a local lambda
+expression, its nearest enclosing function
+shall be a non-static member function.
+If a lambda-expression or an
+instantiation of the function call operator template
+of a generic lambda odr-uses (6.2) this or a variable with
+automatic storage duration from its reaching scope,
+that entity shall be captured by the lambda-expression.
+</del>
+If a <i>lambda-expression</i> <ins>explicitly</ins> captures an entity
+<del>and</del>
+that <del>entity</del> is not <ins>capturable</ins>
+<del>defined or captured in the immediately
+enclosing lambda expression or function</del>
+<ins>or explicitly or implicitly captures a structured binding</ins>,
+the program is ill-formed.
+[&nbsp;<i>Example</i>:
+<pre>
+&hellip;
+auto m4 = [&,j] {    // error: j <ins>not capturable due to intervening lambda</ins> <del>not captured by</del> m3
+  int x = n;         // error: n <ins>is odr-used but not referenceable due to intervening lambda</ins> <del>implicitly captured by m4 but not captured by</del> m3
+  x += m;            // OK: &hellip;
+  x += i;            // error: i is <del>outside of the reaching scope</del> <ins>odr-used but not referenceable due to intervening function and class scopes</ins>
+&hellip;
+]
+</blockquote>
+
+<em>Drafting note: the wording for structured bindings here is a placeholder,
+to be replaced by whatever behavior we actually want for lambda capture of
+structured bindings.</em>
+
+<p>
+Change in 8.1.5.2 expr.prim.lambda.capture paragraph 11:
+</p>
+
+<blockquote>
+Every id-expression within the compound-statement of a lambda-expression
+that is an odr-use (6.2) of an entity captured by copy
+is transformed into an access to the
+corresponding unnamed data member of the closure type.
+[ Note: An id-expression that is not an odr-use refers to the original entity,
+never to a member of the closure type.
+<del>Furthermore</del> <ins>However</ins>, such an id-expression
+<del>does not</del> <ins>can still</ins> cause the implicit capture
+of the entity. ]
+</blockquote>
+
+<p>
+Delete 8.1.5.2 expr.prim.lambda.capture paragraph 14:
+</p>
+
+<blockquote class="stddel">
+Every occurrence of <tt>decltype((x))</tt> where <tt>x</tt> is a possibly parenthesized <i>id-expression</i> that names an entity of automatic storage duration is treated as if <tt>x</tt> were transformed into an access to a correspnding data member of the closure type that would have been declared if <tt>x</tt> were an odr-use of the denoted entity.
+[&nbsp;<i>Example</i>: &hellip; ]
+</blockquote>
+
+<p>
+Change in 12.4 class.local paragraph 1:
+</p>
+
+<blockquote>
+<ins>[&nbsp;<i>Note</i>:</ins>
+Declarations in a local class <del>shall</del> <ins>can</ins>not
+odr-use (6.2) <del>a variable with automatic storage duration</del> <ins>local entities</ins>
+from <del>an</del> enclosing scope<ins>s</ins>. 
+[&nbsp;<i>Example</i>:
+<pre>
+&hellip;
+<ins>int arr[1, 2];
+auto [y, z] = arr;</ins>
+
+struct local {
+  int g() { return x; }    // error: odr-use of <del>automatic</del> <ins>non-referenceable</ins> variable x
+  &hellip;
+  int* n() { return &N; }  // error: odr-use of <del>automatic</del> <ins>non-referenceable</ins> variable N
+<ins>  int p() { return y; }    // error: odr-use of non-referenceable structured binding y</ins>
+};
+&hellip;
+</pre>
+]
+</blockquote>
+
+</body></html>
