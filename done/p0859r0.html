@@ -1,9 +1,11 @@
 <html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-<title>Core Issue 1581: When are constexpr member functions defined?</title>
+<title>P0859R0: Core Issue 1581: When are constexpr member functions defined?</title>
 
 <style type="text/css">
   ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
   del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+
+  .new { /*color: blue;*/ }
 
 blockquote {
   color: #000000; background-color: #F1F1F1;
@@ -29,7 +31,9 @@ blockquote.stddel {
 Richard Smith<br>
 2017-11-09
 
-<h1>Core Issue 1581: When are constexpr member functions defined?</h1>
+<h1>P0859R0: Core Issue 1581: When are constexpr member functions defined?</h1>
+
+This paper provides wording for Core Issue 1581.
 
 <p>
 Change in basic.def.odr 6.2 paragraph 3,
@@ -112,7 +116,7 @@ An expression is <i>potentially constant evaluated</i> if it is:
 <li>a potentially-evaluated expression ([basic.def.odr]),
 <li>a <i>constraint-expression</i>,
 including one formed from the <i>constraint-logical-or-expression</i> of a <i>requires-clause</i>,
-<li>a subexpression of a <i>braced-init-list</i>[&nbsp;<i>Footnote</i>: Constant evaluation may be necessary to determine whether a narrowing conversion is performed ([dcl.init.list]). ],
+<li>a<span class="new">n immediate</span> subexpression of a <i>braced-init-list</i>[&nbsp;<i>Footnote</i>: Constant evaluation may be necessary to determine whether a narrowing conversion is performed ([dcl.init.list]). ],
 <li>an expression of the form <tt>&</tt> <i>cast-expression</i> that occurs within a templated entity[&nbsp;<i>Footnote</i>: Constant evaluation may be necessary to determine whether such an expression is value-dependent ([temp.dep.constexpr]). ], or
 <li>a subexpression of one of the above that is not a subexpression of a nested unevaluated operand.
 </ul>
