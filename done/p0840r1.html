@@ -31,10 +31,10 @@ p.grammarrhs { margin-left:8em; margin-top:0; margin-bottom:0; text-indent:-4em 
 
 <div style="text-align: right; float: right">
 ISO/IEC JTC1 SC22 WG21<br>
-P0840R1<br>
+D0840R1<br>
 Richard Smith<br>
 richard@metafoo.co.uk<br>
-2017-11-27<br>
+2017-11-10<br>
 </div>
 
 <h1>Language support for empty objects</h1>
@@ -147,30 +147,25 @@ Change in [intro.object] (4.5) paragraph 7:
 </p>
 
 <blockquote class="std">
-<ins>
-An object has nonzero size if
-<ul>
-<li>it is not a potentially-overlapping subobject, or
-<li>it is a bit-field with nonzero length, or
-<li>has subobjects of nonzero size, or
-<li>it is of a class type with virtual member functions or virtual base classes.
-</ul>
-Otherwise, if the object is a base class subobject of
-a standard-layout class type, it has zero size.
-Otherwise, the circumstances under which the object
-has zero size are implementation-defined.
-</ins>
-Unless it is a bit-field (12.2.4), <del>a most derived</del>
-<ins>an</ins>
-object <del>shall have a</del> <ins>with</ins> nonzero
-size <del>and</del> shall occupy one or more bytes of storage<ins>,
-including every byte that is occupied in full or in part by
-any of its subobjects</ins>.
-<del>Base class subobjects
-may have zero size</del>.
+Unless it is a
+<ins>potentially-overlapping subobject, an</ins>
+<del>bit-field (12.2.4), a most derived</del>
+object shall have a nonzero
+size and shall occupy one or more bytes of storage.
+<del>Base class</del>
+<ins>It is implementation-defined whether potentially-overlapping</ins>
+subobjects
+<del>may</del> have zero size<ins>,
+except that such a subobject does not have zero size if
+it is a bit-fields with nonzero length or
+has any
+subobjects of nonzero size,
+virtual member functions, or virtual base classes,
+and that such a subobject has zero size if it is
+a base class subobject of a standard-layout
+class type that has neither non-static data members nor bit-fields</ins>.
 An object of trivially copyable or standard-layout type (6.9)
 shall occupy contiguous bytes of storage.
-<ins>A bit-field of length <i>N</i> shall occupy <i>N</i> bits of storage.</ins>
 </blockquote>
 
 <p>
@@ -179,33 +174,14 @@ Change in [intro.object] (4.5) paragraph 8:
 
 <blockquote class="std">
 Unless an object is a
-bit-field or a <del>base class</del> subobject of zero size,
+bit-field or a <del>base class</del> <ins>potentially-overlapping</ins> subobject of zero size,
 the address of that object is the address of the first byte it occupies.
-Two objects <del><tt>a</tt> and <tt>b</tt></del> with overlapping lifetimes
-that are not bit-fields
+Two objects <tt>a</tt> and <tt>b</tt> with overlapping lifetimes
+<del>that are not bit-fields</del>
 may have the same address if one is nested within the other, or if
-at least one is a <del>base class</del> subobject
-of zero size and they are of different types; otherwise, they have distinct addresses
-<ins>and shall occupy disjoint bytes of storage</ins>.
-[Footnote]
-[Example]
-<ins>
-The bits occupied by a bit-field
-shall be disjoint from the bits or bytes occupied by any other object
-with overlapping lifetime that the bit-field is not nested within.
-</ins>
-</blockquote>
-
-<p>
-Change in [expr.sizeof] (8.3.3) paragraph 1:
-</p>
-
-<blockquote class="std">
-The <tt>sizeof</tt> operator yields the number of bytes
-<ins>occupied by a non-potentially-overlapping object
-of the type</ins>
-<del>in the object representation</del> of its operand.
-[&hellip;]
+at least one is a <del>base class</del> <ins>potentially-overlapping</ins> subobject
+of zero size and they are of different types; otherwise, they have distinct addresses.
+[Footnote] [Example]
 </blockquote>
 
 <p>
@@ -218,10 +194,10 @@ the result is the size of the referenced type.
 When applied to a class,
 the result is the number of bytes in an object of that class
 including any padding required for placing objects of that type in an array.
-<del>The size of a most derived class shall be greater than zero (4.5).</del>
+The size of a most derived class shall be greater than zero (4.5).
 The result of applying <tt>sizeof</tt>
 to a <del>base class</del> <ins>potentially-overlapping</ins> subobject
-is the size of the <del>base class</del> type<ins>, not the size of the subobject</ins>.
+is the size of the <del>base class</del> type.
 [ Footnote:
 The actual size of a <del>base class</del> <ins>potentially-overlapping</ins> subobject
 may be less than the result of applying <tt>sizeof</tt> to the subobject,
@@ -292,18 +268,11 @@ address as <tt>buckets</tt> if their respective types are all empty.
 </blockquote>
 
 <p>
-Change in [class] (12) paragraph 4 and split into two paragraphs:
+Change in [class] (12) paragraph 4:
 </p>
 
 <blockquote class="std">
-<ins>[ Note:</ins>
-Complete objects <del>and member subobjects</del> of class type shall have nonzero size.
-<del>[ Footnote:</del>
-Base class subobjects
-<ins>and members declared with the <tt>no_unique_address</tt> attribute ([dcl.attr.nouniqueaddr])</ins>
-are not so constrained.
-]
-<p>
+<del>Complete objects and member subobjects of class type shall have nonzero size.</del>
 [ Note: ... ]
 </blockquote>
 
@@ -329,15 +298,15 @@ Change in [meta.unary.prop] (23.15.4.3) Table 42 ("Type property predicates"):
 <table>
   <tr><th>Template<th>Condition<th>Predicate</tr>
   <tr><td colspan=3 align=center>&hellip;</tr>
-    <tr><td><tt>template &lt;class T&gt; struct is_empty;</tt>
+    <tr><td><tt>template &lt;class T> struct is_empty;</tt>
     <td>
       <tt>T</tt> is a class type, but not a union type,
       with no non-static data members
       other than <del>bit-fields of length 0</del>
-      <ins>subobjects of zero size,</ins>
+      <ins>potentially-overlapping subobjects of zero size,</ins>
       no virtual member functions,
       no virtual base classes, and
-      no base class <tt>B</tt> for which <tt>is_empty_v&lt;B&gt;</tt> is <tt>false</tt>.
+      no base class <tt>B</tt> for which <tt>is_empty_v&lt;B></tt> is <tt>false</tt>.
     <td>
       If <tt>T</tt> is a non-union class type,
       <tt>T</tt> shall be a complete type.
