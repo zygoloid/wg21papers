@@ -14,8 +14,17 @@ URL: http://wg21.link/p0593r2
 Markup Shorthands: markdown yes
 </pre>
 
-TODO:
+Change history
+==============
 
+Since [[P0593R0]]:
+
+  * Paper expanded from Ville's original call for solutions to a description of
+    a proposed solution, based on SG12 discussion.
+
+Since [[P0593R1]]:
+
+<!--
 * explicit syntax only (6 3 1 0 0)
   * barrier function for the other cases
   * example from C DR 236 is UB, even if function is inlined
@@ -33,6 +42,23 @@ Aside:
 
 * pseudo-destructor call ends lifetime (2 6 2 0 0)
 * incorporate gaby's memcpy-equals-bit_cast paper? idea: memmove is "copy storage elsewhere, implicitly create objects, copy storage back"; memcpy is memmove + overlap restriction (4 4 2 0 0)
+-->
+
+Incorporated further SG12 feedback:
+
+  * An explicit syntactic marker is required to indicate that objects should be
+    created. Existing obvious markers, such as the use of `malloc`, or simply
+    performing member access on a union, suffice.
+  * Expand set of implicit lifetime types to require *either* a trivial default
+    constructor *or* a trivial copy/move constructor, rather than requiring both.
+      * Types with only a trivial default constructor may be suitable for
+        member-by-member construction via class member access, even if the copy
+        or move constructor is non-trivial.
+      * Types with only a trivial copy/move constructor may be suitable for
+        initialization by copying (for example) an on-disk representation into
+        memory, even if the default constructor is non-trivial.
+  * Define the C standard library `memcpy` and `memmove` functions as triggering
+    implicit object creation.
 
 Motivating examples
 ===================
@@ -152,7 +178,9 @@ If we are going to create objects automatically, we need a bare minimum of the
 following two properties for the type:
 
 1) *Creating an instance of the type runs no code.* For class types, having a
-trivially default constructible type is likely the right constraint.
+trivially default constructible type is often the right constraint. However, we
+should also consider cases where initially creating an object is non-trivial,
+but copying it (for instance, from an on-disk representation) is trivial.
 
 2) *Destroying an instance of the type runs no code.* If the type maintains
 invariants, we should not be implicitly creating objects of that type.
@@ -166,16 +194,11 @@ This suggests that the largest set of types we could apply this to is:
 
  * Scalar types
  * Array types (with any element type)
- * Class types with a trivial default constructor and a trivial destructor
+ * Class types with a trivial destructor and a trivial constructor (of any kind)
 
 (Put another way, we can apply this to all types other than function type,
-reference type, `void`, and class types with non-trivial default constructors
-or destructors.)
-
-However, there are additional cases where we may wish to be conservative; if
-a class type has a non-trivial copy or move constructor, for instance, we should
-probably not permit objects to come into being without explicit user action.
-Therefore, we suggest permitting this for only trivial class types.
+reference type, `void`, and class types where all constructors are non-trivial
+or where the destructor is non-trivial.)
 
 We will call types that satisfy the above constraints *implicit lifetime types*.
 
@@ -199,46 +222,100 @@ physical machine, the compiler must generate code that would be correct if
 However, this is not always sufficient. An allocation from `malloc` may be
 sequentially used to store multiple different types, for instance by way
 of a memory pool that recycles the same allocation for multiple objects of
-the same size. Such uses should also have defined behavior.
+the same size. It should be possible to grant such cases the same power to
+implicitly create objects as is de facto granted to `malloc`.
 
 Therefore we propose the following rule:
 
-> The abstract machine creates objects of implicit lifetime types as needed to
-> give the program defined behavior. If there exists a set of such objects,
-> with corresponding points of creation, whose creation would give the program
-> defined behavior, then the program has that behavior. Otherwise, the behavior
-> of the program is undefined.
+> Some operations are described as implicitly creating objects within a
+> specified region of storage. The abstract machine creates objects of implicit
+> lifetime types within those regions of storage as needed to give the program
+> defined behavior. For each operation that is specified as implicitly creating
+> objects, that operation implicitly creates zero or more objects in its
+> specified region of storage if doing so would give the program defined
+> behavior. If no such sets of objects would give the program defined behavior,
+> the behavior of the program is undefined.
 
 The coherence of the above rule hinges on a key observation: changing the
 set of objects that are implicitly created can only change whether a particular
 program execution has defined behavior, not what the behavior is.
 
-The point of creation of such an implicit object is sequenced either
-immediately before or immediately after some evaluation within the program
-execution. For simplicity, we require such an evaluation to already exist in
-the program's execution. (This theoretically might not be the case if two
-unsequenced evaluations in distinct threads race to create a new object;
-we do not propose to cover such cases.)
+We propose that at minimum the following operations be specified as implicitly
+creating objects:
+
+  * Creation of an array of `char`, `unsigned char`, or `std::byte` implicitly
+    creates objects within that array.
+  * A call to `malloc`, `calloc`, `realloc`, or any function named `operator new`
+    or `operator new[]` implicitly creates objects in its returned storage.
+  * `std::allocator<T>::allocate` likewise implicitly creates objects in its
+    returned storage; the allocator requirements should require other allocator
+    implementations to do the same.
+  * A call to `memmove` behaves as if it
+ 
+    1. copies the source storage to a temporary area
+    2. implicitly creates objects in the destination storage, and then
+    3. copies the temporary storage to the destination storage.
+ 
+    This permits `memmove` to preserve the types of trivially-copyable objects,
+    or to be used to reinterpret a byte representation of one object as that of
+    another object.
+  * A call to `memcpy` behaves the same as a call to `memmove` except that it
+    introduces an overlap restriction between the source and destination.
+  * A class member access that nominates a union member triggers implicit object
+    creation within the storage occupied by the union member. Note that this is
+    not an entirely new rule: this permission already existed in [[P0137R1]] for
+    cases where the member access is on the left side of an assignment, but is
+    now generalized as part of this new framework. As explained below, this does
+    not permit type punning through unions; rather, it merely permits the active
+    union member to be changed by a class member access expression.
+  * A new barrier operation (distinct from `std::launder`, which does not create
+    objects) should be introduced to the standard library, with semantics
+    equivalent to a `memmove` with the same source and destination storage.
+    As a strawman, we suggest:
+ 
+    ```
+    // Requires: [start, (char*)start + length) denotes a region of allocated
+    // storage that is a subset of the region of storage reachable through start.
+    // Effects: implicitly creates objects within the denoted region.
+    void std::bless(void *start, size_t length);
+    ```
+
+In addition to the above, an implementation-defined set of non-stasndard memory
+allocation and mapping functions, such as `mmap` on POSIX systems and
+`VirtualAlloc` on Windows systems, should be specified as implicitly creating
+objects.
+
+Note that a pointer `reinterpret_cast` is not considered sufficient to trigger
+implicit object creation.
 
 Type punning
 ------------
 
-We do not wish an example such as the following to become valid:
+We do not wish examples such as the following to become valid:
 
 ```
 float do_bad_things(int n) {
   alignof(int) alignof(float)
     char buffer[max(sizeof(int), sizeof(float))];
   *(int*)buffer = n;      // #1
+  std::bless(buffer, sizeof(buffer));
   return (*float*)buffer; // #2
 }
 ```
 
-The proposed rule would permit an `int` object to spring into existence
-to make line #1 valid, and would permit a `float` object to likewise
-spring into existence to make line #2 valid.
+```
+float do_bad_things(int n) {
+  union { int n; float f; } u;
+  u.n = n;    // #1
+  return u.f; // #2
+}
+```
 
-However, this example still does not have defined behavior under the
+The proposed rule would permit an `int` object to spring into existence
+to make line #1 valid (in each case), and would permit a `float` object to
+likewise spring into existence to make line #2 valid.
+
+However, these examples still do not have defined behavior under the
 proposed rule. The reason is a consequence of [basic.life]p4:
 
 <blockquote>
@@ -271,6 +348,26 @@ Following the existing conservatism in constant expression evaluation (eg, the
 disallowance of changing the active member of a union), we propose that the
 implicit creation of objects should *not* be performed during such evaluation.
 
+Pseudo-destructor calls
+-----------------------
+
+In the current C++ language rules, "pseudo-destructor" calls may be used in
+generic code to allow such code to be ambivalent as to whether an object is of
+class type:
+
+```
+template<typename T> void destroy(T *p) { p->~T(); }
+``` 
+
+When `T` is, say, `int`, the pseudo-destructor expression `p->~T()` is specified
+as having no effect. We believe this is an error: such an expression should have
+a lifetime effect, ending the lifetime of the `int` object. Likewise, calling a
+destructor of a class object should always end the lifetime of that object,
+regardless of whether the destructor is trivial.
+
+This change improves the abililty of static and dynamic analysis tools to reason
+about the lifetimes of C++ objects.
+
 Practical examples
 ------------------
 
@@ -285,7 +382,7 @@ int n = *p;
 ```
 
 Within the implementation of `vector`, some storage is allocated to hold
-an array of up to 5 `int`s. Ignoring minor differences, there are two ways
+an array of up to 4 `int`s. Ignoring minor differences, there are two ways
 to create implicit objects to give the execution of this program defined
 behavior: within the allocated storage, either an `int[3]` object or an
 `int[4]` object is created. Both are correct interpretations of the program,
@@ -295,6 +392,13 @@ program as being in the superposition of those two states. If we add a fourth
 the `int[4]` interpretation remains valid.
 
 ```
+unique_ptr<char[]> Stream::read() {
+  // ... determine data size ...
+  unique_ptr<char[]> buffer(new char\[N]);
+  // ... copy data into buffer ...
+  return buffer;
+}
+
 void process(Stream *stream) {
   unique_ptr<char[]> buffer = stream->read();
   if (buffer[0] == FOO)
@@ -304,6 +408,7 @@ void process(Stream *stream) {
 }
 ```
 
+Note the `new char[N]` implicitly creates objects within the allocated array.
 In this case, the program would have defined behavior if an object of type
 `Foo` or `Bar` (as appropriate for the content of the incoming data) were
 implicitly created *prior* to `Stream::read` populating its buffer. Therefore,
