@@ -1,13 +1,13 @@
 <pre class='metadata'>
 Title: Implicit creation of objects for low-level object manipulation
-Shortname: d0593
+Shortname: p0593
 Revision: 2
-Date: 2017-11-16
+Date: 2018-02-11
 Editor: Richard Smith, Google, richard@metafoo.co.uk
 Former Editor: Ville Voutilainen, ville.voutilainen@gmail.com
-Abstract: This paper proposes that objects of sufficiently trivial types be created on-demand as necessary to give programs defined behavior.
+Abstract: This paper proposes that objects of sufficiently trivial types be created on-demand as necessary within newly-allocated storage to give programs defined behavior.
 
-Status: D
+Status: P
 Group: wg21
 Audience: SG12
 URL: http://wg21.link/p0593r2
@@ -59,6 +59,7 @@ Incorporated further SG12 feedback:
         memory, even if the default constructor is non-trivial.
   * Define the C standard library `memcpy` and `memmove` functions as triggering
     implicit object creation.
+  * Add description of suggested "typed" form of `std::bless`.
 
 Motivating examples
 ===================
@@ -224,6 +225,22 @@ sequentially used to store multiple different types, for instance by way
 of a memory pool that recycles the same allocation for multiple objects of
 the same size. It should be possible to grant such cases the same power to
 implicitly create objects as is de facto granted to `malloc`.
+
+We could specify that implicit object creation happens automatically at any
+program point that relies on an object existing. This has a great deal of
+appeal: no explicit program action is ever required to create objects, and it
+directly describes a simple model where objects are not distinguished from the
+storage they occupy (this model gives the same results as C's "effective type"
+model in most cases). However, it also removes much of the power of scalar
+type-based alias analysis. The C committee has long been struggling with the
+conflict between their desire to support TBAA and their version of this rule,
+as exemplified by C's DR 236 ([[C236]]), which lists a "resolution" not
+reflected by the standard wording and that undesirably grants special powers to
+function call boundaries (this is one of at least four different and
+incompatible rules the C committee has at one point or another taken as the
+resolution to that defect).  The lack of a reasonable resolution to these
+problems, despite them being known for nearly two decades, suggests that this
+is not a good path forward.
 
 Therefore we propose the following rule:
 
@@ -416,8 +433,50 @@ regardless of which arm of the `if` is taken, there is a set of implicit
 objects sufficient to give the program defined behavior, and thus the behavior
 of the program is defined.
 
+Further work
+============
+
+Direct object creation
+----------------------
+
+In some cases it is desirable to change the dynamic type of existing storage
+while maintaining the object representation. If the destination type is an
+implicit lifetime type, this can be accomplished by usage of `std::bless` to
+change the type, followed by `std::launder` to acquire a pointer to the
+newly-created object. However, for expressivity and optimizability, a combined
+operation to create an object of implicit lifetime type in-place while
+preserving the object representation may be useful. Reviewers of a draft
+version of this paper have proposed:
+
+```
+// Effects: create an object of implicit lifetype type T in the storage
+//          pointed to by T, while preserving the object representation.
+template<typename T> T *bless(void *p);
+```
+
+Note that such an operation is not sufficient to implement <i>`node_handle`</i>
+([[P0083R3]]) for map-like containers. <i>`node_handle`</i> requires the
+ability to take a `std::pair<const Key, Value>` and permit mutation of the
+`Key` portion (without destroying and recreating the `Key` object), even when
+`Key` is not an implicit lifetime type, so the above operation does not
+suffice. However, we could imagine extending its semantics to also permit
+conversions where each subobject of non-implicit-lifetime type in the
+destination corresponds to an object of the same type (ignoring
+cv-qualifications) in the source.
+
 Acknowledgements
 ================
 
 Thanks to Ville Voutilainen for raising this problem, and to the members of
 SG12 for discussing possible solutions.
+
+<pre class=biblio>
+{
+ "C236": {
+  "authors": ["Raymond Mak"],
+  "href": "http://www.open-std.org/jtc1/sc22/wg14/www/docs/dr_236.htm",
+  "title": "C Defect Report #236: The interpretation of type based aliasing rule when applied to union objects or allocated objects.",
+  "publisher": "WG14"
+ }
+}
+</pre>
