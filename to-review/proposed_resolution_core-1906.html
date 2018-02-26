@@ -1,0 +1,53 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue XXXX: ...</title>
+
+<style type="text/css">
+  ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2013-08-24
+
+<h1>Core Issue XXXX: ...</h1>
+
+<p>
+Change in 3.4.1 basic.lookup.unqual paragraph 8:
+</p>
+
+<blockquote>
+For the members of a class <tt>X</tt>, a name used
+in a member function body,
+in a default argument,
+in a <i>noexcept-specifier</i>,
+in a default member initializer (12.2),
+or
+in the <del>definition</del> <ins>declaration</ins> of a class member outside of the definition of <tt>X</tt> <del>,</del>
+following the member's <i>declarator-id</i><sup>27</sup>,
+shall be declared in one of the following ways:
+<ul>
+<li>before its use in the block in which it is used or in an enclosing block (9.3) <ins>within the body of the member function</ins>, or
+<li><del>shall be</del> <ins>as</ins> a member of class <tt>X</tt> or <del>be</del> <ins>as</ins> a member of a base class of <tt>X</tt>, or
+<li>&hellip;
+<li>if <tt>X</tt> is a member of namespace <tt>N</tt>, &hellip; enclosing namespaces<del>.</del><ins>, or</ins>
+<li><ins>for a friend declaration in a class <tt>Y</tt>,
+in a scope that would be searched for a name appearing within <tt>Y</tt>.</ins>
+</ul>
+</blockquote>
+
+<p>
+Delete 3.4.1 basic.lookup.unqual paragraph 10 and combine its example with that of paragraph 8:
+</p>
+
+<blockquote>
+<del>In a friend declaration naming a member function, a name used in the function declarator and not part of a
+template-argument in the declarator-id is first looked up in the scope of the member function's class (13.2). If
+it is not found, or if the name is part of a template-argument in the declarator-id, the look up is as described
+for unqualified names in the definition of the class granting friendship.</del>
+[ Example: &hellip; ]
+</blockquote>
+
+</body></html>
