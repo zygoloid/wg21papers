@@ -27,21 +27,15 @@ blockquote.stddel {
 
 <body>
 Richard Smith, Andrew Hunter<br>
-2017-11-27<br>
-Audience: Core, Library
+2018-03-08<br>
+Audience: Core
 
 <h1>D0722R3: Efficient sized delete for variable sized classes</h1>
-
-<!-- FIXME:
-
-Rebase on latest working draft
-Pass *cv-unqualified* T* as first parameter of destroying delete.
--->
 
 This paper provides wording for the feature described by <a href="http://wg21.link/p0722r1">P0722R1</a>.
 
 <p>
-Append to [basic.stc.dynamic.deallocation] (6.7.4.2) paragraph 1
+Append to [basic.stc.dynamic.deallocation] (6.6.4.4.2) paragraph 1
 </p>
 
 <blockquote>
@@ -56,7 +50,7 @@ A destroying operator delete shall be a class member function named
 </blockquote>
 
 <p>
-Change in [basic.stc.dynamic.deallocation] (6.7.4.2) paragraph 2:
+Change in [basic.stc.dynamic.deallocation] (6.6.4.4.2) paragraph 2:
 </p>
 
 <blockquote>
@@ -82,24 +76,24 @@ A template instance is never a usual deallocation function, regardless of its si
 </blockquote>
 
 <p>
-Change in [expr.delete] (8.3.5) paragraph 3:
+Change in [expr.delete] (8.5.2.5) paragraph 3:
 </p>
 
 <blockquote>
-In the first alternative (delete object),
+In a single-object delete expression,
 if the static type of the object to be deleted is different from its dynamic type,
 <ins>and the selected deallocation function (see below) is not a destroying operator delete,</ins>
 the static type shall be a base class of
 the dynamic type of the object to be deleted and
 the static type shall have a virtual destructor
 or the behavior is undefined.
-In the second alternative (delete array)
+In an array delete expression,
 if the dynamic type of the object to be deleted
 differs from its static type, the behavior is undefined.
 </blockquote>
 
 <p>
-Change in [expr.delete] (8.3.5) paragraph 8:
+Change in [expr.delete] (8.5.2.5) paragraph 6:
 </p>
 
 <blockquote>
@@ -115,7 +109,7 @@ the elements will be destroyed in order of decreasing address
 </blockquote>
 
 <p>
-Change in [expr.delete] (8.3.5) paragraph 10:
+Change in [expr.delete] (8.5.2.5) paragraph 10:
 </p>
 
 <blockquote>
@@ -136,7 +130,8 @@ all non-preferred functions are eliminated from further consideration.
     the selection process terminates.</ins>
 <li>If the deallocation functions have class scope, the one without a parameter
   of type <tt>std::size_t</tt> is selected.
-<li>If the type is complete and if, for the second alternative (delete array)
+<li>If the type is complete and if, for <del>the second alternative (delete array)</del>
+  <ins>an array delete expression</ins>
   only, the operand is a pointer to a class type with a non-trivial destructor
   or a (possibly multi-dimensional) array thereof, the function with a
   parameter of type <tt>std::size_t</tt> is selected.
@@ -152,24 +147,27 @@ non-sized operator delete. That appears to be false: we could have (e.g.) both
 (both are usual deallocation functions).</em>
 
 <p>
-Change in [expr.delete] (8.3.5) paragraph 11:
+Change in [expr.delete] (8.2.5.2) paragraph 11:
 </p>
 
 <blockquote>
-<ins>For the delete object case, the deleted object is the object denoted
+<ins>For a single-object delete expression, the deleted object is the object denoted
 by the operand if its static type does not have a virtual destructor,
 and its most-derived object otherwise.
 [ Note: If the deallocation function is not a destroying operator delete
 and the deleted object is not the most derived object in the former case,
-the behavior is undefined, as stated above. &mdash; ]
-For the delete array case, the deleted object is the array object.
+the behavior is undefined, as stated above. &mdash; end note ]
+For an array delete expression, the deleted object is the array object.
 </ins>
-When a delete-expression is executed, the selected deallocation function shall
+When a <i>delete-expression</i> is executed, the selected deallocation function shall
 be called with the address of the <del>most-derived</del> <ins>deleted</ins> object
-in the delete object case,
+in a single-object delete expression,
 or the address of the <ins>deleted</ins> object suitably adjusted for the array allocation
-overhead (8.3.4) in the delete array case, as its first argument.
-<ins>If a destroying operator delete is used, an unspecified value is passed
+overhead (8.3.4) in an array delete expression, as its first argument.
+<ins>
+[ Note: Any <i>cv-qualifier</i>s in the type of the deleted object
+are ignored when forming this argument. ]
+If a destroying operator delete is used, an unspecified value is passed
 as the argument corresponding to the parameter of type
 <tt>std::destroying_delete_t</tt>.</ins>
 If a deallocation function with a parameter of type <tt>std::align_val_t</tt>
@@ -177,8 +175,8 @@ is used, the alignment of the type of the <ins>deleted</ins> object
 <del>to be deleted</del> is passed as the corresponding argument.
 If a deallocation function with a parameter of type
 <tt>std::size_t</tt> is used, the size of the <del>most-derived type</del>
-<ins>deleted object in the delete object case</ins>, or of the array plus
-allocation overhead<del>, respectively</del> <ins>in the delete array case</ins>,
+<ins>deleted object in a single-object delete expression</ins>, or of the array plus
+allocation overhead<del>, respectively</del> <ins>in an array delete expression</ins>,
 is passed as the corresponding argument.
 <del>
 [ Footnote: If the static type of the object to be deleted is complete and is
@@ -192,7 +190,7 @@ call, the behavior is undefined (21.6.2.1, 21.6.2.2). &mdash; end note ]
 </blockquote>
 
 <p>
-Change in [expr.delete] (8.3.5) paragraph 12:
+Change in [expr.delete] (8.2.5.2) paragraph 12:
 </p>
 
 <blockquote>
