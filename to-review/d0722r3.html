@@ -27,7 +27,7 @@ blockquote.stddel {
 
 <body>
 Richard Smith, Andrew Hunter<br>
-2018-03-08<br>
+2018-03-12<br>
 Audience: Core
 
 <h1>D0722R3: Efficient sized delete for variable sized classes</h1>
@@ -46,6 +46,7 @@ whose second parameter type is of type <tt>std::destroying_delete_t</tt>
 is a <i>destroying operator delete</i>.
 A destroying operator delete shall be a class member function named
 <tt>operator delete</tt>.
+[ Note: Array deletion cannot use a destroying operator delete. &mdash; end note ]
 </ins>
 </blockquote>
 
@@ -190,16 +191,15 @@ call, the behavior is undefined (21.6.2.1, 21.6.2.2). &mdash; end note ]
 </blockquote>
 
 <p>
-Change in [expr.delete] (8.2.5.2) paragraph 12:
+Change in [class.dtor] (15.4) paragraph 12:
 </p>
 
 <blockquote>
-Access and ambiguity control are done for <del>both</del>
-the deallocation function and<ins>,
-if
-the deallocation function is not a destroying operator delete or
-the destructor is virtual, for</ins>
-the destructor (15.4, 15.5).
+[&hellip;]
+A destructor <del>is</del> <ins>may</ins> also <ins>be</ins> invoked implicitly
+through use of a delete-expression (8.3.5) for a constructed object
+allocated by a new-expression (8.3.4); the context of the invocation is the delete-expression.
+[&hellip;]
 </blockquote>
 
 <p>
@@ -239,13 +239,18 @@ struct D : B {
   void operator delete(void*);
 };
 <ins>struct E : B {
-  void operator delete(void*, std::destroying_delete_t);
+  void log_deletion();
+  void operator delete(E *p, std::destroying_delete_t) {
+    p->log_deletion();
+    p->~E();
+    ::operator delete(p);
+  }
 };</ins>
 void f() {
   B* bp = new D;
   delete bp; // 1: uses D::operator delete(void*)
 <ins>  bp = new E;
-  delete bp; // 2: uses E::operator delete(void*, std::destroying_delete_t)</ins>
+  delete bp; // 2: uses E::operator delete(E*, std::destroying_delete_t)</ins>
 }
 </pre>
 Here, storage for the <del>non-array</del> object of class <tt>D</tt> is deallocated by <tt>D::operator delete()</tt>,

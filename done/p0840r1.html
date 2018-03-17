@@ -31,16 +31,11 @@ p.grammarrhs { margin-left:8em; margin-top:0; margin-bottom:0; text-indent:-4em 
 
 <div style="text-align: right; float: right">
 ISO/IEC JTC1 SC22 WG21<br>
-D0840R2<br>
+P0840R1<br>
 Richard Smith<br>
 richard@metafoo.co.uk<br>
-2018-03-12<br>
+2017-11-27<br>
 </div>
-
-<!--
-  TODO:
-  * concern about standard-layout-ness of types with zero-size members
--->
 
 <h1>Language support for empty objects</h1>
 
@@ -131,7 +126,7 @@ Not as part of this proposal.
 <h2>Wording</h2>
 
 <p>
-Add a new paragraph before [intro.object] (6.6.2) paragraph 7:
+Add a new paragraph before [intro.object] (4.5) paragraph 7:
 </p>
 
 <blockquote class="stdins">
@@ -141,26 +136,27 @@ is either:
 <li>
   a base class subobject, or
 <li>
+  a bit-field ([class.bit]), or
+<li>
   a non-static data member declared with the <tt>no_unique_address</tt> attribute ([dcl.attr.nouniqueaddr]).
 </ul>
 </blockquote>
 
 <p>
-Change in [intro.object] (6.6.2) paragraph 7:
+Change in [intro.object] (4.5) paragraph 7:
 </p>
 
 <blockquote class="std">
 <ins>
-An object has nonzero size if it
+An object has nonzero size if
 <ul>
-<li>is not a potentially-overlapping subobject, or
-<li>is not of class type, or
-<li>is of a class type with virtual member functions or virtual base classes, or
-<li>has subobjects of nonzero size or bit-fields of nonzero length.
+<li>it is not a potentially-overlapping subobject, or
+<li>it is a bit-field with nonzero length, or
+<li>has subobjects of nonzero size, or
+<li>it is of a class type with virtual member functions or virtual base classes.
 </ul>
 Otherwise, if the object is a base class subobject of
-a standard-layout class type
-with no non-static data members, it has zero size.
+a standard-layout class type, it has zero size.
 Otherwise, the circumstances under which the object
 has zero size are implementation-defined.
 </ins>
@@ -174,13 +170,11 @@ any of its subobjects</ins>.
 may have zero size</del>.
 An object of trivially copyable or standard-layout type (6.9)
 shall occupy contiguous bytes of storage.
-<!--
 <ins>A bit-field of length <i>N</i> shall occupy <i>N</i> bits of storage.</ins>
--->
 </blockquote>
 
 <p>
-Change in [intro.object] (6.6.2) paragraph 8:
+Change in [intro.object] (4.5) paragraph 8:
 </p>
 
 <blockquote class="std">
@@ -195,58 +189,15 @@ of zero size and they are of different types; otherwise, they have distinct addr
 <ins>and shall occupy disjoint bytes of storage</ins>.
 [Footnote]
 [Example]
-<!--
 <ins>
 The bits occupied by a bit-field
 shall be disjoint from the bits or bytes occupied by any other object
 with overlapping lifetime that the bit-field is not nested within.
 </ins>
--->
-<ins>
-The address of a non-bit-field subobject of zero size is that of a byte of storage
-occupied by the complete object of the subobject.
-</ins>
 </blockquote>
 
 <p>
-Change in [basic.life] (6.6.3) bullet 8.4:
-</p>
-
-<blockquote class="std">
-<ins>neither</ins> the original object
-<ins>nor the new object
-is a potentially-overlapping subobject (6.6.2 [intro.object])</ins>
-<del>was a most derived object (6.6.2) of type T and
-the new object is a most derived object of type T
-(that is, they are not base class subobjects)</del>.
-</blockquote>
-
-<p>
-Change in [basic.types] (6.7) paragraph 2:
-</p>
-
-<blockquote class="std">
-For any object (other than a <del>base-class</del>
-<ins>potentially-overlapping</ins> subobject) of
-trivially copyable type [&hellip;]
-</blockquote>
-
-<p>
-Change in [basic.types] (6.7) paragraph 3:
-</p>
-
-<blockquote class="std">
-For any trivially copyable type T,
-if two pointers to T point to distinct T objects obj1 and obj2,
-where neither obj1 nor obj2 is a <del>base-class</del>
-<ins>potentially-overlapping</ins> subobject,
-if the underlying bytes (6.6.1) making up obj1 are copied into obj2,
-obj2 shall subsequently hold the same value as obj1.
-[&hellip;]
-</blockquote>
-
-<p>
-Change in [expr.sizeof] (8.5.2.3) paragraph 1:
+Change in [expr.sizeof] (8.3.3) paragraph 1:
 </p>
 
 <blockquote class="std">
@@ -258,7 +209,7 @@ of the type</ins>
 </blockquote>
 
 <p>
-Change in [expr.sizeof] (8.5.2.3) paragraph 2:
+Change in [expr.sizeof] (8.3.3) paragraph 2:
 </p>
 
 <blockquote class="std">
@@ -267,7 +218,7 @@ the result is the size of the referenced type.
 When applied to a class,
 the result is the number of bytes in an object of that class
 including any padding required for placing objects of that type in an array.
-<del>The size of a most derived class shall be greater than zero (6.6.2).</del>
+<del>The size of a most derived class shall be greater than zero (4.5).</del>
 The result of applying <tt>sizeof</tt>
 to a <del>base class</del> <ins>potentially-overlapping</ins> subobject
 is the size of the <del>base class</del> type<ins>, not the size of the subobject</ins>.
@@ -282,7 +233,7 @@ elements is n times the size of an element.
 </blockquote>
 
 <p>
-Change in [expr.rel] (8.5.9) paragraph 3:
+Change in [expr.rel] (8.9) paragraph 3:
 </p>
 
 <blockquote class="std">
@@ -306,13 +257,9 @@ Add a new subclause [dcl.attr.nouniqueaddr] after [dcl.attr.noreturn]:
 
 <p>
 The <i>attribute-token</i> <tt>no_unique_address</tt>
-specifies that a non-static data member
-is a potentially-overlapping subobject (6.6.2 [intro.object]).
-<!--
-[ Note: As a consequence, such a member can have the same
-address as another non-static data member of its class if
-it is of zero size. ]
--->
+specifies that a non-static data member need not have an
+address distinct from all other non-static data members
+of its class.
 It shall appear at most once in each <i>attribute-list</i>
 and no <i>attribute-argument-clause</i> shall be present.
 The attribute may appertain to a non-static data member
@@ -321,7 +268,7 @@ other than a bit-field.
 
 <p>
 [ <i>Note</i>: The non-static data member can share the address
-of another non-static data member or that of a base class,
+of another non-static data member of that of a base class,
 and any padding that would normally be inserted at the
 end of the object can be reused as storage for other
 members. &mdash; <i>end note</i> ] [ <i>Example</i>:
@@ -350,7 +297,7 @@ Change in [class] (12) paragraph 4 and split into two paragraphs:
 
 <blockquote class="std">
 <ins>[ Note:</ins>
-Complete objects <del>and member subobjects</del> of class type <del>shall</del> have nonzero size.
+Complete objects <del>and member subobjects</del> of class type shall have nonzero size.
 <del>[ Footnote:</del>
 Base class subobjects
 <ins>and members declared with the <tt>no_unique_address</tt> attribute ([dcl.attr.nouniqueaddr])</ins>
@@ -358,27 +305,6 @@ are not so constrained.
 ]
 <p>
 [ Note: ... ]
-</blockquote>
-
-<p>
-Change in [class] (12) paragraph 7:
-</p>
-
-<blockquote class="std">
-[&hellip;]
-<ul>
-  <li>
-If X is a non-union class type <del>whose first</del> <ins>with a</ins>
-non-static data member <del>has</del> <ins>of</ins> type X0
-<ins>that is either of zero size or is the first non-static data member of <tt>X</tt></ins>
-(where said member may be an anonymous union),
-the set M(X) consists of X0 and the elements of M(X0).
-</ul>
-[&hellip;]
-[Note: M(X) is the set of the types of all non-base-class subobjects
-that <del>are guaranteed</del> <ins>may be at a zero offset</ins>
-in <del>a standard-layout class to be at a zero offset in</del> X. —end note]
-[&hellip;]
 </blockquote>
 
 <p>
@@ -390,8 +316,8 @@ The <i>common initial sequence</i> of two standard-layout struct (Clause 12) typ
 is the longest sequence of non-static data members and bit-fields in declaration order,
 starting with the first such entity in each of the structs,
 such that corresponding entities have layout-compatible types<ins>,
-either both entities are declared with the <tt>no_unique_address</tt> attribute ([dcl.attr.nouniqueaddr]) or neither is,</ins>
-and either <del>neither entity is a bit-field or</del> both <ins>entities</ins> are bit-fields with the same width <ins>or neither is a bit-field</ins>.
+either neither entity is declared with the <tt>no_unique_address</tt> attribute ([dcl.attr.nouniqueaddr]]) or both are,
+and</ins> and either neither entity is a bit-field or both are bit-fields with the same width.
 [ Example ]
 </blockquote>
 
