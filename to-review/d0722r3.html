@@ -268,34 +268,14 @@ Change in header &lt;new> synopsis in [new.syn] (21.6.1):
   class bad_alloc;
   class bad_array_new_length;
 
-<ins>  // [new.destr.del], destroying delete indicator
-  struct destroying_delete_t { <i>see below</i> };
-  inline constexpr destroying_delete_t destroying_delete(<i>unspecified</i>);</ins>
+<ins>  struct destroying_delete_t {
+    explicit destroying_delete_t() = default;
+  };
+  inline constexpr destroying_delete_t destroying_delete{};</ins>
 
   struct nothrow_t { explicit nothrow_t() = default; };
   [&hellip;]
 </pre>
-</blockquote>
-
-<p>
-Add a new subclause before the existing 21.6.4 [ptr.launder]:
-</p>
-
-<blockquote class="stdins">
-<h2>Destroying delete indicator [new.destr.del]</h2>
-
-<pre>
-struct destroying_delete_t { <i>see below</i> };
-inline constexpr destroying_delete_t destroying_delete(<i>unspecified</i>);
-</pre>
-
-<p>The struct <tt>destroying_delete_t</tt>
-is an empty structure type
-used as a unique type
-to indicate that a deallocation function is a destroying operator delete ([basic.stc.dynamic.deallocation]).
-
-<p>Type <tt>destroying_delete_t</tt> shall not have a default constructor or an initializer-list constructor,
-and shall not be an aggregate.
 </blockquote>
 
 </body></html>
