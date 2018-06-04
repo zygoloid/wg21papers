@@ -14,6 +14,7 @@ URL: http://wg21.link/p0593r3
 Markup Shorthands: markdown yes
 </pre>
 
+<!--
 <div class=note>
 TODO:
 
@@ -47,6 +48,7 @@ memcpy(&b, &c, 1);
 bool x = b; // undefined behavior
 ```
 </div>
+-->
 
 Change history
 ==============
@@ -94,6 +96,12 @@ Incorporated further SG12 feedback:
   * Define the C standard library `memcpy` and `memmove` functions as triggering
     implicit object creation.
   * Add description of suggested "typed" form of `std::bless`.
+
+Since [[P0593R2]]:
+
+Incorporated further SG12 feedback:
+
+  * Removed implicit object creation for union member access.
 
 Motivating examples
 ===================
@@ -312,13 +320,6 @@ creating objects:
     another object.
   * A call to `memcpy` behaves the same as a call to `memmove` except that it
     introduces an overlap restriction between the source and destination.
-  * A class member access that nominates a union member triggers implicit object
-    creation within the storage occupied by the union member. Note that this is
-    not an entirely new rule: this permission already existed in [[P0137R1]] for
-    cases where the member access is on the left side of an assignment, but is
-    now generalized as part of this new framework. As explained below, this does
-    not permit type punning through unions; rather, it merely permits the active
-    union member to be changed by a class member access expression.
   * A new barrier operation (distinct from `std::launder`, which does not create
     objects) should be introduced to the standard library, with semantics
     equivalent to a `memmove` with the same source and destination storage.
@@ -343,6 +344,8 @@ Type punning
 ------------
 
 We do not wish examples such as the following to become valid:
+
+<!-- TODO: Fix example -->
 
 ```
 float do_bad_things(int n) {
