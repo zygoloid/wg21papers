@@ -345,8 +345,6 @@ Type punning
 
 We do not wish examples such as the following to become valid:
 
-<!-- TODO: Fix example -->
-
 ```
 float do_bad_things(int n) {
   alignof(int) alignof(float)
@@ -361,6 +359,7 @@ float do_bad_things(int n) {
 float do_bad_things(int n) {
   union { int n; float f; } u;
   u.n = n;    // #1
+  std::bless(&u, sizeof(u));
   return u.f; // #2
 }
 ```
