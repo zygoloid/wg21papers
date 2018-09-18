@@ -2,7 +2,7 @@
  <head>
   <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
   <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
-  <title>dXXXXR0: Response to P1156</title>
+  <title>P1180R0: Response to P1156</title>
 <style data-fill-with="stylesheet">/******************************************************************************
  *                   Style sheet for the W3C specifications                   *
  *
@@ -1228,7 +1228,7 @@ Possible extra rowspan handling
     }
   </style>
   <meta content="Bikeshed version a04b880cde96bf0ae2d14a0edcf2bcdcb631548b" name="generator">
-  <link href="http://wg21.link/pXXXXr0" rel="canonical">
+  <link href="http://wg21.link/p1180r0" rel="canonical">
   <link href="https://isocpp.org/favicon.ico" rel="icon">
 <style>/* style-md-lists */
 
@@ -1438,12 +1438,12 @@ pre .property::before, pre .property::after {
  <body class="h-entry">
   <div class="head">
    <p data-fill-with="logo"></p>
-   <h1 class="p-name no-ref" id="title">dXXXXR0<br>Response to P1156</h1>
-   <h2 class="no-num no-toc no-ref heading settled" id="subtitle"><span class="content">Draft Proposal, <time class="dt-updated" datetime="2018-09-14">2018-09-14</time></span></h2>
+   <h1 class="p-name no-ref" id="title">P1180R0<br>Response to P1156</h1>
+   <h2 class="no-num no-toc no-ref heading settled" id="subtitle"><span class="content">Published Proposal, <time class="dt-updated" datetime="2018-09-18">2018-09-18</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
-     <dd><a class="u-url" href="http://wg21.link/pXXXXr0">http://wg21.link/pXXXXr0</a>
+     <dd><a class="u-url" href="http://wg21.link/p1180r0">http://wg21.link/p1180r0</a>
      <dt>Author:
      <dd>
       <dd class="editor p-author h-card vcard"><a class="p-name fn u-email email" href="mailto:richard@metafoo.co.uk">Richard Smith</a> (<span class="p-org org">Google</span>)
@@ -1634,10 +1634,14 @@ as a result, <code class="highlight"><c- n>other</c-><c- p>.</c-><c- n>h</c-></c
     <p>However, this is a consequence of a build system misconfiguration, and
 is just one of many things that will go wrong if non-modular headers are
 incorrectly configured as modular.</p>
+    <p>Even in this case, a build system can detect the problem by inspecting a
+list of dependencies produced by the compiler as a side-effect of
+compilation (for example using GCC’s <code class="highlight"><c- o>-</c-><c- n>MD</c-></code> or MSVC’s <code class="highlight"><c- o>/</c-><c- n>showIncludes</c-></code>).</p>
    </div>
-   <p>A naive include scanner would then transitively scan all headers reachable from
+   <p>Such an include scanner would then transitively scan all headers reachable from
 each visited legacy header, but this is no different from the status quo
-before modules are introduced, and doesn’t affect modular compilations.</p>
+before modules are introduced. Modular compilations would still benefit from
+not needing to scan legacy header includes.</p>
    <h2 class="heading settled" data-level="3" id="4"><span class="secno">3. </span><span class="content">P1156R0 Section 4: Preamble End</span><a class="self-link" href="#4"></a></h2>
    <p>In corner cases where the preamble is immediately followed by the expansion
 of an imported macro, it is non-trivial to determine where the preamble ends,

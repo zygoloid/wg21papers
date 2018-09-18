@@ -1,15 +1,15 @@
 <pre class='metadata'>
 Title: Response to P1156
-Shortname: dXXXX
+Shortname: p1180r0
 Revision: 0
-Date: 2018-09-14
+Date: 2018-09-18
 Editor: Richard Smith, Google, richard@metafoo.co.uk
 Abstract: This paper discusses some issues with the preamble as described in the merged modules proposal (P1103R0), particularly in light of P1156 and implementation concerns raised since P1103R0 was discussed.
 
-Status: D
+Status: P
 Group: wg21
 Audience: EWG
-URL: http://wg21.link/pXXXXr0
+URL: http://wg21.link/p1180r0
 Markup Shorthands: markdown yes
 </pre>
 
@@ -195,11 +195,16 @@ as a result, `other.h` will be included.
 However, this is a consequence of a build system misconfiguration, and
 is just one of many things that will go wrong if non-modular headers are
 incorrectly configured as modular.
+
+Even in this case, a build system can detect the problem by inspecting a
+list of dependencies produced by the compiler as a side-effect of
+compilation (for example using GCC's `-MD` or MSVC's `/showIncludes`).
 </div>
 
-A naive include scanner would then transitively scan all headers reachable from
+Such an include scanner would then transitively scan all headers reachable from
 each visited legacy header, but this is no different from the status quo
-before modules are introduced, and doesn't affect modular compilations.
+before modules are introduced. Modular compilations would still benefit from
+not needing to scan legacy header includes.
 
 P1156R0 Section 4: Preamble End {#4}
 ===============================
