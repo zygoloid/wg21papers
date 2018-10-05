@@ -1,0 +1,223 @@
+<pre class='metadata'>
+Title: Contra CWG DR1778
+Shortname: dXXXX
+Revision: 0
+Date: 2018-10-05
+Editor: Richard Smith, Google, richard@metafoo.co.uk
+Abstract: This paper presents a problem with the current resolution of DR1778 and proposes an alternative resolution.
+
+Status: D
+Group: wg21
+Audience: EWG
+URL: http://wg21.link/pXXXXr0
+Markup Shorthands: markdown yes
+</pre>
+
+Background {#background}
+==========
+
+See [lists.isocpp.org/core/2018/01/3741.php](http://lists.isocpp.org/core/2018/01/3741.php) for more information.
+
+CWG 1778: *exception-specification* in explicitly-defaulted functions
+---------------------------------------------------------------------
+
+Prior to [CWG 1778](http://wg21.link/cwg1778), we required that:
+
+> An explicitly-defaulted function [...] may have an explicit
+> *exception-specification* only if it is compatible
+> with the *exception-specification* on the implicit declaration.
+
+It was observed in [LWG 2165](http://wg21.link/lwg2165)
+that this creates problems for `std::atomic<T>`, which
+declares its default constructor thusly:
+
+```
+template<typename T> struct atomic {
+  atomic() noexcept = default;
+```
+
+... which resulted in `atomic<T>` being ill-formed if `T` has a
+potentially-throwing default constructor.
+
+Potential fixes
+---------------
+
+LWG 2165 lists the following as potential fixes:
+
+  1. Add nothrow default constructible to requirements for template argument of the generic `atomic<T>`
+  2. Remove `atomic<T>::atomic()` from the overload set if `T` is not nothrow default constructible.
+  3. Remove `noexcept` from `atomic<T>::atomic()`, allowing it to be deduced (but the default constructor is intended to be always `noexcept`)
+  4. Do not default `atomic<T>::atomic()` on its first declaration (but makes the default constructor user-provided and so prevents `atomic<T>` being trivial)
+  5. A core change to allow the mismatched exception specification if the default constructor isn't used (see c++std-core-21990)
+
+Language change
+---------------
+
+CWG chose to resolve the issue by changing the rule to:
+
+> If a function that is explicitly defaulted has an explicit
+> *exception-specification* that is not compatible
+> with the *exception-specification* on the implicit declaration, then
+>   * if the function is explicitly defaulted on its first declaration, it is defined as deleted;
+>   * otherwise, the program is ill-formed.
+
+That is: implicitly delete the default constructor if the specified exception
+specification doesn't match the implicit one.
+
+Problem
+=======
+
+Existing approach is bad for compilers
+--------------------------------------
+
+Exception specifications are a complete-class context: they
+are a place where all members of the class *and its enclosing classes*
+can be used, just like member function bodies, default arguments,
+and default member initializers. This means we cannot in general
+determine the implicit exception specification of a member function
+until we reach the end of the outermost lexically-enclosing class.
+However, we need to know which special member functions a class
+has, and whether or not they are deleted, immediately after the
+class becomes complete, which (for a nested class) may be earlier.
+
+Example:
+
+```
+struct X { X(); };
+struct A {
+  struct B {
+    B() noexcept(A::value) = default;
+    X x;
+  };
+  decltype(B()) b;
+  static constexpr bool value = true;
+};
+A::B b;
+```
+
+Here, we do not parse the exception specification for `B::B()`
+until after we have finished parsing class `A`.
+But the class `B` becomes complete at its close brace,
+and at that point we must know the critical facts
+regarding its definition,
+including which of its special members are deleted.
+
+Note that we cannot possibly tell whether the call to
+`B()` within the `decltype` is valid, because we don't
+know whether `A::B::B()` is deleted yet.
+
+Existing approach is bad for `std::atomic<T>`
+---------------------------------------------
+
+The result of the current wording is that this code
+is accepted:
+
+```
+struct Foo {
+  Foo() : n(0) {} // happens to not be noexcept
+  int n;
+};
+std::atomic<Foo> f = Foo(); // ok
+```
+
+... but this is ill-formed:
+
+```
+std::atomic<Foo> f; // error
+```
+
+This appears extremely hard to justify.
+As [LWG 2334](http://wg21.link/lwg2334) notes,
+
+> Initialization of an atomic object is not an atomic operation.
+
+There appears to be absolutely no reason whatsoever
+to require the default constructor of `atomic`
+(or the constructor from a `T`) to be `noexcept`.
+
+Existing approach prevents a useful feature
+-------------------------------------------
+
+Consider the following pattern, which we found several instances
+of in our codebase when we tightened up the compiler to reject
+a mismatched exception specification on a defaulted function:
+
+```
+struct X { 
+  std::map<...> m; 
+  // ... other members 
+public: 
+  // I want a defaulted move constructor, and vector<X> needs to be 
+  // efficient, so please call std::terminate if moving the map throws
+  // rather than slowing my code down with unnecessary copies 
+  X(X &&) noexcept = default; 
+}; 
+```
+
+Users wanting this feature are forced to write out their own
+special members, which is an error-prone operation that `= default`
+was supposed to alleviate.
+
+Approach
+========
+
+I would suggest we take one of the following approaches:
+
+Option 1: trust the user
+------------------------
+
+If the user explicitly specifies an exception specification on a
+defaulted function, that's the exception specification. Don't delete the
+function, don't reject the program, just accept it.
+
+Change in [dcl.fct.def.default]/2:
+
+> The type `T1` of an explicitly defaulted function `F`
+> is allowed to differ from the type `T2` it would have had if it
+> were implicitly declared, as follows:
+>   * `T1` and `T2` may have differing *ref-qualifiers*; and
+>   * <ins>`T1` and `T2` may have differing *exception-specifications*; and
+>   * if `T2` has a parameter of type `const C&`, the corresponding parameter of `T1` may be of type `C&`.
+>
+> [...]
+
+Change in [dcl.fct.def.default]/4:
+
+> `~S() noexcept(false) = default;`   // <del>deleted: exception specification does not match</del> <ins>OK, despite mismatched exception specification</ins>
+
+As an alternative, we could treat a `noexcept(true)` as strengthening
+the exception specification to non-throwing, but make `noexcept(false)`
+leave the exception specification as non-throwing if we know the
+defaulted function actually can't throw.
+
+Option 2: revert the change
+---------------------------
+
+Restore the behavior prior to DR1778:
+
+Change in [dcl.fct.def.default]/2:
+
+> [...] If `T1` differs from `T2` in any other way, then:
+>   * <ins>if the *exception-specification*s differ, the program is ill-formed;
+>   * [...]
+
+Fix std::atomic<T>
+------------------
+
+In either case, we should fix `std::atomic<T>` by removing
+the `noexcept`:
+
+Change in [atomics.types.generic]:
+
+> `template<class T> struct atomic {`<br>
+> &nbsp; &nbsp; `[...]`<br>
+> &nbsp; &nbsp; `atomic()` <del>`noexcept`</del> `= default;`<br>
+> &nbsp; &nbsp; `constexpr atomic(T)` <del>`noexcept`</del>`;`
+
+Change before [atomics.types.operations]/2:
+
+> `atomic()` <del>`noexcept`</del> `= default;`
+
+Change before [atomics.types.operations]/3:
+
+> `constexpr atomic(T)` <del>`noexcept`</del> `;`
