@@ -1,15 +1,15 @@
 <pre class='metadata'>
 Title: Contra CWG DR1778
-Shortname: dXXXX
+Shortname: p1286
 Revision: 0
 Date: 2018-10-05
 Editor: Richard Smith, Google, richard@metafoo.co.uk
 Abstract: This paper presents a problem with the current resolution of DR1778 and proposes an alternative resolution.
 
-Status: D
+Status: P
 Group: wg21
 Audience: EWG
-URL: http://wg21.link/pXXXXr0
+URL: http://wg21.link/p1286r0
 Markup Shorthands: markdown yes
 </pre>
 
@@ -176,7 +176,7 @@ Change in [dcl.fct.def.default]/2:
 > is allowed to differ from the type `T2` it would have had if it
 > were implicitly declared, as follows:
 >   * `T1` and `T2` may have differing *ref-qualifiers*; and
->   * <ins>`T1` and `T2` may have differing *exception-specifications*; and
+>   * <ins>`T1` and `T2` may have differing exception specifications; and
 >   * if `T2` has a parameter of type `const C&`, the corresponding parameter of `T1` may be of type `C&`.
 >
 > [...]
@@ -198,7 +198,7 @@ Restore the behavior prior to DR1778:
 Change in [dcl.fct.def.default]/2:
 
 > [...] If `T1` differs from `T2` in any other way, then:
->   * <ins>if the *exception-specification*s differ, the program is ill-formed;
+>   * <ins>if the exception specifications differ, the program is ill-formed;
 >   * [...]
 
 Fix std::atomic<T>
