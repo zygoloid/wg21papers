@@ -1,0 +1,83 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 2051: Simplifying alias rules</title>
+
+<style type="text/css">
+ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+
+blockquote {
+  color: #000000; background-color: #F1F1F1;
+  border: 1px solid #D1D1D1;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stdins {
+  color: #000000; background-color: #C8FFC8;
+  border: 1px solid #B3EBB3;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stddel {
+  text-decoration: line-through;
+  color: #000000; background-color: #FFEBFF;
+  border: 1px solid #ECD7EC;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2019-01-02
+
+<h1>Core Issue 2051: Simplifying alias rules</h1>
+
+<p>
+Change in 7.2.2 basic.lval paragraph 11:
+</p>
+
+<blockquote>
+If a program attempts to access the stored value of an object through a glvalue
+<ins>whose type is not similar (7.3.5 [conv.qual]) to</ins>
+<del>of other than</del> one of the
+following types the behavior is undefined:
+[Footnote: The intent of this list is to specify those circumstances in which an object may or may not be aliased.]
+<ul>
+<li>the dynamic type of the object,
+<li><del>a cv-qualified version of the dynamic type of the object,</del>
+<li><del>a type similar (as defined in 7.3.5) to the dynamic type of the object,</del>
+<li>a type that is the signed or unsigned type corresponding to the dynamic type of the object,
+<li><del>a type that is the signed or unsigned type corresponding to a cv-qualified version of the dynamic type of the object,</del>
+<li><del>an aggregate or union type that includes one of the aforementioned types among its elements or non- static data members (including, recursively, an element or non-static data member of a subaggregate or contained union),</del>
+<li><del>a type that is a (possibly cv-qualified) base class type of the dynamic type of the object,</del>
+<li>a <tt>char</tt>, <tt>unsigned char</tt>, or <tt>std::byte</tt> type.
+</ul>
+<ins>
+If a program invokes a defaulted copy/move constructor or copy/move assignment operator
+for a union of type <tt>U</tt> with a glvalue argument that does not denote an object
+of type <i>cv</i> <tt>U</tt> within its lifetime, the behavior is undefined.
+</ins>
+</blockquote>
+
+<i>Drafting note:
+  The second, third, and fifth bullets are covered by the "similar" before the bullets.
+  The sixth and seventh bullets are impossible because in C++ (unlike C) there are no accesses of non-scalar type.
+  The only analogous case is copying unions (which copies the object representation), which is handled by the new wording after the bullets.
+</i>
+
+<p>
+Change in 7.3.5 conv.qual paragraph 1:
+</p>
+
+<blockquote>
+A <i>cv-decomposition</i> of a type <tt>T</tt> is a sequence of
+<i>cv<sub>i</sub></i> and
+<i>P<sub>i</sub></i> such that <tt>T</tt> is
+<blockquote style="border: none">
+  &ldquo;<i>cv<sub>0</sub> P<sub>0</sub> cv<sub>1</sub> P<sub>1</sub> &centerdot;&centerdot;&centerdot; cv<sub>n-1</sub> P<sub>n-1</sub> cv<sub>n</sub></i> <tt>U</tt>&rdquo; for <i>n</i> <del>&gt;</del> <ins>&ge;</ins> 0,
+</blockquote>
+[&hellip;]
+</blockquote>
+
+<i>Drafting note: this makes cv1 <tt>T</tt> similar to cv2 <tt>T</tt> when <tt>T</tt> is not a pointer, pointer-to-member, or array type; those types are already similar if <tt>T</tt> is decomposable.</i>
+
+</body></html>

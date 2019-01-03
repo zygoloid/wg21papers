@@ -1,0 +1,63 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 1937: Incomplete specification of function pointer from lambda</title>
+
+<style type="text/css">
+ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+
+blockquote {
+  color: #000000; background-color: #F1F1F1;
+  border: 1px solid #D1D1D1;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stdins {
+  color: #000000; background-color: #C8FFC8;
+  border: 1px solid #B3EBB3;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stddel {
+  text-decoration: line-through;
+  color: #000000; background-color: #FFEBFF;
+  border: 1px solid #ECD7EC;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2019-01-02
+
+<h1>Core Issue 1937: Incomplete specification of function pointer from lambda</h1>
+
+<p>
+Change in 7.5.5.1 expr.prim.lambda.closure paragraph 7 and split it into two paragraphs as indicated:
+</p>
+
+<blockquote>
+  [&hellip;]
+  The value returned by this conversion function is the address of a function F that, when invoked, has the same effect as invoking the closure type's function call operator
+  <ins>on a default-constructed instance of the closure type</ins>.
+  F is a constexpr function if the function call operator is a constexpr function and is an immediate function if the function call operator is an immediate function.
+
+  <p>
+  For a generic lambda with no lambda-capture, the closure type has a conversion function template to pointer to function.
+  [&hellip;]
+</blockquote>
+
+<p>
+Change in 7.5.5.1 expr.prim.lambda.closure paragraph 9:
+</p>
+
+<blockquote>
+  The value returned by any given specialization of this conversion function template is the address of a function F that,
+  when invoked, has the same effect as invoking the generic lambda's corresponding function call operator template specialization
+  <ins>on a default-constructed instance of the closure type</ins>.
+  F is a constexpr function if the corresponding specialization is a constexpr function <ins>and is an immediate function if the function call operator template specialization is an immediate function</ins>.
+  [&hellip;]
+</blockquote>
+
+<i>Drafting note: the final change here is an unrelated drive-by fix.</i>
+
+</body></html>

@@ -1,0 +1,47 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 2366: Can default initialization be constant initialization?</title>
+
+<style type="text/css">
+ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+
+blockquote {
+  color: #000000; background-color: #F1F1F1;
+  border: 1px solid #D1D1D1;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stdins {
+  color: #000000; background-color: #C8FFC8;
+  border: 1px solid #B3EBB3;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stddel {
+  text-decoration: line-through;
+  color: #000000; background-color: #FFEBFF;
+  border: 1px solid #ECD7EC;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2019-01-02
+
+<h1>Core Issue 2366: Can default initialization be constant initialization?</h1>
+
+<p>
+Change in 7.7 expr.const paragraph 2:
+</p>
+
+<blockquote>
+A constant initializer for a variable or temporary object <tt>o</tt>
+is an initializer <ins>or absence thereof,</ins>
+<ins>for which initialization is performed, and</ins>
+for which interpreting its full-expression as a <i>constant-expression</i>
+results in a constant expression,
+except that [&hellip;]
+</blockquote>
+
+</body></html>

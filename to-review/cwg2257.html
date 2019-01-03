@@ -1,0 +1,55 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 2257: Lifetime extension of references vs exceptions</title>
+
+<style type="text/css">
+ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+
+blockquote {
+  color: #000000; background-color: #F1F1F1;
+  border: 1px solid #D1D1D1;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stdins {
+  color: #000000; background-color: #C8FFC8;
+  border: 1px solid #B3EBB3;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stddel {
+  text-decoration: line-through;
+  color: #000000; background-color: #FFEBFF;
+  border: 1px solid #ECD7EC;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2019-01-02
+
+<h1>Core Issue 2257: Lifetime extension of references vs exceptions</h1>
+
+<p>
+Change in 13.2 except.ctor paragraph 3:
+</p>
+
+<blockquote>
+If the initialization or destruction of an object other than by delegating
+constructor is terminated by an exception, the destructor is invoked for each
+of the object's direct subobjects and, for a complete object, virtual base
+class subobjects, whose initialization has completed (9.3) and whose destructor
+has not yet begun execution, except that in the case of destruction, the
+variant members of a union-like class are not destroyed.
+<ins>[Note: If such an object has a reference member that extends the lifetime
+of a temporary object, this ends the lifetime of the reference member,
+so the lifetime of the temporary object is effectively not extended.
+&mdash; end note]</ins>
+The subobjects are
+destroyed in the reverse order of the completion of their construction. Such
+destruction is sequenced before entering a handler of the function-try-block of
+the constructor or destructor, if any.
+</blockquote>
+
+</body></html>

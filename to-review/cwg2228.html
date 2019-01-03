@@ -1,0 +1,326 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 2228: Ambiguity resolution for cast to function type</title>
+
+<style type="text/css">
+ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+
+blockquote {
+  color: #000000; background-color: #F1F1F1;
+  border: 1px solid #D1D1D1;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stdins {
+  color: #000000; background-color: #C8FFC8;
+  border: 1px solid #B3EBB3;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stddel {
+  text-decoration: line-through;
+  color: #000000; background-color: #FFEBFF;
+  border: 1px solid #ECD7EC;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2019-01-02
+
+<h1>Core Issue 2228: Ambiguity resolution for cast to function type</h1>
+
+<i>Drafting note: it's unclear how far we want to take this; this wording
+demonstrates all the places where we might want to avoid parsing function
+types to avoid needless disambiguation that could only ever pick the wrong
+answer. These are:</i>
+<ul>
+<li><i>The operand of <tt>sizeof</tt>, <tt>alignof</tt>, <tt>alignas</tt> (but not <tt>typeid</tt>)</i>
+<li><i>The allocated type in a new-expression</i>
+<li><i>The type in a C-style cast</i>
+<li><i>Trailing return types (in particular, in a variable declaration)</i>
+</ul>
+<i>The ambiguity between expressions and type-ids would remain in a couple of
+contexts if all of these changes are applied, specifically for the operand of
+<tt>typeid</tt> and for template arguments. For consistency we could apply
+the same change to <tt>typeid</tt>, but that would be a breaking change.
+It would, however, resolve CWG1488.</i>
+
+<p>
+Change in 6.7.3 basic.type.qualifier paragraph 1:
+</p>
+
+<blockquote>
+[&hellip;]
+The type of an object (6.6.2) includes the cv-qualifiers specified in the decl-specifier-seq (9.1), declarator (9.2), type-id (9.2.1), <ins>nofun-type-id (9.2.1),</ins> or new-type-id (7.6.2.4) when the object is created.
+[&hellip;]
+</blockquote>
+
+<p>
+Change in 7.6.2 expr.unary paragraph 1:
+</p>
+
+<blockquote>
+<pre><i>unary-expression:
+    postfix-expression
+    ++ cast-expression
+    -- cast-expression
+    unary-operator cast-expression
+    sizeof unary-expression
+    sizeof ( <ins>nofun-</ins>type-id )
+    sizeof ... ( identifier )
+    alignof ( <ins>nofun-</ins>type-id )
+    noexcept-expression
+    new-expression
+    delete-expression</i>
+</pre>
+</blockquote>
+
+<i>Drafting note: this resolves the ambiguity in <tt>sizeof(T())</tt> in favor of a parenthesized expression rather than an (ill-formed) <tt>sizeof</tt> applied to a function type.</i>
+
+<p>
+Change in 7.6.2.3 expr.sizeof paragraph 1:
+</p>
+
+<blockquote>
+The <tt>sizeof</tt> operator yields the number of bytes occupied by a non-potentially-overlapping object of the type of its operand. The operand is either an expression, which is an unevaluated operand (7.2), or a parenthesized <i><ins>nofun-</ins>type-id</i>.
+</blockquote>
+
+<p>
+Change in 7.6.2.4 expr.new paragraph 1:
+</p>
+
+<blockquote>
+<pre><i>new-expression:</i>
+    ::<sub><i>opt</i></sub> new <i>new-placement<sub>opt</sub> new-type-id new-initializer<sub>opt</sub></i>
+    ::<sub><i>opt</i></sub> new <i>new-placement<sub>opt</sub> </i>(<i> <ins>nofun-</ins>type-id </i>)<i> new-initializer<sub>opt</sub></i>
+</pre>
+[&hellip;]
+</blockquote>
+
+<p>
+Replace <i>type-id</i> with <i>nofun-type-id</i> throughout 7.6.2.4 [expr.new].
+</p>
+
+<p>
+<i>Drafting note: this removes the ambiguity in <tt>new (int()) (int())</tt>, giving it zero valid parses rather than two. Only ill-formed cases (ambiguous between two different ways of allocating a function type) are affected.</i>
+</p>
+
+<p>
+Change in 7.6.2.3 expr.alignof paragraph 1:
+</p>
+
+<blockquote>
+An <tt>alignof</tt> expression yields the alignment requirement of its operand type.
+The operand shall be a <i><ins>nofun-</ins>type-id</i> representing a complete object type,
+or an array thereof, or a reference to one of those types.
+</blockquote>
+
+<p>
+Change in 7.6.3 expr.cast paragraph 2:
+</p>
+
+<blockquote>
+[&hellip;]
+<pre><i>cast-expression:
+    unary-expression</i>
+    ( <i><ins>nofun-</ins>type-id</i> ) <i>cast-expression</i>
+</blockquote>
+
+<p>
+Change in 9.1.7.5 dcl.spec.auto paragraph 5:
+</p>
+
+<blockquote>
+A placeholder type can also be used in the <i>type-specifier-seq</i> in the <i>new-type-id</i> or <i><ins>nofun-</ins>type-id</i> of a <i>new-expression</i> (7.6.2.4)
+[&hellip;]
+</blockquote>
+
+<p>
+Change in 9.1.7.6 dcl.type.class.deduct paragraph 2:
+</p>
+
+<blockquote>
+A placeholder for a deduced class type can also be used in the <i>type-specifier-seq</i> in the <i>new-type-id</i> or <i><ins>nofun-</ins>type-id</i> of a <i>new-expression</i> (7.6.2.4),
+[&hellip;]
+</blockquote>
+
+<p>
+Change in 9.2 dcl.decl paragraph 5:
+</p>
+
+<blockquote>
+<pre><i>trailing-return-type:
+    -> <ins>nofun-</ins>type-id</i>
+</pre>
+</blockquote>
+
+<i>Drafting note: this fixes the ambiguity in <tt>auto (*p)() -> int(X());</tt> from being an ill-formed function returning a function to being a function pointer initialized from the expression <tt>X()</tt>.</i>
+
+<p>
+Add to 9.2.1 dcl.name paragraph 1:
+</p>
+
+<blockquote>
+[&hellip;]
+<pre>
+<ins><i>nofun-type-id:
+    type-specifier-seq nofun-declarator<sub>opt</sub>
+
+nofun-declarator:
+    ptr-nofun-declarator
+    noptr-nofun-declarator parameters-and-qualifiers trailing-return-type
+
+ptr-nofun-declarator:
+    noptr-nofun-declarator
+    ptr-operator ptr-nofun-declarator<sub>opt</sub>
+
+noptr-nofun-declarator:
+    noptr-nofun-declarator parameters-and-qualifiers
+    noptr-nofun-declarator<sub>opt</sub> </i>[<i> constant-expression<sub>opt</sub> </i>]<i> attribute-specifier-seq<sub>opt</sub>
+    </i>(<i> ptr-nofun-declarator </i>)</ins>
+</pre>
+
+It is possible to identify uniquely the location in the
+<i>abstract-declarator</i> <ins>or <i>nofun-declarator</i></ins>
+where the identifier would appear
+if the construction were a declarator in a declaration.
+The named type is then the same as the type of the hypothetical identifier.
+[&hellip;]
+</blockquote>
+
+<p>
+Change in 9.2.2 dcl.ambig.res paragraph 2:
+</p>
+
+<blockquote>
+An ambiguity can arise from the similarity between a function-style cast and a <i>type-id</i>.
+The resolution is that any construct that could possibly be a <i>type-id</i> in its syntactic context
+shall be considered a <i>type-id</i>.
+<ins>[Note:
+  No such ambiguity can arise between an expression and a <i>nofun-type-id</i>.
+  &mdash; end note]</ins>
+[Example:
+<pre>
+template &lt;class T> struct X {};
+template &lt;int N> struct Y {};
+X&lt;int()> a;  // type-id
+X&lt;int(1)> b; // expression (ill-formed)
+Y&lt;int()> c;  // type-id (ill-formed)
+Y&lt;int(1)> d; // expression
+void foo(signed char a) {
+  sizeof(int());  // <del>type-id (ill-formed)</del> <ins>expression</ins>
+  sizeof(int(a)); // expression
+  sizeof(int(unsigned(a))); // <del>type-id (ill-formed)</del> <ins>expression</ins>
+
+  (int())+1;  // <del>type-id (ill-formed)</del> <ins>expression</ins>
+  (int(a))+1; // expression
+  (int(unsigned(a)))+1; // <del>type-id (ill-formed)</del> <ins>expression</ins>
+}
+</pre>
+&mdash; end example]
+</blockquote>
+
+<p>
+Change in 9.11.1 dcl.attr.grammar paragraph 1:
+</p>
+
+<blockquote>
+<pre><i>alignment-specifier:
+    alignas ( <ins>nofun-</ins>type-id ...<sub>opt</sub> )
+    alignas ( constant-expression ...<sub>opt</sub> )</i>
+</pre>
+</blockquote>
+
+<p>
+Change in 9.11.2 dcl.align paragraph 3:
+</p>
+
+<blockquote>
+An <i>alignment-specifier</i> of the form <tt>alignas(</tt> <i><ins>nofun-</ins>type-id</i> <tt>)</tt> has the same effect as <tt>alignas(alignof(</tt> <i><ins>nofun-</ins>type-id</i> <tt>))</tt> (7.6.2.6).
+</blockquote>
+
+<p>
+Change in 12.7 temp.res paragraph 5:
+</p>
+
+<blockquote>
+A qualified name is said to be in a type-id-only context if it appears in a type-id, <ins><i>nofun-type-id</i>,</ins> new-type-id, or defining-type-id
+and the smallest enclosing type-id, <ins><i>nofun-type-id</i>,</ins> new-type-id, or defining-type-id
+is a new-type-id, defining-type-id, trailing-return-type, default argument of a type-parameter of a template, or type-id of a static_cast, const_cast, reinterpret_cast, or dynamic_cast.
+</blockquote>
+
+<i>Drafting note: nofun-type-ids generally only appear in contexts where we need to disambiguate between an expression and a type, but for a trailing-return-type we can assume we have a type-id in the type-specifier-seq.</i>
+
+<p>
+Change in 12.7.2.2 temp.dep.expr paragraph 3:
+</p>
+
+<blockquote>
+[&hellip;]
+Expressions of the following forms are type-dependent only if the type specified by the type-id, <ins><i>nofun-type-id</i>,</ins> simple-type-specifier or new-type-id is dependent, even if any subexpression is type-dependent:
+<pre><i>simple-type-specifier ( expression-list<sub>opt</sub> )
+::<sub>opt</sub> new new-placement<sub>opt</sub> new-type-id new-initializer<sub>opt</sub>
+::<sub>opt</sub> new new-placement<sub>opt</sub> ( <ins>nofun-</ins>type-id ) new-initializer<sub>opt</sub>
+dynamic_cast < type-id > ( expression )
+static_cast < type-id > ( expression )
+const_cast < type-id > ( expression )
+reinterpret_cast < type-id > ( expression )
+( <ins>nofun-</ins>type-id ) cast-expression</i>
+</pre>
+</blockquote>
+
+<p>
+Change in 12.7.2.2 temp.dep.expr paragraph 4:
+</p>
+
+<blockquote>
+[&hellip;]
+Expressions of the following forms are never type-dependent (because the type of the expression cannot be dependent):
+<pre><i>literal
+sizeof unary-expression
+sizeof ( <ins>nofun-</ins>type-id )
+sizeof ... ( identifier )
+alignof ( <ins>nofun-</ins>type-id )
+typeid ( expression )
+typeid ( type-id )
+::<sub>opt</sub> delete cast-expression
+::<sub>opt</sub> delete [ ] cast-expression
+throw assignment-expression<sub>opt</sub>
+noexcept ( expression )</i>
+</pre>
+</blockquote>
+
+<p>
+Change in 12.7.2.3 temp.dep.constexpr paragraph 2:
+</p>
+
+<blockquote>
+Expressions of the following form are value-dependent if the unary-expression or expression is type-dependent
+or the type-id <ins>or <i>nofun-type-id</i></ins> is dependent:
+<pre><i>sizeof unary-expression
+sizeof ( <ins>nofun-</ins>type-id )
+typeid ( expression )
+typeid ( type-id )
+alignof ( <ins>nofun-</ins>type-id )
+noexcept ( expression )</i>
+</pre>
+</blockquote>
+
+<p>
+Change in 12.7.2.3 temp.dep.constexpr paragraph 3:
+</p>
+
+<blockquote>
+Expressions of the following form are value-dependent if either the type-id<ins>, <i>nofun-type-id</i>,</ins> or simple-type-specifier is dependent
+or the expression or cast-expression is value-dependent:
+<pre><i>simple-type-specifier ( expression-list<sub>opt</sub> )
+static_cast < type-id > ( expression )
+const_cast < type-id > ( expression )
+reinterpret_cast < type-id > ( expression )
+( <ins>nofun-</ins>type-id ) cast-expression</i>
+</pre>
+</blockquote>
+
+</body></html>

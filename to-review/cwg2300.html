@@ -1,0 +1,151 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 2300: Lambdas in multiple definitions</title>
+
+<style type="text/css">
+ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+
+blockquote {
+  color: #000000; background-color: #F1F1F1;
+  border: 1px solid #D1D1D1;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stdins {
+  color: #000000; background-color: #C8FFC8;
+  border: 1px solid #B3EBB3;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stddel {
+  text-decoration: line-through;
+  color: #000000; background-color: #FFEBFF;
+  border: 1px solid #ECD7EC;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+</style>
+</head>
+
+<body>
+Richard Smith<br>
+2019-01-02
+
+<h1>Core Issue 2300: Lambdas in multiple definitions</h1>
+
+<p>
+Change in 6.2 basic.def.odr paragraph 12:
+</p>
+
+<blockquote>
+[&hellip;]
+Given such an entity named D defined in more than one translation unit, then
+<ul>
+<li>
+each definition of D shall consist of the same sequence of tokens; and
+
+<li>
+in each definition of D, corresponding names, looked up according to 6.4,
+<del>shall refer to an entity defined within the definition of D, or</del>
+shall refer to the same entity,
+after overload resolution (11.3) and
+after matching of partial template specialization (12.9.3),
+except that a name can refer to
+<ul>
+a non-volatile const object with internal or no linkage if the object
+<ul>
+<li>has the same literal type in all definitions of D,
+<li>is initialized with a constant expression (7.7),
+<li>is not odr-used in any definition of D, and
+<li>has the same value in all definitions of D,
+</ul>
+or
+<li>
+a reference with internal or no linkage
+initialized with a constant expression
+such that the reference refers to the same entity in all definitions of D;
+</ul>
+and
+
+<li>
+<ins>
+in each definition of D, corresponding <i>lambda-expression</i>s
+shall have the same closure type, and
+</ins>
+
+<li>
+[&hellip;]
+
+<li>
+in each definition of D,
+the overloaded operators referred to,
+the implicit calls to conversion functions, constructors,
+operator new functions and operator delete functions,
+shall refer to the same function<del>, or to a function defined within the definition of D</del>; and
+
+<li>
+in each definition of D,
+a default argument used by an (implicit or explicit) function call
+<ins>or a default template argument used by an (implicit or explicit) <i>template-id</i> or <i>simple-template-id</i></ins>
+is treated as if its token sequence were present in the definition of D;
+that is, the default argument <ins>or default template argument</ins> is subject to the requirements described in this paragraph
+(<del>and, if the default argument has subexpressions with default arguments, this requirement applies </del>recursively)
+<del>[Footnote: 9.2.3.6 describes how default argument names are looked up.]</del>; and
+
+<li>
+[&hellip;]
+</ul>
+If D is a template and is defined in more than one translation unit,
+then the preceding requirements shall apply
+both to names from the template's enclosing scope used in the template definition (12.7.3),
+and also to dependent names at the point of instantiation (12.7.2).
+<ins>
+These requirements are first checked for corresponding entities 
+defined within each definition of <tt>D</tt> (including the
+closure types of <i>lambda-expression</i>s, but excluding
+entities defined within default arguments or default template arguments
+of either <tt>D</tt> or an entity not defined within <tt>D</tt>),
+in order from innermost to outermost.
+For each such entity and for <tt>D</tt> itself, 
+the behavior is as if there is a single entity with a single definition, 
+including when checking these requirements for enclosing entities.
+</ins>
+<del>
+If the definitions of D satisfy all these requirements,
+then the behavior is as if there were a single definition of D.
+</del>
+[Note: The entity is still declared in multiple translation units,
+and 6.5 still applies to these declarations.
+In particular, lambda-expressions (7.5.5) appearing in the type of D
+may result in the different declarations having distinct types<ins>,
+and <i>lambda-expression</i>s appearing in a default argument
+of D may still denote different types in different translation units</ins>. &mdash; end note]
+If the definitions of D do not satisfy these requirements,
+then the <del>behavior is undefined</del>
+<ins>program is ill-formed, no diagnostic required</ins>.
+<ins>
+[Example:
+<pre>
+inline void f(bool cond, void (*p)()) {
+  if (cond) f(false, []{});
+}
+inline void g(bool cond, void (*p)() = []{}) {
+  if (cond) g(false);
+}
+struct X {
+  void h(bool cond, void (*p)() = []{}) {
+    if (cond) h(false);
+  }
+}
+</pre>
+If the definition of <tt>f</tt> appears in multiple translation units,
+the behavior of the program is as if there is only one definition of <tt>f</tt>.
+If the definition of <tt>g</tt> appears in multiple translation units,
+the program is ill-formed (no diagnostic required) because each such definition
+uses a default argument that refers to a distinct <i>lambda-expression</i>
+closure type.
+If the definition of <tt>X</tt> appears in multiple translation units,
+the program is valid, because the <i>lambda-expression</i>s defined within
+the default argument of <tt>X::h</tt> within the definition of <tt>X</tt>
+denote the same closure type.
+</ins>
+</blockquote>
+
+</body></html>

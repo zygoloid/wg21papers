@@ -1,0 +1,104 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 2020: Inadequate description of odr-use of implicitly-invoked functions</title>
+
+<style type="text/css">
+ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+
+blockquote {
+  color: #000000; background-color: #F1F1F1;
+  border: 1px solid #D1D1D1;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stdins {
+  color: #000000; background-color: #C8FFC8;
+  border: 1px solid #B3EBB3;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stddel {
+  text-decoration: line-through;
+  color: #000000; background-color: #FFEBFF;
+  border: 1px solid #ECD7EC;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2019-01-02
+
+<h1>Core Issue 2020: Inadequate description of odr-use of implicitly-invoked functions</h1>
+
+<p>
+Change in 6.2 basic.def.odr paragraph 2:
+</p>
+
+<blockquote>
+An expression <ins>or conversion</ins> is potentially evaluated unless it is
+an unevaluated operand (7.2)<ins>,</ins>
+<del>or</del> a subexpression thereof<ins>,
+or a conversion in an initialization or conversion sequence
+in such a context</ins>.
+[&hellip;]
+</blockquote>
+
+<p>
+Change in 6.2 basic.def.odr paragraph 3:
+</p>
+
+<blockquote>
+A function is <i>named by an expression <ins>or conversion</ins></i> as follows:
+<ul><li>
+A function
+<del>whose name appears in an expression,</del>
+is named by <del>that</del> <ins>an</ins> expression <ins>or conversion</ins>
+if it is the unique <del>lookup</del> result
+<ins>of a name lookup</ins>
+or the selected member of a set of overloaded functions (6.4, 11.3, 11.4)
+<ins>in an overload resolution
+performed as part of forming that expression or conversion</ins>,
+unless it is a pure virtual function and
+either <del>its name is not</del>
+<ins>the expression is not an <i>id-expression</i> naming the function with an</ins> explicitly qualified <ins>name</ins>
+or the expression forms a pointer to member (7.6.2.1).
+[Note: This covers
+taking the address of functions (7.3.3, 7.6.2.1),
+calls to named functions (7.6.1.2),
+operator overloading (Clause 11),
+user-defined conversions (10.3.7.2),
+allocation functions for <del>placement</del> <i>new-expression</i>s (7.6.2.4),
+as well as non-default initialization (9.3).
+A constructor selected to copy or move an object of class type
+is considered to be named by an expression <ins>or conversion</ins>
+even if the call is actually elided by the implementation (10.9.5). &mdash; end note]
+
+<li>
+  A<del>n allocation or</del> deallocation function for a class is named by a <i>new-expression</i>
+<ins>if it is the single matching deallocation function
+  for the allocation function selected by overload resolution,</ins>
+as specified in 7.6.2.4 <del>and 10.11</del>.
+
+<li>
+A deallocation function for a class is named by a <del>delete expression</del> <ins><i>delete-expression</i>
+if it is the selected usual deallocation function</ins>
+as specified in 7.6.2.5 and 10.11.
+</ul>
+</blockquote>
+
+<i>Drafting note: contrary to the writeup in the issues list, we cannot easily rely on "invoked"
+  because that is a runtime notion that (for instance) selects the final overrider of a virtual function
+  (and creates confusion as to whether odr-use happens if the expression is not dynamically reached).</i>
+
+<p>
+Change in 6.2 basic.def.odr paragraph 7:
+</p>
+
+<blockquote>
+[&hellip;]
+A function is odr-used if it is named by a potentially-evaluated expression <ins>or conversion</ins>.
+[&hellip;]
+</blockquote>
+
+</body></html>
