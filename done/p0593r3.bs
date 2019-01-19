@@ -1,54 +1,18 @@
 <pre class='metadata'>
 Title: Implicit creation of objects for low-level object manipulation
-Shortname: d0593
+Shortname: p0593
 Revision: 3
-Date: 2018-02-11
+Date: 2019-01-18
 Editor: Richard Smith, Google, richard@metafoo.co.uk
 Former Editor: Ville Voutilainen, ville.voutilainen@gmail.com
 Abstract: This paper proposes that objects of sufficiently trivial types be created on-demand as necessary within newly-allocated storage to give programs defined behavior.
 
-Status: D
+Status: P
 Group: wg21
-Audience: SG12
+Audience: EWG
 URL: http://wg21.link/p0593r3
 Markup Shorthands: markdown yes
 </pre>
-
-<!--
-<div class=note>
-TODO:
-
-**Q:** When we say that an operation implicitly creates an object, are we also to require that the bit pattern there be a valid object representation? That would impose a severe restriction...
-
-**A:**
-I think we need to allow cases like this:
-
-```
-struct X { int a, b; };
-X *p = (X*)malloc(sizeof(X));
-p->a = 1;
-p->b = 2;
-```
-
-... where there is not necessarily a valid object representation in the `*p` memory after the call to `malloc`, but we need for there to already be an object there for the `p->a` assignment to be valid.
-
-I think we should say that the created object -- or at least its scalar subobjects -- contain an indeterminate value (the kind that means you get UB if you try to read it, http://eel.is/c++draft/dcl.init#12) if the storage doesn't contain a valid object representation.
-
-For example, given:
-
-```
-char c = 7;
-bool b; // assuming sizeof(b) == 1
-memcpy(&b, &c, 1);
-```
-
-`b` should have the same behavior as an uninitialized `bool`, because we "initialized" it with an invalid `bool` representation:
-
-```
-bool x = b; // undefined behavior
-```
-</div>
--->
 
 Change history
 ==============
@@ -99,9 +63,15 @@ Incorporated further SG12 feedback:
 
 Since [[P0593R2]]:
 
-Incorporated further SG12 feedback:
+<!--
 
-  * Removed implicit object creation for union member access.
+* strike the new rule for union members (2 3 4 0 1)
+* forward to EWG as amended by the above (consensus)
+
+-->
+
+  * Removed union member access being sufficient to implicitly create objects
+    based on objections from an implementer.
 
 Motivating examples
 ===================
@@ -320,6 +290,15 @@ creating objects:
     another object.
   * A call to `memcpy` behaves the same as a call to `memmove` except that it
     introduces an overlap restriction between the source and destination.
+<!-- Removed in R3
+  * A class member access that nominates a union member triggers implicit object
+    creation within the storage occupied by the union member. Note that this is
+    not an entirely new rule: this permission already existed in [[P0137R1]] for
+    cases where the member access is on the left side of an assignment, but is
+    now generalized as part of this new framework. As explained below, this does
+    not permit type punning through unions; rather, it merely permits the active
+    union member to be changed by a class member access expression.
+-->
   * A new barrier operation (distinct from `std::launder`, which does not create
     objects) should be introduced to the standard library, with semantics
     equivalent to a `memmove` with the same source and destination storage.
@@ -332,7 +311,7 @@ creating objects:
     void std::bless(void *start, size_t length);
     ```
 
-In addition to the above, an implementation-defined set of non-stasndard memory
+In addition to the above, an implementation-defined set of non-standard memory
 allocation and mapping functions, such as `mmap` on POSIX systems and
 `VirtualAlloc` on Windows systems, should be specified as implicitly creating
 objects.
@@ -418,7 +397,7 @@ a lifetime effect, ending the lifetime of the `int` object. Likewise, calling a
 destructor of a class object should always end the lifetime of that object,
 regardless of whether the destructor is trivial.
 
-This change improves the abililty of static and dynamic analysis tools to reason
+This change improves the ability of static and dynamic analysis tools to reason
 about the lifetimes of C++ objects.
 
 Practical examples
@@ -500,8 +479,8 @@ conversions where each subobject of non-implicit-lifetime type in the
 destination corresponds to an object of the same type (ignoring
 cv-qualifications) in the source.
 
-Acknowledgements
-================
+Acknowledgments
+===============
 
 Thanks to Ville Voutilainen for raising this problem, and to the members of
 SG12 for discussing possible solutions.
