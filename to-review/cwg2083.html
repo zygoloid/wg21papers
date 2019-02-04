@@ -26,11 +26,13 @@ blockquote.stddel {
 
 <body>
 Richard Smith<br>
-2019-01-02
+2019-01-07
 
 <h1>Core Issue 2083: Incorrect cases of odr-use</h1>
 <h1>Core Issue 2103: Lvalue-to-rvalue conversion is irrelevant in odr-use of a reference</h1>
 <h1>Core Issue 2170: Unclear definition of odr-use for arrays</h1>
+
+<!--
 
 <h2>Analysis</h2>
 
@@ -241,7 +243,8 @@ int g() {
 </pre>
 
 Both situations suggest that we need to at least distinguish between
-mutable and non-mutable access paths.
+mutable and non-mutable access paths if we want to make as few situations
+as possible result in odr-use.
 
 <p>
 Another interesting case arises around union member accesses. Consider:
@@ -299,80 +302,9 @@ should be treated differently.
 
 <h2>Wording</h2>
 
-<!--
-
-<h3>Option 1: track mutable and non-mutable possible results</h3>
-
-<p>
-Change in 6.2 basic.def.odr paragraph 2:
-</p>
-
-<blockquote>
-[&hellip;] The <del>set of</del> <i>potential results</i> of an expression <tt>e</tt>
-<ins>comprises a non-mutable set of <i>id-expression</i>s and a mutable set of <i>id-expression</i>s,</ins>
-<del>is</del> defined as follows:
-<ul>
-  <li>If <tt>e</tt> is an <i>id-expression</i> (7.5.4),
-      the <ins>non-mutable</ins> set contains only <tt>e</tt><ins>,
-      and the mutable set is empty</ins>.
-  <li>If <tt>e</tt> is a subscripting operation (7.6.1.1) with an array operand,
-      the set<ins>s are those</ins> <del>contains the potential results</del> of that <ins>array</ins> operand.
-  <li>If <tt>e</tt> is a class member access expression (7.6.1.4)
-      <ins>naming a non-static data member</ins>,
-      <ul>
-        <li><ins>if the member is mutable, the mutable set contains
-          the union of the potential result sets of the object expression
-          and the non-mutable set is empty;</ins>
-        <li><ins>otherwise, if the type of the member is const-qualified, the non-mutable set contains
-          the union of the potential result sets of the object expression
-          and the mutable set is empty;</ins>
-        <li><ins>otherwise,</ins> the set<ins>s are those</ins> <del>contains the potential results</del> of the object expression.
-      </ul>
-  <li>If <tt>e</tt> is a pointer-to-member expression (7.6.4)
-    whose second operand is a <del>constant expression</del>
-    <ins>pointer to data member of type <tt>T C::*</tt>,</ins>
-      <ul>
-        <li><ins>if <tt>C</tt> has any mutable non-static data members of type <tt>T</tt></ins>,
-          the mutable set contains
-          the union of the potential result sets of the object expression
-          and the non-mutable set is empty;</ins>
-        <li><ins>otherwise, if <tt>T</tt> is const-qualified, the non-mutable set contains
-          the union of the potential result sets of the object expression
-          and the mutable set is empty;</ins>
-        <li><ins>otherwise,</ins> the set<ins>s are those</ins> <del>contains the potential results</del> of the object expression.
-      </ul>
-  <li>If <tt>e</tt> has the form <tt>(e1)</tt>, the set<ins>s are those</ins> <del>contains the potential results</del> of <tt>e1</tt>.
-  <li>If <tt>e</tt> is a glvalue conditional expression (7.6.16), the set<ins>s are</ins> <del>is</del> the union<ins>s</ins> of the <ins>corresponding</ins> sets of potential results of the second and third operands.
-  <li>If <tt>e</tt> is a comma expression (7.6.19), the set<ins>s are those</ins> <del>contains the potential results</del> of the right operand.
-  <li>Otherwise, the set<ins>s are</ins> <del>is</del> empty.
-</ul>
-</blockquote>
-
-<p>
-Change in 6.2 basic.def.odr paragraph 4:
-</p>
-
-<blockquote>
-A variable <tt>x</tt>
-whose name appears as a potentially-evaluated expression <tt>ex</tt>
-is odr-used by <tt>ex</tt> unless
-<del>applying the lvalue-to-rvalue conversion (7.3.1) to x yields a constant expression (7.7) that does not invoke a function other than a trivial special member function (10.3.3)</del>
-<ins><tt>x</tt> is usable in constant expressions (7.7 [expr.const])</ins>
-and<del>, if <tt>x</tt> is an object,</del>
-<ul>
-  <li><ins><tt>x</tt> is a reference, or</ins>
-  <li><tt>ex</tt> is an element of the set of <ins>non-mutable</ins> potential results of an expression <tt>e</tt>
-    <ins>of non-volatile-qualified non-class type</ins>,
-    where <del>either</del> the lvalue-to-rvalue conversion (7.3.1) is applied to <tt>e</tt><ins>,</ins> or <del><tt>e</tt> is</del>
-  <li><ins><tt>ex</tt> is an element of the set of mutable or non-mutable potential results of</ins>
-    a discarded-value expression (7.2) <ins>to which the lvalue-to-rvalue conversion is not applied</ins>.
-</blockquote>
-
--->
-
 <h3>Option 1: track access paths</h3>
 
-<p>The approach here is to precisely identify whether a use of a variable will always
+<p>The approach here is to attempt to precisely identify whether a use of a variable will always
 result in one of a set of constant values being used. When so, the use is not an odr-use.
 (This approach was suggested during issue prioritization.)</p>
 
@@ -534,6 +466,8 @@ because <tt>T::y</tt> is <tt>mutable</tt>.
 <p>The approach here is to only exclude cases from odr-use where
 no access to the variable in question could ever be "interesting".</p>
 
+-->
+
 <p>
 Change in 6.2 basic.def.odr paragraph 2:
 </p>
@@ -556,19 +490,19 @@ Change in 6.2 basic.def.odr paragraph 4:
 
 <blockquote>
 A variable <tt>x</tt>
-whose name appears as a potentially-evaluated expression <tt>ex</tt>
-is odr-used by <tt>ex</tt> unless
+whose name appears as a potentially-evaluated expression <tt>e<del>x</del></tt>
+is odr-used by <tt>e<del>x</del></tt> unless
 <del>applying the lvalue-to-rvalue conversion (7.3.1) to x yields a constant expression (7.7) that does not invoke a function other than a trivial special member function (10.3.3) and,
 if <tt>x</tt> is an object,</del>
 <ul>
   <li><ins><tt>x</tt> is a reference that is usable in constant expressions (7.7 [expr.const]), or</ins>
   <li><ins><tt>x</tt> is a variable of non-reference type that is usable in constant expressions
       and has no mutable subobjects, and</ins>
-    <tt>ex</tt> is an element of the set of potential results of an expression <tt>e</tt><del>, where either</del>
+    <tt>e<del>x</del></tt> is an element of the set of potential results of an expression <del><tt>e</tt>, where either</del>
     <ins>of non-volatile-qualified non-class type to which</ins>
     the lvalue-to-rvalue conversion (7.3.1) is applied <del>to <tt>e</tt></del><ins>,</ins> or <del><tt>e</tt> is</del>
     <li><ins><tt>x</tt> is a variable of non-reference type, and
-    <tt>ex</tt> is an element of the set of potential results of</ins>
+    <tt>e</tt> is an element of the set of potential results of</ins>
     a discarded-value expression (7.2) <ins>to which the lvalue-to-rvalue conversion is not applied</ins>.
 </blockquote>
 

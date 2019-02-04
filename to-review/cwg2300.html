@@ -39,7 +39,9 @@ Change in 6.2 basic.def.odr paragraph 12:
 Given such an entity named D defined in more than one translation unit, then
 <ul>
 <li>
-each definition of D shall consist of the same sequence of tokens; and
+each definition of D shall consist of the same sequence of tokens<ins>,
+for which the definition of a closure type is considered to consist of
+the sequence of tokens of the corresponding <i>lambda-expression</i></ins>; and
 
 <li>
 in each definition of D, corresponding names, looked up according to 6.4,
@@ -66,8 +68,11 @@ and
 
 <li>
 <ins>
-in each definition of D, corresponding <i>lambda-expression</i>s
-shall have the same closure type, and
+in each definition of D,
+except within the default arguments
+and default template arguments of D,
+corresponding <i>lambda-expression</i>s
+shall have the same closure type (see below), and
 </ins>
 
 <li>
@@ -97,15 +102,14 @@ then the preceding requirements shall apply
 both to names from the template's enclosing scope used in the template definition (12.7.3),
 and also to dependent names at the point of instantiation (12.7.2).
 <ins>
-These requirements are first checked for corresponding entities 
+These requirements are also checked for corresponding entities 
 defined within each definition of <tt>D</tt> (including the
 closure types of <i>lambda-expression</i>s, but excluding
 entities defined within default arguments or default template arguments
-of either <tt>D</tt> or an entity not defined within <tt>D</tt>),
-in order from innermost to outermost.
+of either <tt>D</tt> or an entity not defined within <tt>D</tt>).
 For each such entity and for <tt>D</tt> itself, 
 the behavior is as if there is a single entity with a single definition, 
-including when checking these requirements for enclosing entities.
+including when checking these requirements for other entities.
 </ins>
 <del>
 If the definitions of D satisfy all these requirements,
@@ -145,6 +149,7 @@ If the definition of <tt>X</tt> appears in multiple translation units,
 the program is valid, because the <i>lambda-expression</i>s defined within
 the default argument of <tt>X::h</tt> within the definition of <tt>X</tt>
 denote the same closure type.
+&mdash; end example]
 </ins>
 </blockquote>
 
