@@ -1,0 +1,64 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue XXXX: ...</title>
+
+<style type="text/css">
+ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+
+blockquote {
+  color: #000000; background-color: #F1F1F1;
+  border: 1px solid #D1D1D1;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stdins {
+  color: #000000; background-color: #C8FFC8;
+  border: 1px solid #B3EBB3;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stddel {
+  text-decoration: line-through;
+  color: #000000; background-color: #FFEBFF;
+  border: 1px solid #ECD7EC;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2019-03-15
+
+<h1>Core Issue XXXX: ...</h1>
+
+<p>
+Change in 7.7 expr.const paragraph 3:
+</p>
+
+<blockquote>
+A variable is <i>usable in constant expressions</i>
+after its initializing declaration is encountered
+if it is a constexpr variable,
+or it is
+of reference type or
+of non-volatile const-qualified integral or enumeration type,
+and
+its initializer is a constant initializer.
+<ins>
+An object or reference is <i>usable in constant expressions</i>
+if it is
+<ul>
+<li>a variable that is usable in constant expressions, or
+<li>a template parameter object ([temp.param]), or
+<li>a string literal object ([lex.string]), or
+<li>a non-mutable subobject or reference member
+of any of the above, or
+<li>a complete temporary object
+of non-volatile const-qualified
+integral or enumeration type that is
+initialized with a constant expression.
+</ul>
+</ins>
+</blockquote>
+
+</body></html>
