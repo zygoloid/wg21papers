@@ -26,7 +26,7 @@ blockquote.stddel {
 
 <body>
 Richard Smith<br>
-2019-01-02
+2019-04-29
 
 <h1>Core Issue 2300: Lambdas in multiple definitions</h1>
 
@@ -102,14 +102,14 @@ then the preceding requirements shall apply
 both to names from the template's enclosing scope used in the template definition (12.7.3),
 and also to dependent names at the point of instantiation (12.7.2).
 <ins>
-These requirements are also checked for corresponding entities 
+These requirements also apply to corresponding entities 
 defined within each definition of <tt>D</tt> (including the
 closure types of <i>lambda-expression</i>s, but excluding
 entities defined within default arguments or default template arguments
 of either <tt>D</tt> or an entity not defined within <tt>D</tt>).
 For each such entity and for <tt>D</tt> itself, 
 the behavior is as if there is a single entity with a single definition, 
-including when checking these requirements for other entities.
+including in the application of these requirements to other entities.
 </ins>
 <del>
 If the definitions of D satisfy all these requirements,
@@ -145,10 +145,10 @@ If the definition of <tt>g</tt> appears in multiple translation units,
 the program is ill-formed (no diagnostic required) because each such definition
 uses a default argument that refers to a distinct <i>lambda-expression</i>
 closure type.
-If the definition of <tt>X</tt> appears in multiple translation units,
-the program is valid, because the <i>lambda-expression</i>s defined within
+The definition of <tt>X</tt> can appear in multiple translation units of a valid program;
+the <i>lambda-expression</i>s defined within
 the default argument of <tt>X::h</tt> within the definition of <tt>X</tt>
-denote the same closure type.
+denote the same closure type in each translation unit.
 &mdash; end example]
 </ins>
 </blockquote>

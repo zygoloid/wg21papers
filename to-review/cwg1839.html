@@ -27,12 +27,12 @@ blockquote.stddel {
 
 <body>
 Richard Smith<br>
-2019-01-02
+2019-04-29
 
 <h1>Core Issue 1839: Lookup of block-scope extern declarations</h1>
 
 <p>
-Change in 6.5 basic.link paragraphs 6:
+Change in 6.5 basic.link paragraph 8:
 </p>
 
 <blockquote>
@@ -41,14 +41,20 @@ Change in 6.5 basic.link paragraphs 6:
 function declared in block scope
 <del>and the name of</del>
 <ins>or</ins> a variable declared by a block scope <tt>extern</tt> declaration
-<ins>has linkage and is a member of the innermost enclosing namespace</ins>
-<del>have linkage</del>.
+<ins>is a member of the innermost enclosing namespace and its name has</ins>
+<del>have</del> linkage.
+If such a declaration is attached to a named module, the program is ill-formed.
 If there is a <del>visible</del> <ins>prior</ins> declaration
-of an entity with linkage having the same name and type <ins>in that namespace</ins>,
-<del>ignoring entities declared outside the innermost enclosing namespace scope,</del>
-the block scope declaration declares that same entity and receives the linkage of the previous declaration.
+of <del>an entity with linkage</del> <ins>that name in that namespace</ins>,
+<del>ignoring entities
+declared outside the innermost enclosing namespace scope,</del>
+such that the block
+scope declaration would be a (possibly ill-formed) redeclaration if the two
+declarations appeared in the same declarative region, the block scope
+declaration declares that same entity and <ins>its name</ins> receives the linkage of the previous
+declaration.
 <del>If there is more than one such matching entity, the program is ill-formed.</del>
-Otherwise, <del>if no matching entity is found,</del> the block scope entity receives external linkage.
+Otherwise, <del>if no matching entity is found,</del> the block scope entity receives <ins>the</ins> <del>external</del> linkage <ins>of the innermost enclosing namespace</ins>.
 <del>If, within a translation unit, the same entity is declared with both internal and external linkage, the program is ill-formed.</del> [Example:
 <pre>
 static void f();
@@ -71,13 +77,14 @@ void g() {
 </blockquote>
 
 <p>
-Change in 6.5 basic.link paragraph 7:
+Change in 6.5 basic.link paragraph 9:
 </p>
 
 <blockquote>
 <del>When a</del> <ins>A</ins>
 block scope declaration of an entity with linkage <del>is not found to refer to some other declaration, then that entity is a member of the innermost enclosing namespace.
-However such a declaration</del> does not <del>introduce</del> <ins>by itself make</ins> the member name <ins>visible to any form of name lookup</ins> in its namespace scope. [Example:
+However such a declaration</del> does not <del>introduce</del> <ins>by itself make</ins> the member name <ins>visible to any form of name lookup</ins> in its namespace scope
+<ins>or eligible for declaration by <i>qualified-id</i></ins>. [Example:
 <pre>
 namespace X {
   void p() {
@@ -91,7 +98,7 @@ namespace X {
   void q() { /* ... */ } // definition of X::q
 }
 void q() { /* ... */ } // some other, unrelated q
-<ins>void X::r() { /* ... */ } // error: r not visible to name lookup</ins>
+<ins>void X::r() { /* ... */ } // error: r cannot be declared by qualified-id</ins>
 </pre>
 &mdash; end example]
 </blockquote>
