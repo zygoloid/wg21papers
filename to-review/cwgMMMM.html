@@ -1,0 +1,134 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue XXXX: ...</title>
+
+<style type="text/css">
+ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+
+blockquote {
+  color: #000000; background-color: #F1F1F1;
+  border: 1px solid #D1D1D1;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stdins {
+  color: #000000; background-color: #C8FFC8;
+  border: 1px solid #B3EBB3;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stddel {
+  text-decoration: line-through;
+  color: #000000; background-color: #FFEBFF;
+  border: 1px solid #ECD7EC;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+
+pre { border: 1px solid #d1d1d1; }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2019-03-18
+
+<h1>Core Issue XXXX: ...</h1>
+
+<h2>Issue description</h2>
+
+<p>
+It is unclear what declarations are in scope when determining whether
+a <i>using-declaration</i> conflicts with another declaration in the
+same scope
+in [namespace.udecl]p14.
+Unlike most lookup rules, this rule merely talks about what
+declarations are in the scope in question, and intends to find declarations
+that appear later than the <i>using-declaration</i>.
+
+<p>
+<i>Example (pre-modules):</i>
+
+<pre>
+namespace A { void f(int); }
+namespace B {
+  using A::f; // #1, ill-formed?
+  void f(int);
+}
+</pre>
+
+<p>
+<i>Example (post-modules):</i>
+
+<pre>
+export module M;
+namespace B {
+  export void f(int);
+  void g(int);
+}
+</pre>
+
+<pre>
+namespace A { void f(int); void g(int); }
+namespace B {
+  using A::f; // #2, ill-formed?
+  using A::g; // #3, ill-formed?
+}
+import M;
+</pre>
+
+<pre>
+import M;
+namespace A { void f(int); void g(int); }
+namespace B {
+  using A::f; // #4, ill-formed?
+  using A::g; // #5, ill-formed?
+}
+</pre>
+
+<p>
+I believe the intent is that #1 is ill-formed,
+because of the <i>later</i>, conflicting declaration of <tt>B::f</tt>.
+Implementations agree. It seems reasonable to extend this behavior to #4.
+However, requiring a diagnostic for the similar case #2 would be problematic, because
+it would require expensive eager processing when an <i>import-declaration</i>
+is encountered.
+Finally, #3/#5 should certainly be valid: the non-exported declaration
+of <tt>B::g</tt> in module <tt>M</tt>
+should not affect the validity of a different <tt>B::g</tt>
+in a different translation unit.
+
+<p>
+<b>Proposal:</b> such a using-declaration is only ill-formed if one of the two
+conflicting declarations (the <i>using-declaration</i> and the
+function/function template declaration) is already in scope where the other one
+appears. In particular, an <i>import-declaration</i> appearing after a
+<i>using-declaration</i> or function/function template declaration can never
+trigger an error (but the program may be ill-formed if the order of the two
+declarations is reversed). So #1 and #4 are ill-formed and the rest are valid.
+
+<h2>Wording</h2>
+
+<p>
+Change in 9.8 namespace.udecl paragraph 14:
+</p>
+
+<blockquote>
+If a function declaration in namespace scope or block scope
+has the same name and the same parameter-type-list (9.2.3.5)
+as a function introduced by a <i>using-declaration</i>,
+<ins>and either the potential scope of the function declaration
+includes the <i>using-declaration</i>
+or the potential scope of the <i>using-declaration</i>
+includes the function declaration,</ins>
+and the declarations do not declare the same function,
+the program is ill-formed.
+If a function template declaration in namespace scope
+has the same name, parameter-type-list, return type, and template parameter list
+as a function template introduced by a <i>using-declaration</i>,
+<ins>and either the potential scope of the function template declaration
+includes the <i>using-declaration</i>
+or the potential scope of the <i>using-declaration</i>
+includes the function template declaration,</ins>
+the program is ill-formed.
+</blockquote>
+
+</body></html>
