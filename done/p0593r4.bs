@@ -1,16 +1,16 @@
 <pre class='metadata'>
 Title: Implicit creation of objects for low-level object manipulation
 Shortname: p0593
-Revision: 3
-Date: 2019-01-18
+Revision: 4
+Date: 2019-06-16
 Editor: Richard Smith, Google, richard@metafoo.co.uk
 Former Editor: Ville Voutilainen, ville.voutilainen@gmail.com
 Abstract: This paper proposes that objects of sufficiently trivial types be created on-demand as necessary within newly-allocated storage to give programs defined behavior.
 
 Status: P
 Group: wg21
-Audience: EWG
-URL: http://wg21.link/p0593r3
+Audience: LEWG, LWG, CWG
+URL: http://wg21.link/p0593r4
 Markup Shorthands: markdown yes
 </pre>
 
@@ -75,6 +75,18 @@ Since [[P0593R2]]:
 
 Since [[P0593R3]]:
 
+<!--
+
+EWG polls:
+ * D0593R4 as presented for C++20 (22 11  4  1  0)
+ * aggregates as implicit lifetime types for C++20 (20 12  2  0  0)
+ * provide a typed version of 'bless' for C++20 (24 11  0  1  0)
+
+-->
+
+  * Incorporated EWG feedback:
+    * Aggregates are considered implicit lifetime types
+    * Provide a typed version of `std::bless`
   * Added wording.
 
 Motivating examples
@@ -205,12 +217,14 @@ invariants, we should not be implicitly creating objects of that type.
 Note that we're only interested in properties of the object itself here, not
 of its subobjects. In particular, the above two properties always hold for
 array types. While creating or destroying array elements might run code,
-creating the array object (without its elements) does not.
+creating the array object (without its elements) does not. For similar reasons,
+it also seems reasonable to permit implicit object creation for aggregate class
+types even if the aggregate contains an element with a non-trivial destructor.
 
 This suggests that the largest set of types we could apply this to is:
 
  * Scalar types
- * Array types (with any element type)
+ * Aggregate types (arrays with any element type, aggregate classes with any members)
  * Class types with a trivial destructor and a trivial constructor (of any kind)
 
 (Put another way, we can apply this to all types other than function type,
@@ -452,9 +466,6 @@ regardless of which arm of the `if` is taken, there is a set of implicit
 objects sufficient to give the program defined behavior, and thus the behavior
 of the program is defined.
 
-Further work
-============
-
 Direct object creation
 ----------------------
 
@@ -464,8 +475,7 @@ implicit lifetime type, this can be accomplished by usage of `std::bless` to
 change the type, followed by `std::launder` to acquire a pointer to the
 newly-created object. However, for expressivity and optimizability, a combined
 operation to create an object of implicit lifetime type in-place while
-preserving the object representation may be useful. Reviewers of a draft
-version of this paper have proposed:
+preserving the object representation may be useful. For this we propose:
 
 ```
 // Effects: create an object of implicit lifetype type T in the storage
@@ -543,6 +553,17 @@ Add another paragraph:
 > (16.6.x [ptr.bless], 19.10.9.2 [allocator.traits.members],
 > 19.10.12 [c.malloc], 20.5.3 [cstring.syn]).
 
+6.6.3 Object and reference lifetime [basic.life]
+------------------------------------------------
+
+No change in 6.6.3 [basic.life] paragraph 1:
+
+> [...] The lifetime of an object `o` of type `T` ends when:
+>   * if `T` is a non-class type, the object is destroyed, or
+>   * if `T` is a class type, the destructor call starts, or
+>   * the storage which the object occupies is released, or
+>     is reused by an object that is not nested within `o` (6.6.2).
+
 6.7 Types [basic.types]
 -----------------------
 
@@ -550,14 +571,40 @@ Change in 6.7 [basic.types] paragraph 9:
 
 > [...] Scalar types, trivial class types (10.1), arrays of such types and cv-qualified versions of these types are collectively called <i>trivial types</i>.
 > Scalar types, standard-layout class types (10.1), arrays of such types and cv-qualified versions of these types are collectively called <i>standard-layout types</i>. <ins>
-> Scalar types, implicit-lifetime class types (10.1), array types, and cv-qualified versions of these types are collectively called <i>implicit-lifetime types</i>.</ins>
+> Scalar types, implicit-lifetime class types ([class.prop]), array types, and cv-qualified versions of these types are collectively called <i>implicit-lifetime types</i>.</ins>
+
+7.5.4.3 Destruction [expr.prim.id.dtor]
+---------------------------------------
+
+Change in 7.5.4.3 [expr.prim.id.dtor] paragraph 2:
+
+> If the *id-expression* names a pseudo-destructor,
+> `T` shall be a scalar type and
+> the *id-expression* shall appear as the right operand of a class member access (7.6.1.4)
+> that forms the *postfix-expression* of a function call (7.6.1.2).
+> [Note: Such a call <del>has no effect</del> <ins>ends the lifetime
+> of the object ([expr.call], [basic.life])</ins>. —end note]
+
+7.6.1.2 Function call [expr.call]
+---------------------------------
+
+Change in 7.6.1.2 [expr.call] paragraph 5:
+
+> [...] If the *postfix-expression* names a *pseudo-destructor*, <ins>the
+> *postfix-expression* must be a possibly-parenthesized
+> class member access (7.6.1.4), and</ins>
+> the function call <del>has no effect</del> <ins>destroys
+> the object of scalar type denoted by the object expression of
+> the class member access</ins> .
+
 
 10.1 Properties of classes [class.prop]
 ---------------------------------------
 
 Add a new paragraph at the end of [class.prop]:
 
-> <ins>A class `S` is an <i>implicit-lifetime class</i> if it has
+> <ins>A class `S` is an <i>implicit-lifetime class</i> if it
+> is an aggregate ([dcl.aggr]) or has
 > at least one trivial, non-deleted constructor and
 > a trivial, non-deleted destructor.</ins>
 
@@ -570,6 +617,7 @@ Add the following before the declaration of `std::launder`:
 > ```
 > // [ptr.bless] Implicit object creation
 > void std::bless(void *start, size_t length);
+> template<typename T> T *std::bless(void *p);
 > ```
 > </ins>
 
@@ -589,6 +637,25 @@ Add the following subclause immediately before 16.6.4 [ptr.launder]:
 
 > <ins>*Effects:* Implicitly creates objects (6.6.2 [intro.object])
 > within the denoted region.</ins>
+
+> <ins>
+> ```
+> template<typename T> T *std::bless(void *p);
+> ```
+> </ins>
+
+> <ins>*Mandates:* `T` is an implicit lifetime type.
+
+> <ins>*Requires:* [`p`, `(char*)p + sizeof(T)`) denotes a region of allocated
+> storage that is a subset of the region of storage reachable through `p`.</ins>
+
+> <ins>*Effects:* Implicitly creates objects within the denoted region,
+> including an object `A` of type `T` whose address is `p`. The object
+> representation of `A` is the contents of the storage prior to the
+> call to `bless` as if by calling `std::memcpy` from a copy of the
+> original storage.</ins>
+
+> <ins>*Returns:* A pointer to `A`.</ins>
 
 19.10.9.2 Static member functions [allocator.traits.members]
 ------------------------------------------------------------
@@ -621,6 +688,29 @@ Change in 20.5.3 [cstring.syn] paragraph 3:
 > Both functions implicitly create objects (6.6.2 [intro.objects])
 > in the destination region of storage
 > immediately prior to copying the sequence of characters to the destination.
+
+C.5 C++ and ISO C++ 2017 [diff.cpp17]
+-------------------------------------
+
+Add an entry to Annex C as follows:
+
+> <ins>
+> **Affected subclause:** [basic.life]<br>
+> **Change:** A pseudo-destructor call ends the lifetime of the object to
+> which it is applied.<br>
+> **Rationale:** Increase consistency of the language model.<br>
+> **Effect on original feature:** Valid ISO C++ 2017 code may be ill-formed
+> or have undefined behavior in this International Standard.<br>
+> ```
+> constexpr int f() {
+>   int a = 123;
+>   using T = int;
+>   a.~T();
+>   return a;  // undefined behavior; previously returned 123
+> }
+> static_assert(f() == 123);  // ill-formed; previously valid
+> ```
+> </ins>
 
 Acknowledgments
 ===============
