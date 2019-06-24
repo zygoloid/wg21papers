@@ -55,14 +55,17 @@ is <ins><i>constant-initialized</i> if</ins>
   <li>
     <ins>
 either it has an initializer or
-its default-initialization results in some initialization being performed, and
+its default-initialization results in some initialization being performed, and</ins>
 <li>
+<ins>
 its initialization full-expression
 is a constant expression when interpreted</ins>
-<del>for which interpreting its full-expression</del> as a <i>constant-expression</i>
+<del>an initializer for which interpreting its full-expression</del> as a <i>constant-expression</i>
 <del>results in a constant expression</del>,
 except that if <tt>o</tt> is an object,
-such an initializer may also invoke constexpr constructors
+<del>such an initializer</del>
+<ins>the initialization full-expression</ins>
+may also invoke constexpr constructors
 for <tt>o</tt> and its subobjects
 even if those objects are of non-literal class types.
 </ul>
