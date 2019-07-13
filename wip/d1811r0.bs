@@ -1,0 +1,262 @@
+<pre class='metadata'>
+Title: Relaxing redefinition restrictions for re-exportation robustness
+Shortname: d1811
+Revision: 0
+Date: 2019-07-12
+Editor: Richard Smith, Google, richard@metafoo.co.uk
+Editor: Gabriel Dos Reis, Microsoft, gdr@microsoft.com
+Abstract: The current redefinition rules for entities attached to the global module unnecessarily disallows some natural code patterns. We propose to relax these rules to permit the relevant code patterns.
+
+Status: D
+Group: wg21
+Audience: EWG
+URL: http://wg21.link/p1811r0
+Markup Shorthands: markdown yes
+</pre>
+
+Background {#background}
+==========
+
+In C++ code prior to C++20, interfaces are exposed by textual inclusion. This
+results in definitions of the same entity appearing in multiple translation
+units. We require (though unfortunately do not consistently enforce in
+practice) that all such definitions are "the same". ("The same" is a complex
+issue, but the details aren't salient to this paper.)
+
+In addition, we require that there is at most one definition of each entity in
+each translation unit. This requirement serves a number of purposes, notably:
+
+  * it permits simpler implementations, as there is no need to cope with
+    encountering a definition of an entity when another definition is already
+    known
+
+  * it ensures that compilation time is not wasted processing redundant
+    redefinitions
+
+    <div class=example>
+    ```
+    // foo.h -- user forgot the include guards
+    struct X { int foo; };
+    ```
+
+    ```
+    #include "foo.h"
+    #include "foo.h" // error, redefinition
+    ```
+    </div>
+
+  * it catches some bugs where there is an accidental name collision between
+    two different entities of the same kind (eg, two different `struct X`s)
+
+    <div class=example>
+    ```
+    // foo.h
+    struct X { int foo; };
+    ```
+
+    ```
+    // bar.h
+    struct X { int bar; };
+    ```
+
+    ```
+    #include "foo.h"
+    #include "bar.h" // error, redefinition
+    ```
+    </div>
+
+However, it is important to note that the requirement of only one definition
+per translation unit is not necessary for the soundness of the language: the
+requirement that all definitions are "the same" is sufficient. We could accept
+example 1 and consider example 2 to be ill-formed (likely with no diagnostic
+required), but it is preferable to reject such redefinition cases when there is
+not a compelling reason to permit them.
+
+In the current C++20 draft, we continue to allow multiple definitions of
+entities that are attached to the global module (entities attached to named
+modules can only have one definition). We now allow definitions to be made
+reachable from translation units other than the one in which they are defined
+(via various forms of `import`), and so in an attempt to preserve the above
+useful properties to the extent possible, we disallow redefinition of an entity
+if a prior definition is "necessarily reachable" -- which, for names attached
+to the global module, means the definition can be found through a path of zero
+or more `import` declarations, where each one other than the first is exported.
+
+Note that this necessary reachability rule does not satisfy the first goal
+above: implementations do need to cope with encountering a definition of an
+entity when another definition is already known, because there are cases where
+such a definition must be available to template instantiation in some contexts,
+despite not being necessarily reachable. (In such cases, we might describe the
+definition as "incidentally reachable", although the standard wording doesn't
+use that term.)
+
+<div class=example>
+```
+// foo.h
+#ifndef FOO_H
+#define FOO_H
+struct Foo {
+  constexpr int get() const { return 42; }
+};
+#endif
+```
+
+```
+// bar.h
+#include "foo.h"
+// ...
+```
+
+```
+export module M;
+import "bar.h";
+
+export template<typename T> constexpr T make() {
+  return T(Foo().get());
+}
+```
+
+```
+import M;
+
+// OK, array bound is 42
+// Note that make<int> can be instantiated and used here, even though Foo is
+// not necessarily reachable from this context.
+int arr[make<int>()];
+
+// OK, definition of Foo is valid, because prior definition is not necessarily
+// reachable in this context. (Note that the include guard macro FOO_H is not
+// made visible by the import of M.)
+#include "foo.h"
+```
+</div>
+
+Problem {#problem}
+=======
+
+We permit entities attached to the global module to be made reachable through a
+named module, in one of several ways:
+
+```
+module;
+#include "a.h" // struct A {};
+export module M;
+export import "b.h"; // struct B {}; (in importable header)
+export A f();
+```
+
+Here, the definitions of `A` and `B` are reachable in an importer of module
+`M`:
+
+  * `A` is reachable implicitly because it's used in the declaration of `f`
+  * `B` is reachable explicitly because it's defined in an exported header unit
+
+This re-export of entities attached to the global module divorces the entities
+from their include guard macros, which exposes the possibiltiy that a consumer
+of this module interface will encounter a redefinition error with the current
+rule:
+
+```
+import M;
+#include "a.h" // error, redefinition of A
+#include "b.h" // OK, but see below
+```
+
+Due to the `#include` translation rule, the `#include "b.h"` directive is
+translated to `import "b.h";` because `"b.h"` is an importable header, so
+there is no redefinition error in that case. But this does not remove all risk:
+
+```
+// b-impl.h, not an importable header
+#ifndef B_IMPL_H
+#define B_IMPL_H
+struct B {};
+#endif
+```
+
+```
+// b.h, importable header
+#include "b-impl.h"
+```
+
+```
+import M;
+#include "b-impl.h" // error, redefinition of B
+```
+
+In both cases, disassociating the `#include` guard macro from the definitions
+that it is guarding has removed the protection from redefinition errors that we
+were traditionally relying upon.
+
+Proposed solution {#proposal}
+=================
+
+Change the redefinition restriction as follows: for entities attached to the
+global module, permit at most one definition per translation unit, regardless
+of whether any definition of the entity is already reachable.
+
+What we gain:
+
+  * increased robustness in the presence of re-exportation of entities attached
+    to the global module
+  * a slightly simpler rule (we can entirely remove the notion of "necessarily
+    reachable" and replace it with "in the same translation unit"
+  * a rule that is in some sense closer to the pre-C++20 rule
+  * a lower burden on implementations, as there is no longer any requirement to
+    precisely track which definitions are necessarily reachable
+
+What we lose:
+
+  * in principle, there are some cases where we would previously have caught
+    a name collision between two different definitions of the same type, and
+    will no longer do so
+
+Making `#include` translation optional {#proposal-translation}
+--------------------------------------
+
+Assuming the main proposal is accepted, there is another question we can now
+consider: should we require implementations to perform `#include` translation
+for all headers for which they would permit an `import`?
+
+Previously, we required include translation in part in order to mitigate the
+effects of the problem that is solved by this proposal. In the simple `b.h`
+example above, `#include` translation saves us from a redefinition error unless
+a definition in an imported header can also be found in a textual header.
+
+With the acceptance of this proposal, we can reconsider whether we want to give
+implementations the freedom to choose whether to map `#include` directives to
+`import` declarations separately from choosing which header files are
+importable. At least one implementation vendor believes that migration to
+modules would be eased by permitting these two decisions to be decoupled.
+
+We propose that implementations be permitted to choose not to perform
+`#include` translation for importable headers.
+
+Alternatives {#alternatives}
+============
+
+If we keep the current redefinition rule, we will need to ensure that current
+header file techniques properly prevent redefinition. This would likely entail
+
+  * exporting macros from named modules whenever any entity attached to the
+    global module is exported
+  * ensuring that export of entities from the global module has the same level
+    of granularity as include guard macros (the export must be "all or nothing"
+    because an include guard macro can't be half-defined)
+
+If we do not wish to allow macro export from named modules and want to keep the
+current rule for redefinitions, we conclude that we would need to disallow
+re-exportation of entities attached to the global module entirely.
+
+We don't consider any of the alternatives in this area to be acceptable, as
+they would require us to give up important properties (the ability for a module
+to export declarations from a non-modular library, or the guarantee that a
+named module import does not bring in macros).
+
+Implementation experience {#impl}
+=========================
+
+This approach has been implemented in the Microsoft compiler for 3+ years.
+
+This approach has also been implemented in a branch of the Clang compiler, and
+confirmed to fix the redefinition errors in the above examples.
