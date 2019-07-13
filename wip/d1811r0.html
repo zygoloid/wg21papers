@@ -1699,6 +1699,11 @@ precisely track which definitions are necessarily reachable</p>
 a name collision between two different definitions of the same type, and
 will no longer do so</p>
    </ul>
+   <p>Note that this change should apply to all constructs that are permitted to be
+repeated across translation units but not within a single translation unit,
+including redeclarations of default arguments and default template arguments
+in addition to redefinitions of classes, functions, variables, and
+enumerations.</p>
    <h3 class="heading settled" data-level="3.1" id="proposal-translation"><span class="secno">3.1. </span><span class="content">Making <code class="highlight"><c- cp>#include</c-></code> translation optional</span><a class="self-link" href="#proposal-translation"></a></h3>
    <p>Assuming the main proposal is accepted, there is another question we can now
 consider: should we require implementations to perform <code class="highlight"><c- cp>#include</c-></code> translation

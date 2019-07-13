@@ -211,6 +211,12 @@ What we lose:
     a name collision between two different definitions of the same type, and
     will no longer do so
 
+Note that this change should apply to all constructs that are permitted to be
+repeated across translation units but not within a single translation unit,
+including redeclarations of default arguments and default template arguments
+in addition to redefinitions of classes, functions, variables, and
+enumerations.
+
 Making `#include` translation optional {#proposal-translation}
 --------------------------------------
 
