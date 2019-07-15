@@ -1,0 +1,190 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 1621: Member initializers in anonymous unions</title>
+
+<style type="text/css">
+  ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+  del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2019-07-15
+
+<h1>Core Issue 1621: Member initializers in anonymous unions</h1>
+
+<h2>Analysis</h2>
+
+<blockquote>
+<p>
+Consider the following example:
+</p>
+
+<pre>
+  struct A {
+    struct B {
+      union {
+        int x = 37;
+      };
+      union {
+        int y = x + 47;  // Well-formed?
+      };
+    } a;
+  };
+</pre>
+
+<p>
+Does an anonymous union have a constructor that applies a non-static data
+member initializer? Or is the initialization performed by the constructor of
+the class in which the anonymous union appears? In particular, is the reference
+to <tt>x</tt> in the initializer for <tt>y</tt> well-formed or not? If the
+initialization of <tt>y</tt> is performed by <tt>B</tt>'s constructor, there is
+no problem because <tt>B::x</tt> is a member of the object being initialized.
+If an anonymous union has its own constructor, <tt>B::x</tt> is just a member
+of the containing class and is a reference to a non-static data member without
+an object, which is ill-formed. Implementations currently appear to take the
+latter interpretation and report an error for that initializer.
+</p>
+</blockquote>
+
+<p>
+We agreed that this case should be ill-formed: <tt>x</tt> cannot be referenced
+from the anonymous union because the <tt>this</tt> pointer points to the
+anonymous union and not to the <tt>B</tt> object. (See [expr.prim.this]p3.)
+
+<p>
+Analysis of [class.mfct.non-static] suggests that we do not currently permit
+non-static members to be named via unqualified identifiers within default
+member initializers <em>at all</em>.  See the Wording section for a resolution
+of this issue.
+With the changes in the Wording section, it should be clear that the above
+example is ill-formed: the class containing the default member initializer is
+the anonymous union, so the above transformations do not apply, and the
+reference to <tt>x</tt> is ill-formed by [expr.prim.id]/2.
+
+<blockquote>
+ As a further example, consider:
+
+ <pre>
+  union {       // #1
+    union {     // #2
+      union {   // #3
+        int y = 32;
+      };
+    };
+  } a { } ;
+ </pre>
+
+One interpretation might be that union #3 has a non-trivial default constructor because of the initializer of y, which would give union #2 a deleted default constructor, which would make the example ill-formed.
+</blockquote>
+
+It's unclear whether this example is valid at all; per [class.anon.union]p1:
+
+<blockquote>
+  [An anonymous union] defines an unnamed type and an unnamed object of that type called an anonymous union object.
+  Each member-declaration in the member-specification of an anonymous union shall either define a non-static data member or be a static_assert-declaration.
+  [Note: Nested types, anonymous unions, and functions cannot be declared within an anonymous union. -end note]
+</blockquote>
+
+Per the note, this example is invalid, but per the normative wording, it's
+valid: as the first sentence indicates, the anonymous union declaration <em>does</em>
+define a non-static data member.
+There is implementation divergence on this question, but (eg) the wording for
+defaulted special members and class properties does not in general take this
+possibility into account. For example, in [class.default.ctor]/2.2 (emphasis
+mine):
+
+<blockquote>
+  X is a non-union class that has a variant member M with a non-trivial default
+  constructor and no variant member of <b>the anonymous union
+  containing M</b> has a default member initializer,
+</blockquote>
+
+Core issue 1587 attempted to make this case ill-formed, but was not entirely
+successful. The proposed wording clarifies that the above example is
+ill-formed, by making the note normative.
+
+<blockquote>
+  As yet another example, consider:
+
+  <pre>
+  union {
+    union {
+      int x;
+    };
+    union {
+      int y = 3;
+    };
+    union {
+      int z;
+    };
+  } a { };
+  </pre>
+
+Assuming the current proposed resolution of issue 1502, what is the correct interpretation of this code? Is it well-formed, and if so, what initialization is performed?
+</blockquote>
+
+The example is well-formed and initializes <tt>a.y</tt> to <tt>3</tt>.
+Per [dcl.init.aggr], there are no explicitly initialized elements, and by /5.4,
+we use the default member initializser to initialize the union.
+(This wording was clarified when designated initializers were introduced.)
+
+<blockquote>
+  Finally, consider
+
+  <pre>
+  struct S {
+    union { int x = 1; };
+    union { int y = 2; };
+  } s{};
+  </pre>
+
+Does this violate the prohibition of aggregates containing member initializers in 9.3.1 [dcl.init.aggr] paragraph 1?
+</blockquote>
+
+There is no longer any such prohibition. It might be reasonable to informally
+decide what behavior should apply for such cases, but we do not issue Defect
+Reports against C++11, so there is no formal action to take. Informally I
+suggest we consider such cases to be non-aggregates in C++11 mode, as that
+matches the current behavior of all major implementations that have such a
+mode.
+
+<h2>Wording</h2>
+
+<p>
+Change in 11.3.2 class.mfct.non-static paragraph 1:
+</p>
+
+<blockquote>
+ [&hellip;] A non-static member function may also be called directly using the
+ function call syntax (7.6.1.2, 12.3.1.1) from within the body of a member
+ function of its class or of a class derived from its class <ins>or from
+   within a default member initializer in such a class</ins>.
+ </blockquote>
+
+<p>
+Change in 11.3.2 class.mfct.non-static paragraph 3:
+</p>
+
+<blockquote>
+[&hellip;]
+Similarly during name lookup, when an unqualified-id (7.5.4.1) used in the
+definition of a member function <ins>or default member initializer</ins>
+for class X resolves to a static member, an
+enumerator or a nested type of class X or of a base class of X, the
+unqualified-id is transformed into a qualified-id (7.5.4.2) in which the
+nested-name-specifier names the class of the member function.
+</blockquote>
+
+<p>
+Change in 11.4.1 class.anon.union paragraph 1:
+</p>
+
+<blockquote>
+  [An anonymous union] defines an unnamed type and an unnamed object of that type called an anonymous union object.
+  Each member-declaration in the member-specification of an anonymous union shall either define a non-static data member or be a static_assert-declaration.
+  <del>[Note:</del> Nested types, anonymous unions, and functions <del>cannot</del> <ins>shall not</ins> be declared within an anonymous union. <del>-end note]</del>
+</blockquote>
+
+</body></html>
