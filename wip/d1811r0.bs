@@ -24,7 +24,9 @@ practice) that all such definitions are "the same". ("The same" is a complex
 issue, but the details aren't salient to this paper.)
 
 In addition, we require that there is at most one definition of each entity in
-each translation unit. This requirement serves a number of purposes, notably:
+each translation unit. From an implementation perspective, this (necessarily)
+weak enforcement of the One Definition Rule serves a number of purposes,
+notably:
 
   * it permits simpler implementations, as there is no need to cope with
     encountering a definition of an entity when another definition is already
@@ -209,7 +211,9 @@ What we lose:
 
   * in principle, there are some cases where we would previously have caught
     a name collision between two different definitions of the same type, and
-    will no longer do so
+    will no be guaranteed to give a diagnostic; as usual, if there are multiple
+    definitions that are not "the same" (according to the ODR), the program is
+    ill-formed with no diagnostic required
 
 Note that this change should apply to all constructs that are permitted to be
 repeated across translation units but not within a single translation unit,
