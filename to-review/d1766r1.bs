@@ -1,7 +1,7 @@
 <pre class='metadata'>
 Title: Mitigating minor modules maladies
 Shortname: d1766
-Revision: 0
+Revision: 1
 Date: 2019-06-16
 Editor: Richard Smith, Google, richard@metafoo.co.uk
 Abstract: This paper identifies three minor issues relevant to modules and suggests resolutions

@@ -270,3 +270,61 @@ This approach has been implemented in the Microsoft compiler for 3+ years.
 
 This approach has also been implemented in a branch of the Clang compiler, and
 confirmed to fix the redefinition errors in the above examples.
+
+Wording {#wording}
+=======
+
+Change in 6.2 [basic.def.odr] paragraph 1:
+
+> <ins>No translation unit shall contain more than one definition of any</ins>
+> <del>A</del> variable, function, class type, enumeration type, or template
+> <del>shall not be defined where a prior definition is necessarily reachable
+> (10.6); no diagnostic is required if the prior declaration is in another more
+> than once in a single translation unit</del>.
+
+Change in 6.2 [basic.def.odr] paragraph 12:
+
+> There can be more than one definition of a class type (Clause 11),
+> enumeration type (9.6), inline function with external linkage (9.1.6), inline
+> variable with external linkage (9.1.6), class template (Clause 13),
+> non-static function template (13.6.6), concept (13.6.8), static data member
+> of a class template (13.6.1.3), member function of a class template
+> (13.6.1.1), or template specialization for which some template parameters are
+> not specified (13.8, 13.6.5) in a program provided that <del>no prior definition
+> is necessarily reachable (10.6) at the point where a definition appears</del> <ins>each
+> definition appears in a different translation unit</ins>, and
+> provided the definitions satisfy the following requirements [...].
+
+*Drafting note:* These changes revert two edits from P1103R3.
+
+Change in 15.2 [cpp.include] paragraph 7:
+
+> If the header identified by the *header-name* denotes an importable header (10.3), <ins>it
+> is implementation-defined whether</ins> the preprocessing directive is
+> instead replaced by the *preprocessing-token*s
+> ```
+> import header-name ;
+> ```
+
+If P1502R1 is also applied, change in the text it added as 16.5.1.2 [headers] paragraph 4:
+
+> The headers listed in Table 19 [C++ library headers],
+> or, for a freestanding implementation,
+> the subset of such headers that are provided by the implementation,
+> are collectively known as the *importable C++ library headers*.
+> [*Note*: Importable C++ library headers can be imported as
+> module units (10.3 [module.import]). <del>Including
+> an importable C++ library header has the same effect
+> as importing the corresponding header unit.</del> &mdash; *end note*]
+> [*Example*:
+> ```
+> import <vector>;         // imports the <vector> header unit
+> std::vector<int> vi;     // OK
+> ```
+> <pre>
+> <del>
+> #include &lt;map>           // imports the &lt;map> header unit
+> std::map&lt;int, int> mii;  // OK
+> </del>
+> </pre>
+> &mdash; *end example*]
