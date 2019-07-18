@@ -1,13 +1,13 @@
 <pre class='metadata'>
 Title: Relaxing redefinition restrictions for re-exportation robustness
-Shortname: d1811
+Shortname: p1811
 Revision: 0
-Date: 2019-07-12
+Date: 2019-07-18
 Editor: Richard Smith, Google, richard@metafoo.co.uk
 Editor: Gabriel Dos Reis, Microsoft, gdr@microsoft.com
 Abstract: The current redefinition rules for entities attached to the global module unnecessarily disallows some natural code patterns. We propose to relax these rules to permit the relevant code patterns.
 
-Status: D
+Status: P
 Group: wg21
 Audience: EWG
 URL: http://wg21.link/p1811r0
