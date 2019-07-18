@@ -334,29 +334,6 @@ Change in 15.2 [cpp.include] paragraph 7:
 > import header-name ;
 > ```
 
-If P1502R1 is also applied, change in the text it added as 16.5.1.2 [headers] paragraph 4:
-
-> The headers listed in Table 19 [C++ library headers],
-> or, for a freestanding implementation,
-> the subset of such headers that are provided by the implementation,
-> are collectively known as the *importable C++ library headers*.
-> [*Note*: Importable C++ library headers can be imported as
-> module units (10.3 [module.import]). <del>Including
-> an importable C++ library header has the same effect
-> as importing the corresponding header unit.</del> &mdash; *end note*]
-> [*Example*:
-> ```
-> import <vector>;         // imports the <vector> header unit
-> std::vector<int> vi;     // OK
-> ```
-> <pre>
-> <del>
-> #include &lt;map>           // imports the &lt;map> header unit
-> std::map&lt;int, int> mii;  // OK
-> </del>
-> </pre>
-> &mdash; *end example*]
-
 Feature test macro
 ------------------
 

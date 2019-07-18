@@ -1832,29 +1832,6 @@ instead replaced by the <em>preprocessing-token</em>s
 <pre class="highlight"><c- n>import</c-> <c- n>header</c-><c- o>-</c-><c- n>name</c-> <c- p>;</c->
 </pre>
    </blockquote>
-   <p>If P1502R1 is also applied, change in the text it added as 16.5.1.2 [headers] paragraph 4:</p>
-   <blockquote>
-    <p>
-     The headers listed in Table 19 [C++ library headers],
-or, for a freestanding implementation,
-the subset of such headers that are provided by the implementation,
-are collectively known as the <em>importable C++ library headers</em>.
-[<em>Note</em>: Importable C++ library headers can be imported as
-module units (10.3 [module.import]). 
-     <del>Including
-an importable C++ library header has the same effect
-as importing the corresponding header unit.</del>
-      — <em>end note</em>]
-[<em>Example</em>:
-    </p>
-<pre class="highlight"><c- n>import</c-> <c- o>&lt;</c-><c- n>vector</c-><c- o>></c-><c- p>;</c->         <c- c1>// imports the &lt;vector> header unit</c->
-<c- n>std</c-><c- o>::</c-><c- n>vector</c-><c- o>&lt;</c-><c- b>int</c-><c- o>></c-> <c- n>vi</c-><c- p>;</c->     <c- c1>// OK</c->
-</pre>
-<pre class="highlight"><del><c- cp>#include</c-> &lt;map>           // imports the &lt;map> header unit
-<c- n>std</c-><c- o>::</c-><c- n>map</c-><c- o>&lt;</c-><c- b>int</c-><c- p>,</c-> <c- b>int</c-><c- o>></c-> <c- n>mii</c-><c- p>;</c->  <c- c1>// OK</c->
-</del></pre>
-     — <em>end example</em>] 
-   </blockquote>
    <h3 class="heading settled" data-level="6.4" id="feature-test-macro"><span class="secno">6.4. </span><span class="content">Feature test macro</span><a class="self-link" href="#feature-test-macro"></a></h3>
    <p>While a feature test macro for this functionality is not obviously useful, a
 feature test macro for the Modules feature overall does seem useful.</p>

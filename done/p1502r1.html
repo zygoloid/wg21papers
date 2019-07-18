@@ -2,7 +2,7 @@
  <head>
   <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
   <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
-  <title>D1502R1: Standard library header units for C++20</title>
+  <title>P1502R1: Standard library header units for C++20</title>
 <style data-fill-with="stylesheet">/******************************************************************************
  *                   Style sheet for the W3C specifications                   *
  *
@@ -1496,8 +1496,8 @@ pre .property::before, pre .property::after {
  <body class="h-entry">
   <div class="head">
    <p data-fill-with="logo"></p>
-   <h1 class="p-name no-ref" id="title">D1502R1<br>Standard library header units for C++20</h1>
-   <h2 class="no-num no-toc no-ref heading settled" id="subtitle"><span class="content">Draft Proposal, <time class="dt-updated" datetime="2019-07-16">2019-07-16</time></span></h2>
+   <h1 class="p-name no-ref" id="title">P1502R1<br>Standard library header units for C++20</h1>
+   <h2 class="no-num no-toc no-ref heading settled" id="subtitle"><span class="content">Published Proposal, <time class="dt-updated" datetime="2019-07-18">2019-07-18</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
@@ -1640,10 +1640,11 @@ all other names are reserved for future standardization (eg, <code class="highli
 A <em>named module</em> is the collection of module units with the same <em>module-name</em>.
 The <em>identifier</em>s <code class="highlight"><c- n>module</c-></code> and <code class="highlight"><c- n>import</c-></code> shall not appear as <em>identifier</em>s
 in a <em>module-name</em> or <em>module-partition</em>. 
-     <ins> All <em>module-name</em>s beginning with an <em>identifier</em> comprising <code class="highlight"><c- n>std</c-></code> followed by zero or more <em>digit</em>s are
+     <ins> All <em>module-name</em>s beginning with an <em>identifier</em> consisting of <code class="highlight"><c- n>std</c-></code> followed by zero or more <em>digit</em>s
+or containing a reserved <em>identifier</em> (5.10 [lex.name]) are
 reserved and shall not be specified in a <em>module-declaration</em>;
 no diagnostic is required.
-If any <em>identifier</em> in a reserved <em>module-name</em> is a reserved identifier (5.10 [lex.name]),
+If any <em>identifier</em> in a reserved <em>module-name</em> is a reserved identifier,
 the module name is reserved for use by C++ implementations;
 otherwise it is reserved for future standardization.</ins>
       The optional <em>attribute-specifier-seq</em> appertains to the <em>module-declaration</em>.
@@ -1668,14 +1669,10 @@ or, for a freestanding implementation,
 the subset of such headers that are provided by the implementation,
 are collectively known as the <em>importable C++ library headers</em>.
 [<em>Note</em>: Importable C++ library headers can be imported as
-module units (10.3 [module.import]).
-Including an importable C++ library header has the same effect
-as importing the corresponding header unit. — <em>end note</em>]
+module units (10.3 [module.import]). — <em>end note</em>]
 [<em>Example</em>: 
 <pre class="highlight"><c- n>import</c-> <c- o>&lt;</c-><c- n>vector</c-><c- o>></c-><c- p>;</c->         <c- c1>// imports the &lt;vector> header unit</c->
 <c- n>std</c-><c- o>::</c-><c- n>vector</c-><c- o>&lt;</c-><c- b>int</c-><c- o>></c-> <c- n>vi</c-><c- p>;</c->     <c- c1>// OK</c->
-<c- cp>#include</c-> &lt;map>           // imports the &lt;map> header unit
-<c- n>std</c-><c- o>::</c-><c- n>map</c-><c- o>&lt;</c-><c- b>int</c-><c- p>,</c-> <c- b>int</c-><c- o>></c-> <c- n>mii</c-><c- p>;</c->  <c- c1>// OK</c->
 </pre>
      — <em>end example</em>] 
     </ins>
@@ -1705,9 +1702,8 @@ No diagnostic is required.
     </p>
    </blockquote>
    <h3 class="heading settled" data-level="4.5" id="feature-test-macro"><span class="secno">4.5. </span><span class="content">Feature test macro</span><a class="self-link" href="#feature-test-macro"></a></h3>
-   <p>No feature test macro is proposed for the core language changes.
-For the library functionality, add feature test macro <code class="highlight"><c- n>__cpp_lib_start_lifetime_at</c-></code> for header <code class="highlight"><c- o>&lt;</c-><c- n>memory</c-><c- o>></c-></code> with a suitable value to
-Table 36 in 17.3.1 [support.limits.general].</p>
+   <p>No feature test macro is proposed. Code that wants to work in the absence of
+this feature can use <code class="highlight"><c- cp>#include</c-></code> instead of <code class="highlight"><c- n>import</c-></code>.</p>
   </main>
 <script>
 (function() {

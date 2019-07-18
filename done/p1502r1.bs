@@ -1,12 +1,12 @@
 <pre class='metadata'>
 Title: Standard library header units for C++20
-Shortname: d1502
+Shortname: p1502
 Revision: 1
-Date: 2019-07-16
+Date: 2019-07-18
 Editor: Richard Smith, Google, richard@metafoo.co.uk
 Abstract: This paper proposes minimal support for modular use of the C++ standard library via header units.
 
-Status: D
+Status: P
 Group: wg21
 Audience: LWG
 URL: http://wg21.link/p1502r1
@@ -131,11 +131,12 @@ Change in 10.1 [module.unit] paragraph 1:
 > A *named module* is the collection of module units with the same *module-name*.
 > The *identifier*s `module` and `import` shall not appear as *identifier*s
 > in a *module-name* or *module-partition*. <ins>
-> All *module-name*s beginning with an *identifier* comprising
-> `std` followed by zero or more *digit*s are
+> All *module-name*s beginning with an *identifier* consisting of
+> `std` followed by zero or more *digit*s
+> or containing a reserved <em>identifier</em> (5.10 [lex.name]) are
 > reserved and shall not be specified in a *module-declaration*;
 > no diagnostic is required.
-> If any *identifier* in a reserved *module-name* is a reserved identifier (5.10 [lex.name]),
+> If any *identifier* in a reserved *module-name* is a reserved identifier,
 > the module name is reserved for use by C++ implementations;
 > otherwise it is reserved for future standardization.</ins>
 > The optional *attribute-specifier-seq* appertains to the *module-declaration*.
@@ -160,15 +161,11 @@ Add a new paragraph after 16.5.1.2 [headers] paragraph 3:
 > the subset of such headers that are provided by the implementation,
 > are collectively known as the *importable C++ library headers*.
 > [*Note*: Importable C++ library headers can be imported as
-> module units (10.3 [module.import]).
-> Including an importable C++ library header has the same effect
-> as importing the corresponding header unit. &mdash; *end note*]
+> module units (10.3 [module.import]). &mdash; *end note*]
 > [*Example*:
 > ```
 > import <vector>;         // imports the <vector> header unit
 > std::vector<int> vi;     // OK
-> #include <map>           // imports the <map> header unit
-> std::map<int, int> mii;  // OK
 > ```
 > &mdash; *end example*]
 
