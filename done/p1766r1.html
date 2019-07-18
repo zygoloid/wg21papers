@@ -2,7 +2,7 @@
  <head>
   <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
   <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
-  <title>D1766R1: Mitigating minor modules maladies</title>
+  <title>P1766R1: Mitigating minor modules maladies</title>
 <style data-fill-with="stylesheet">/******************************************************************************
  *                   Style sheet for the W3C specifications                   *
  *
@@ -1285,8 +1285,8 @@ Possible extra rowspan handling
     blockquote c-[vi] { color: inherit; } /* Name.Variable.Instance */
     blockquote c-[il] { color: inherit; } /* Literal.Number.Integer.Long */
   </style>
-  <meta content="Bikeshed version a3b64e58e069c2e8a9ffcadffb76601231663a47" name="generator">
-  <link href="http://wg21.link/d1766r1" rel="canonical">
+  <meta content="Bikeshed version 9c51ae462b4b8b2f14dbddcd7d4b5224375eccc0" name="generator">
+  <link href="http://wg21.link/p1766r1" rel="canonical">
   <link href="https://isocpp.org/favicon.ico" rel="icon">
 <style>/* style-md-lists */
 
@@ -1496,12 +1496,12 @@ pre .property::before, pre .property::after {
  <body class="h-entry">
   <div class="head">
    <p data-fill-with="logo"></p>
-   <h1 class="p-name no-ref" id="title">D1766R1<br>Mitigating minor modules maladies</h1>
-   <h2 class="no-num no-toc no-ref heading settled" id="subtitle"><span class="content">Draft Proposal, <time class="dt-updated" datetime="2019-06-16">2019-06-16</time></span></h2>
+   <h1 class="p-name no-ref" id="title">P1766R1<br>Mitigating minor modules maladies</h1>
+   <h2 class="no-num no-toc no-ref heading settled" id="subtitle"><span class="content">Published Proposal, <time class="dt-updated" datetime="2019-07-18">2019-07-18</time></span></h2>
    <div data-fill-with="spec-metadata">
     <dl>
      <dt>This version:
-     <dd><a class="u-url" href="http://wg21.link/d1766r1">http://wg21.link/d1766r1</a>
+     <dd><a class="u-url" href="http://wg21.link/p1766r1">http://wg21.link/p1766r1</a>
      <dt>Author:
      <dd>
       <dd class="editor p-author h-card vcard"><a class="p-name fn u-email email" href="mailto:richard@metafoo.co.uk">Richard Smith</a> (<span class="p-org org">Google</span>)
@@ -1548,7 +1548,11 @@ pre .property::before, pre .property::after {
       <li><a href="#proposed-resolution②"><span class="secno">4.2</span> <span class="content">Proposed resolution</span></a>
       <li><a href="#rationale-for-fixing-for-c20①"><span class="secno">4.3</span> <span class="content">Rationale for fixing for C++20</span></a>
      </ol>
-    <li><a href="#wording"><span class="secno">5</span> <span class="content">Wording</span></a>
+    <li>
+     <a href="#wording"><span class="secno">5</span> <span class="content">Wording</span></a>
+     <ol class="toc">
+      <li><a href="#feature-test"><span class="secno">5.1</span> <span class="content">Feature test macro</span></a>
+     </ol>
    </ol>
   </nav>
   <main>
@@ -1747,16 +1751,27 @@ and so the closure type is not given a name for linkage purposes.
 <c- k>typedef</c-> <c- nf>decltype</c-><c- p>([]{})</c-> <c- n>C</c-><c- p>;</c->
 </pre>
     -end example] 
-    <ins>An unnamed class with a typedef name for linkage purposes
-shall not declare any members other than non-static data members,
-shall not have any base classes or default member initializers,
-and shall not contain a <em>lambda-expression</em>.</ins>
-     [Example: 
-<pre class="highlight"><c- k>typedef</c-> <c- k>struct</c-> <c- p>{</c->
+    <ins>
+     An unnamed class with a typedef name for linkage purposes
+shall not 
+     <ul>
+      <li data-md>
+       <p>declare any members other than non-static data members,
+member enumerations, or member classes,</p>
+      <li data-md>
+       <p>have any base classes or default member initializers, or</p>
+      <li data-md>
+       <p>contain a <em>lambda-expression</em>,</p>
+     </ul>
+     <ins>
+      and all member classes shall also satisfy these requirements (recursively). [Example: 
+<pre class="highlight" style="color: #000; background-color: #c8ffc8"><c- k>typedef</c-> <c- k>struct</c-> <c- p>{</c->
   <c- b>int</c-> <c- n>f</c-><c- p>()</c-> <c- p>{}</c->
 <c- p>}</c-> <c- n>X</c-><c- p>;</c->            <c- c1>// error: struct with typedef name for linkage has member functions</c->
 </pre>
-    -end example] 
+       -end example] 
+     </ins>
+    </ins>
    </blockquote>
    <p>Change in 9.2.3.6 [dcl.fct.default] paragraph 4:</p>
    <blockquote>
@@ -1773,9 +1788,9 @@ unless the parameter was expanded from a parameter pack, or shall be a
 function parameter pack. 
      <ins>[Note:</ins>
       A default argument 
-     <del>shall</del>
-     <ins>can</ins>
-     not be
+     <del>shall not</del>
+     <ins>cannot</ins>
+      be
 redefined by a later declaration (not even to the same value) 
      <ins>([basic.def.odr])</ins>
      . 
@@ -1794,28 +1809,35 @@ unit.
    </blockquote>
    <p>Add two entries to C.5:</p>
    <blockquote>
-    <p><strong>Affected subclause:</strong> [dcl.typedef]<br> <strong>Change:</strong> Unnamed classes with a typedef name for linkage purposes
+    <div style="color: #000; background-color: #c8ffc8">
+      <strong>Affected subclause:</strong> [dcl.typedef]<br> <strong>Change:</strong> Unnamed classes with a typedef name for linkage purposes
 can only contain C-compatible constructs.<br> <strong>Rationale:</strong> Necessary for implementability.<br> <strong>Effect on original feature:</strong> Valid C++ 2017 code may be ill-formed
-in this International Standard.<br></p>
+in this International Standard.<br> 
 <pre class="highlight"><c- k>typedef</c-> <c- k>struct</c-> <c- p>{</c->
   <c- b>void</c-> <c- n>f</c-><c- p>()</c-> <c- p>{}</c->   <c- c1>// ill-formed; previously well-formed</c->
 <c- p>}</c-> <c- n>S</c-><c- p>;</c->
 </pre>
+    </div>
    </blockquote>
    <blockquote>
-    <p><strong>Affected subclause:</strong> [dcl.fct.default]<br> <strong>Change:</strong> A function cannot have different default arguments in
-different translation units.<br> <strong>Rationale:</strong> Required by new features.<br> <strong>Effect on original feature:</strong> Valid C++ 2017 code may be ill-formed
-in this International Standard, with no diagnostic required.<br></p>
+    <div style="color: #000; background-color: #c8ffc8">
+      <strong>Affected subclause:</strong> [dcl.fct.default]<br> <strong>Change:</strong> A function cannot have different default arguments in
+different translation units.<br> <strong>Rationale:</strong> Required for modules support.<br> <strong>Effect on original feature:</strong> Valid C++ 2017 code may be ill-formed
+in this International Standard, with no diagnostic required.<br> 
 <pre class="highlight"><c- c1>// Translation unit 1</c->
-<c- b>int</c-> <c- nf>f</c-><c- p>(</c-><c- b>int</c-> <c- n>a</c-> <c- o>=</c-> <c- mi>45</c-><c- p>);</c->
+<c- b>int</c-> <c- nf>f</c-><c- p>(</c-><c- b>int</c-> <c- n>a</c-> <c- o>=</c-> <c- mi>42</c-><c- p>);</c->
 <c- b>int</c-> <c- nf>g</c-><c- p>()</c-> <c- p>{</c-> <c- k>return</c-> <c- n>f</c-><c- p>();</c-> <c- p>}</c->
 </pre>
 <pre class="highlight"><c- c1>// Translation unit 2</c->
 <c- b>int</c-> <c- nf>f</c-><c- p>(</c-><c- b>int</c-> <c- n>a</c-> <c- o>=</c-> <c- mi>76</c-><c- p>)</c-> <c- p>{</c-> <c- k>return</c-> <c- n>a</c-><c- p>;</c-> <c- p>}</c-> <c- c1>// ill-formed (no diagnostic required); previously well-formed</c->
 <c- b>int</c-> <c- nf>g</c-><c- p>();</c->
-<c- b>int</c-> <c- nf>main</c-><c- p>()</c-> <c- p>{</c-> <c- k>return</c-> <c- n>g</c-><c- p>();</c-> <c- p>}</c->      <c- c1>// used to return 45</c->
+<c- b>int</c-> <c- nf>main</c-><c- p>()</c-> <c- p>{</c-> <c- k>return</c-> <c- n>g</c-><c- p>();</c-> <c- p>}</c->      <c- c1>// used to return 42</c->
 </pre>
+    </div>
    </blockquote>
+   <h3 class="heading settled" data-level="5.1" id="feature-test"><span class="secno">5.1. </span><span class="content">Feature test macro</span><a class="self-link" href="#feature-test"></a></h3>
+   <p>No feature test macro is proposed. Code wishing to be compatible across
+language standards should avoid the removed functionality.</p>
   </main>
 <script>
 (function() {

@@ -1,15 +1,15 @@
 <pre class='metadata'>
 Title: Mitigating minor modules maladies
-Shortname: d1766
+Shortname: p1766
 Revision: 1
-Date: 2019-06-16
+Date: 2019-07-18
 Editor: Richard Smith, Google, richard@metafoo.co.uk
 Abstract: This paper identifies three minor issues relevant to modules and suggests resolutions
 
-Status: D
+Status: P
 Group: wg21
 Audience: EWG
-URL: http://wg21.link/d1766r1
+URL: http://wg21.link/p1766r1
 Markup Shorthands: markdown yes
 </pre>
 
@@ -277,15 +277,19 @@ Change in 9.1.3 [dcl.typedef] paragraph 9:
 > ```
 > -end example]
 > <ins>An unnamed class with a typedef name for linkage purposes
-> shall not declare any members other than non-static data members,
-> shall not have any base classes or default member initializers,
-> and shall not contain a *lambda-expression*.</ins>
-> [Example:
-> ```
+> shall not
+>
+>   * declare any members other than non-static data members,
+>     member enumerations, or member classes,
+>   * have any base classes or default member initializers, or
+>   * contain a *lambda-expression*,
+>
+> <ins>and all member classes shall also satisfy these requirements (recursively). [Example:
+> <pre style="color: #000; background-color: #c8ffc8">
 > typedef struct {
 >   int f() {}
 > } X;            // error: struct with typedef name for linkage has member functions
-> ```
+> </pre>
 > -end example]
 
 Change in 9.2.3.6 [dcl.fct.default] paragraph 4:
@@ -299,7 +303,7 @@ Change in 9.2.3.6 [dcl.fct.default] paragraph 4:
 > declaration, each parameter subsequent to a parameter with a default argument
 > shall have a default argument supplied in this or a previous declaration,
 > unless the parameter was expanded from a parameter pack, or shall be a
-> function parameter pack. <ins>[Note:</ins> A default argument <del>shall</del> <ins>can</ins>not be
+> function parameter pack. <ins>[Note:</ins> A default argument <del>shall not</del> <ins>cannot</ins> be
 > redefined by a later declaration (not even to the same value) <ins>([basic.def.odr])</ins>. <ins>-end note]</ins> [Example: ...]
 > For a given inline function defined in different translation units, the
 > accumulated sets of default arguments at the end of the translation units
@@ -311,6 +315,7 @@ Change in 9.2.3.6 [dcl.fct.default] paragraph 4:
 
 Add two entries to C.5:
 
+> <div style="color: #000; background-color: #c8ffc8">
 > **Affected subclause:** [dcl.typedef]<br>
 > **Change:** Unnamed classes with a typedef name for linkage purposes
 > can only contain C-compatible constructs.<br>
@@ -322,21 +327,30 @@ Add two entries to C.5:
 >   void f() {}   // ill-formed; previously well-formed
 > } S;
 > ```
+> </div>
 
+> <div style="color: #000; background-color: #c8ffc8">
 > **Affected subclause:** [dcl.fct.default]<br>
 > **Change:** A function cannot have different default arguments in
 > different translation units.<br>
-> **Rationale:** Required by new features.<br>
+> **Rationale:** Required for modules support.<br>
 > **Effect on original feature:** Valid C++ 2017 code may be ill-formed
 > in this International Standard, with no diagnostic required.<br>
 > ```
 > // Translation unit 1
-> int f(int a = 45);
+> int f(int a = 42);
 > int g() { return f(); }
 > ```
 > ```
 > // Translation unit 2
 > int f(int a = 76) { return a; } // ill-formed (no diagnostic required); previously well-formed
 > int g();
-> int main() { return g(); }      // used to return 45
+> int main() { return g(); }      // used to return 42
 > ```
+> </div>
+
+Feature test macro {#feature-test}
+------------------
+
+No feature test macro is proposed. Code wishing to be compatible across
+language standards should avoid the removed functionality.
