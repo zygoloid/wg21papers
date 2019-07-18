@@ -238,9 +238,9 @@ Wording
 
 Change in 6.2 [basic.def.odr] paragraph 1:
 
-> A variable, function, class type, enumeration type, <del>or</del><ins>,</ins>
-> template<ins>, default argument for a parameter of a function in a particular
-> scope, or default template argument</ins>
+> A variable, function, class type, enumeration type, <del>or</del> template<ins>,
+> default argument for a parameter (for a function in a given
+> scope), or default template argument</ins>
 > shall not be defined where a prior definition is necessarily reachable (10.6);
 > no diagnostic is required if the prior declaration is in another translation unit.
 
@@ -252,8 +252,8 @@ Change in 6.2 [basic.def.odr] paragraph 12:
 > non-static function template (13.6.6), concept (13.6.8), static data member
 > of a class template (13.6.1.3), member function of a class template
 > (13.6.1.1), <del>or</del> template specialization for which some template parameters are
-> not specified (13.8, 13.6.5)<ins>, default argument for a parameter of a
-> function in a particular scope, or default template argument in a program
+> not specified (13.8, 13.6.5)<ins>, default argument for a parameter (for a
+> function in a given scope), or default template argument</ins> in a program
 > provided that no prior definition
 > is necessarily reachable (10.6) at the point where a definition appears, and
 > provided the definitions satisfy the following requirements. There shall not
@@ -299,12 +299,44 @@ Change in 9.2.3.6 [dcl.fct.default] paragraph 4:
 > declaration, each parameter subsequent to a parameter with a default argument
 > shall have a default argument supplied in this or a previous declaration,
 > unless the parameter was expanded from a parameter pack, or shall be a
-> function parameter pack. <ins>[Note:</ins> A default argument shall not be
+> function parameter pack. <ins>[Note:</ins> A default argument <del>shall</del> <ins>can</ins>not be
 > redefined by a later declaration (not even to the same value) <ins>([basic.def.odr])</ins>. <ins>-end note]</ins> [Example: ...]
 > For a given inline function defined in different translation units, the
 > accumulated sets of default arguments at the end of the translation units
-> shall be the same<del>; see 6.2</del>.
+> shall be the same; <del>see 6.2</del> <ins>no diagnostic is required.</ins>
 > If a friend declaration specifies a default
 > argument expression, that declaration shall be a definition and shall be the
 > only declaration of the function or function template in the translation
 > unit.
+
+Add two entries to C.5:
+
+> **Affected subclause:** [dcl.typedef]<br>
+> **Change:** Unnamed classes with a typedef name for linkage purposes
+> can only contain C-compatible constructs.<br>
+> **Rationale:** Necessary for implementability.<br>
+> **Effect on original feature:** Valid C++ 2017 code may be ill-formed
+> in this International Standard.<br>
+> ```
+> typedef struct {
+>   void f() {}   // ill-formed; previously well-formed
+> } S;
+> ```
+
+> **Affected subclause:** [dcl.fct.default]<br>
+> **Change:** A function cannot have different default arguments in
+> different translation units.<br>
+> **Rationale:** Required by new features.<br>
+> **Effect on original feature:** Valid C++ 2017 code may be ill-formed
+> in this International Standard, with no diagnostic required.<br>
+> ```
+> // Translation unit 1
+> int f(int a = 45);
+> int g() { return f(); }
+> ```
+> ```
+> // Translation unit 2
+> int f(int a = 76) { return a; } // ill-formed (no diagnostic required); previously well-formed
+> int g();
+> int main() { return g(); }      // used to return 45
+> ```

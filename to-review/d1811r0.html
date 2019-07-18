@@ -1532,7 +1532,13 @@ pre .property::before, pre .property::after {
      </ol>
     <li><a href="#alternatives"><span class="secno">4</span> <span class="content">Alternatives</span></a>
     <li><a href="#impl"><span class="secno">5</span> <span class="content">Implementation experience</span></a>
-    <li><a href="#wording"><span class="secno">6</span> <span class="content">Wording</span></a>
+    <li>
+     <a href="#wording"><span class="secno">6</span> <span class="content">Wording</span></a>
+     <ol class="toc">
+      <li><a href="#allow-redefinition-when-a-prior-definition-is-reachable"><span class="secno">6.1</span> <span class="content">Allow redefinition when a prior definition is reachable</span></a>
+      <li><a href="#cleanup-remove-now-unused-definition-of-necessarily-reachable-for-declarations"><span class="secno">6.2</span> <span class="content">Cleanup: remove now-unused definition of "necessarily reachable" for declarations</span></a>
+      <li><a href="#make-include-translation-optional"><span class="secno">6.3</span> <span class="content">Make <code class="highlight"><c- cp>#include</c-></code> translation optional</span></a>
+     </ol>
    </ol>
   </nav>
   <main>
@@ -1745,6 +1751,7 @@ named module import does not bring in macros).</p>
    <p>This approach has also been implemented in a branch of the Clang compiler, and
 confirmed to fix the redefinition errors in the above examples.</p>
    <h2 class="heading settled" data-level="6" id="wording"><span class="secno">6. </span><span class="content">Wording</span><a class="self-link" href="#wording"></a></h2>
+   <h3 class="heading settled" data-level="6.1" id="allow-redefinition-when-a-prior-definition-is-reachable"><span class="secno">6.1. </span><span class="content">Allow redefinition when a prior definition is reachable</span><a class="self-link" href="#allow-redefinition-when-a-prior-definition-is-reachable"></a></h3>
    <p>Change in 6.2 [basic.def.odr] paragraph 1:</p>
    <blockquote>
     <ins>No translation unit shall contain more than one definition of any</ins>
@@ -1773,7 +1780,45 @@ definition appears in a different translation unit</ins>
 provided the definitions satisfy the following requirements [...].
     </p>
    </blockquote>
-   <p><em>Drafting note:</em> These changes revert two edits from P1103R3.</p>
+   <p><em>Drafting note:</em> The two prior changes revert edits from P1103R3.</p>
+   <h3 class="heading settled" data-level="6.2" id="cleanup-remove-now-unused-definition-of-necessarily-reachable-for-declarations"><span class="secno">6.2. </span><span class="content">Cleanup: remove now-unused definition of "necessarily reachable" for declarations</span><a class="self-link" href="#cleanup-remove-now-unused-definition-of-necessarily-reachable-for-declarations"></a></h3>
+   <p>Change in 10.5 [module.context] paragraph 7:</p>
+   <blockquote>
+    <p>
+     [<em>Example</em>: …
+so the definition of <code class="highlight"><c- n>X</c-></code> 
+     <del>is not necessarily</del>
+     <ins>need not
+be</ins>
+      reachable, as described in [module.reach].
+—<em>end example</em>]
+    </p>
+   </blockquote>
+   <p>Change in 10.6 [module.reach] paragraph 3:</p>
+   <blockquote>
+    <p>
+     A declaration <em>D</em> is reachable 
+     <del>or necessarily reachable, respectively,</del>
+      if,
+for any point <em>P</em> in the instantiation context (10.5),
+    </p>
+    <ul>
+     <li data-md>
+      <p><em>D</em> appears prior to <em>P</em> in the same translation unit, or</p>
+     <li data-md>
+      <p>
+       <em>D</em> is not discarded (10.4), appears in a translation unit that is
+reachable 
+       <del>or necessarily reachable</del>
+        from <em>P</em>
+       <del>,
+respectively,</del>
+        and either does not appear within a <em>private-module-fragment</em> or appears in a <em>private-module-fragment</em> of the
+module containing <em>P</em>.
+      </p>
+    </ul>
+   </blockquote>
+   <h3 class="heading settled" data-level="6.3" id="make-include-translation-optional"><span class="secno">6.3. </span><span class="content">Make <code class="highlight"><c- cp>#include</c-></code> translation optional</span><a class="self-link" href="#make-include-translation-optional"></a></h3>
    <p>Change in 15.2 [cpp.include] paragraph 7:</p>
    <blockquote>
     <p>

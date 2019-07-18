@@ -274,6 +274,9 @@ confirmed to fix the redefinition errors in the above examples.
 Wording {#wording}
 =======
 
+Allow redefinition when a prior definition is reachable
+-------------------------------------------------------
+
 Change in 6.2 [basic.def.odr] paragraph 1:
 
 > <ins>No translation unit shall contain more than one definition of any</ins>
@@ -295,7 +298,32 @@ Change in 6.2 [basic.def.odr] paragraph 12:
 > definition appears in a different translation unit</ins>, and
 > provided the definitions satisfy the following requirements [...].
 
-*Drafting note:* These changes revert two edits from P1103R3.
+*Drafting note:* The two prior changes revert edits from P1103R3.
+
+Cleanup: remove now-unused definition of "necessarily reachable" for declarations
+---------------------------------------------------------------------------------
+
+Change in 10.5 [module.context] paragraph 7:
+
+> [*Example*: &hellip;
+> so the definition of `X` <del>is not necessarily</del> <ins>need not
+> be</ins> reachable, as described in [module.reach].
+> &mdash;*end example*]
+
+Change in 10.6 [module.reach] paragraph 3:
+
+> A declaration *D* is reachable <del>or necessarily reachable, respectively,</del> if,
+> for any point *P* in the instantiation context (10.5),
+>
+>   * *D* appears prior to *P* in the same translation unit, or
+>   * *D* is not discarded (10.4), appears in a translation unit that is
+>     reachable <del>or necessarily reachable</del> from *P*<del>,
+>     respectively,</del> and either does not appear within a
+>     *private-module-fragment* or appears in a *private-module-fragment* of the
+>     module containing *P*.
+
+Make `#include` translation optional
+------------------------------------
 
 Change in 15.2 [cpp.include] paragraph 7:
 

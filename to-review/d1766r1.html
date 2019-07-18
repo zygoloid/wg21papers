@@ -1703,10 +1703,10 @@ such function declaration is reachable where the other is encountered.</p>
     <p>
      A variable, function, class type, enumeration type, 
      <del>or</del>
-     <ins>,</ins>
       template
-     <ins>, default argument for a parameter of a function in a particular
-scope, or default template argument</ins>
+     <ins>,
+default argument for a parameter (for a function in a given
+scope), or default template argument</ins>
       shall not be defined where a prior definition is necessarily reachable (10.6);
 no diagnostic is required if the prior declaration is in another translation unit.
     </p>
@@ -1723,14 +1723,15 @@ of a class template (13.6.1.3), member function of a class template
      <del>or</del>
       template specialization for which some template parameters are
 not specified (13.8, 13.6.5)
-     <ins>, default argument for a parameter of a
-function in a particular scope, or default template argument in a program
+     <ins>, default argument for a parameter (for a
+function in a given scope), or default template argument</ins>
+      in a program
 provided that no prior definition
 is necessarily reachable (10.6) at the point where a definition appears, and
 provided the definitions satisfy the following requirements. There shall not
 be more than one definition of an entity that is attached to a named module
 (10.1); no diagnostic is required unless a prior definition is reachable at a
-point where a later definition appears.</ins>
+point where a later definition appears.
     </p>
    </blockquote>
    <p>Change in 9.1.3 [dcl.typedef] paragraph 9:</p>
@@ -1771,7 +1772,10 @@ shall have a default argument supplied in this or a previous declaration,
 unless the parameter was expanded from a parameter pack, or shall be a
 function parameter pack. 
      <ins>[Note:</ins>
-      A default argument shall not be
+      A default argument 
+     <del>shall</del>
+     <ins>can</ins>
+     not be
 redefined by a later declaration (not even to the same value) 
      <ins>([basic.def.odr])</ins>
      . 
@@ -1779,14 +1783,38 @@ redefined by a later declaration (not even to the same value)
       [Example: ...]
 For a given inline function defined in different translation units, the
 accumulated sets of default arguments at the end of the translation units
-shall be the same
-     <del>; see 6.2</del>
-     .
-If a friend declaration specifies a default
+shall be the same; 
+     <del>see 6.2</del>
+     <ins>no diagnostic is required.</ins>
+      If a friend declaration specifies a default
 argument expression, that declaration shall be a definition and shall be the
 only declaration of the function or function template in the translation
 unit.
     </p>
+   </blockquote>
+   <p>Add two entries to C.5:</p>
+   <blockquote>
+    <p><strong>Affected subclause:</strong> [dcl.typedef]<br> <strong>Change:</strong> Unnamed classes with a typedef name for linkage purposes
+can only contain C-compatible constructs.<br> <strong>Rationale:</strong> Necessary for implementability.<br> <strong>Effect on original feature:</strong> Valid C++ 2017 code may be ill-formed
+in this International Standard.<br></p>
+<pre class="highlight"><c- k>typedef</c-> <c- k>struct</c-> <c- p>{</c->
+  <c- b>void</c-> <c- n>f</c-><c- p>()</c-> <c- p>{}</c->   <c- c1>// ill-formed; previously well-formed</c->
+<c- p>}</c-> <c- n>S</c-><c- p>;</c->
+</pre>
+   </blockquote>
+   <blockquote>
+    <p><strong>Affected subclause:</strong> [dcl.fct.default]<br> <strong>Change:</strong> A function cannot have different default arguments in
+different translation units.<br> <strong>Rationale:</strong> Required by new features.<br> <strong>Effect on original feature:</strong> Valid C++ 2017 code may be ill-formed
+in this International Standard, with no diagnostic required.<br></p>
+<pre class="highlight"><c- c1>// Translation unit 1</c->
+<c- b>int</c-> <c- nf>f</c-><c- p>(</c-><c- b>int</c-> <c- n>a</c-> <c- o>=</c-> <c- mi>45</c-><c- p>);</c->
+<c- b>int</c-> <c- nf>g</c-><c- p>()</c-> <c- p>{</c-> <c- k>return</c-> <c- n>f</c-><c- p>();</c-> <c- p>}</c->
+</pre>
+<pre class="highlight"><c- c1>// Translation unit 2</c->
+<c- b>int</c-> <c- nf>f</c-><c- p>(</c-><c- b>int</c-> <c- n>a</c-> <c- o>=</c-> <c- mi>76</c-><c- p>)</c-> <c- p>{</c-> <c- k>return</c-> <c- n>a</c-><c- p>;</c-> <c- p>}</c-> <c- c1>// ill-formed (no diagnostic required); previously well-formed</c->
+<c- b>int</c-> <c- nf>g</c-><c- p>();</c->
+<c- b>int</c-> <c- nf>main</c-><c- p>()</c-> <c- p>{</c-> <c- k>return</c-> <c- n>g</c-><c- p>();</c-> <c- p>}</c->      <c- c1>// used to return 45</c->
+</pre>
    </blockquote>
   </main>
 <script>
