@@ -89,11 +89,10 @@ EWG polls:
     * Provide a typed version of `std::bless`
   * Added wording.
 
-Since [[P0594R4]]:
+Since P0594R4:
 
   * Incorporated LEWG feedback:
-    * Removed untyped version of `std::bless(p, n)`, favoring use of
-      `new (p) std::byte[n]` in its place.
+    * Removed untyped version of `std::bless(p, n)`, favoring use of `new (p) std::byte[n]` in its place.
     * Renamed typed version of `std::bless<T>` to `std::start_lifetime_as<T>`.
     * Add `volatile` variant of typed version.
 
@@ -664,7 +663,7 @@ Add the following after the declarations of `std::align` and `std::assume_aligne
 > ```
 > </ins>
 
-Add the following subclause immediately before 16.6.4 [ptr.launder]:
+Add the following subclause immediately after 20.10.6 [ptr.align]:
 
 20.10.x <ins>Explicit lifetime management</ins> [obj.lifetime]
 -------------------------------------------------------------

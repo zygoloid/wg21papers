@@ -1285,7 +1285,7 @@ Possible extra rowspan handling
     blockquote c-[vi] { color: inherit; } /* Name.Variable.Instance */
     blockquote c-[il] { color: inherit; } /* Literal.Number.Integer.Long */
   </style>
-  <meta content="Bikeshed version a3b64e58e069c2e8a9ffcadffb76601231663a47" name="generator">
+  <meta content="Bikeshed version 9c51ae462b4b8b2f14dbddcd7d4b5224375eccc0" name="generator">
   <link href="http://wg21.link/p1502r1" rel="canonical">
   <link href="https://isocpp.org/favicon.ico" rel="icon">
 <style>/* style-md-lists */
@@ -1536,6 +1536,7 @@ pre .property::before, pre .property::after {
       <li><a href="#103-import-declaration-moduleimport"><span class="secno">4.2</span> <span class="content">§10.3 Import declaration [module.import]</span></a>
       <li><a href="#16512-headers-headers"><span class="secno">4.3</span> <span class="content">§16.5.1.2 Headers [headers]</span></a>
       <li><a href="#16522-headers-usingheaders"><span class="secno">4.4</span> <span class="content">§16.5.2.2 Headers [using.headers]</span></a>
+      <li><a href="#feature-test-macro"><span class="secno">4.5</span> <span class="content">Feature test macro</span></a>
      </ol>
     <li>
      <a href="#references"><span class="secno"></span> <span class="content">References</span></a>
@@ -1703,6 +1704,10 @@ and shall include the header
 No diagnostic is required.
     </p>
    </blockquote>
+   <h3 class="heading settled" data-level="4.5" id="feature-test-macro"><span class="secno">4.5. </span><span class="content">Feature test macro</span><a class="self-link" href="#feature-test-macro"></a></h3>
+   <p>No feature test macro is proposed for the core language changes.
+For the library functionality, add feature test macro <code class="highlight"><c- n>__cpp_lib_start_lifetime_at</c-></code> for header <code class="highlight"><c- o>&lt;</c-><c- n>memory</c-><c- o>></c-></code> with a suitable value to
+Table 36 in 17.3.1 [support.limits.general].</p>
   </main>
 <script>
 (function() {

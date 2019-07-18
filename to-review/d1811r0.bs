@@ -356,3 +356,12 @@ If P1502R1 is also applied, change in the text it added as 16.5.1.2 [headers] pa
 > </del>
 > </pre>
 > &mdash; *end example*]
+
+Feature test macro
+------------------
+
+While a feature test macro for this functionality is not obviously useful, a
+feature test macro for the Modules feature overall does seem useful.
+
+Add a feature test macro `__cpp_modules` with a suitable value to Table 17 in
+15.10 [cpp.predefined].

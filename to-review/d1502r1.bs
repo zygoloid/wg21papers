@@ -190,3 +190,11 @@ Change in 16.5.2.2 [using.headers] paragraph 3:
 > and shall include the header <ins>or import the corresponding header unit</ins>
 > lexically before the first reference in that translation unit to any of the entities declared in that header.
 > No diagnostic is required.
+
+Feature test macro
+------------------
+
+No feature test macro is proposed for the core language changes.
+For the library functionality, add feature test macro
+`__cpp_lib_start_lifetime_at` for header `<memory>` with a suitable value to
+Table 36 in 17.3.1 [support.limits.general].

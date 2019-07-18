@@ -1285,7 +1285,7 @@ Possible extra rowspan handling
     blockquote c-[vi] { color: inherit; } /* Name.Variable.Instance */
     blockquote c-[il] { color: inherit; } /* Literal.Number.Integer.Long */
   </style>
-  <meta content="Bikeshed version a3b64e58e069c2e8a9ffcadffb76601231663a47" name="generator">
+  <meta content="Bikeshed version 9c51ae462b4b8b2f14dbddcd7d4b5224375eccc0" name="generator">
   <link href="http://wg21.link/p1811r0" rel="canonical">
   <link href="https://isocpp.org/favicon.ico" rel="icon">
 <style>/* style-md-lists */
@@ -1538,6 +1538,7 @@ pre .property::before, pre .property::after {
       <li><a href="#allow-redefinition-when-a-prior-definition-is-reachable"><span class="secno">6.1</span> <span class="content">Allow redefinition when a prior definition is reachable</span></a>
       <li><a href="#cleanup-remove-now-unused-definition-of-necessarily-reachable-for-declarations"><span class="secno">6.2</span> <span class="content">Cleanup: remove now-unused definition of "necessarily reachable" for declarations</span></a>
       <li><a href="#make-include-translation-optional"><span class="secno">6.3</span> <span class="content">Make <code class="highlight"><c- cp>#include</c-></code> translation optional</span></a>
+      <li><a href="#feature-test-macro"><span class="secno">6.4</span> <span class="content">Feature test macro</span></a>
      </ol>
    </ol>
   </nav>
@@ -1854,6 +1855,11 @@ as importing the corresponding header unit.</del>
 </del></pre>
      — <em>end example</em>] 
    </blockquote>
+   <h3 class="heading settled" data-level="6.4" id="feature-test-macro"><span class="secno">6.4. </span><span class="content">Feature test macro</span><a class="self-link" href="#feature-test-macro"></a></h3>
+   <p>While a feature test macro for this functionality is not obviously useful, a
+feature test macro for the Modules feature overall does seem useful.</p>
+   <p>Add a feature test macro <code class="highlight"><c- n>__cpp_modules</c-></code> with a suitable value to Table 17 in
+15.10 [cpp.predefined].</p>
   </main>
 <script>
 (function() {
