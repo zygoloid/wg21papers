@@ -1558,6 +1558,7 @@ pre .property::before, pre .property::after {
       <li><a href="#20102-header-memory-synopsis-memorysyn"><span class="secno">4.10</span> <span class="content">20.10.2 Header <code class="highlight"><c- o>&lt;</c-><c- n>memory</c-><c- o>></c-></code> synopsis [memory.syn]</span></a>
       <li><a href="#2010x-explicit-lifetime-management-objlifetime"><span class="secno">4.11</span> <span class="content">20.10.x <ins>Explicit lifetime management</ins> [obj.lifetime]</span></a>
       <li><a href="#c5-c-and-iso-c-2017-diffcpp17"><span class="secno">4.12</span> <span class="content">C.5 C++ and ISO C++ 2017 [diff.cpp17]</span></a>
+      <li><a href="#feature-test-macro"><span class="secno">4.13</span> <span class="content">Feature test macro</span></a>
      </ol>
     <li><a href="#acknowledgments"><span class="secno">5</span> <span class="content">Acknowledgments</span></a>
     <li>
@@ -1568,6 +1569,7 @@ pre .property::before, pre .property::after {
    </ol>
   </nav>
   <main>
+   <p>This paper resolves CWG2325.</p>
    <h2 class="heading settled" data-level="1" id="change-history"><span class="secno">1. </span><span class="content">Change history</span><a class="self-link" href="#change-history"></a></h2>
    <p>Since <a data-link-type="biblio" href="#biblio-p0593r0">[P0593R0]</a>:</p>
    <ul>
@@ -1583,7 +1585,7 @@ a proposed solution, based on SG12 discussion.</p>
 created. Existing obvious markers, such as the use of <code class="highlight"><c- n>malloc</c-></code>, or simply
 performing member access on a union, suffice.</p>
     <li data-md>
-     <p>Expand set of implicit lifetime types to require <em>either</em> a trivial default
+     <p>Expand set of implicit-lifetime types to require <em>either</em> a trivial default
 constructor <em>or</em> a trivial copy/move constructor, rather than requiring both.</p>
      <ul>
       <li data-md>
@@ -1613,7 +1615,7 @@ based on objections from an implementer.</p>
      <p>Incorporated EWG feedback:</p>
      <ul>
       <li data-md>
-       <p>Aggregates are considered implicit lifetime types</p>
+       <p>Aggregates are considered implicit-lifetime types</p>
       <li data-md>
        <p>Provide a typed version of <code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>bless</c-></code></p>
      </ul>
@@ -1737,7 +1739,7 @@ types even if the aggregate contains an element with a non-trivial destructor.</
    <p>(Put another way, we can apply this to all types other than function type,
 reference type, <code class="highlight"><c- b>void</c-></code>, and class types where all constructors are non-trivial
 or where the destructor is non-trivial.)</p>
-   <p>We will call types that satisfy the above constraints <em>implicit lifetime types</em>.</p>
+   <p>We will call types that satisfy the above constraints <em>implicit-lifetime types</em>.</p>
    <h3 class="heading settled" data-level="3.2" id="when-to-create-objects"><span class="secno">3.2. </span><span class="content">When to create objects</span><a class="self-link" href="#when-to-create-objects"></a></h3>
    <p>In the above cases, it would be sufficient for <code class="highlight"><c- n>malloc</c-></code> / <code class="highlight"><c- o>::</c-><c- k>operator</c-> <c- k>new</c-></code> to implicitly create sufficient objects to make the examples work. Imagine
 that <code class="highlight"><c- n>malloc</c-></code> could "look into the future" and see how its storage would be
@@ -1771,8 +1773,8 @@ is not a good path forward.</p>
    <p>Therefore we propose the following rule:</p>
    <blockquote>
     <p>Some operations are described as implicitly creating objects within a
-specified region of storage. The abstract machine creates objects of implicit
-lifetime types within those regions of storage as needed to give the program
+specified region of storage. The abstract machine creates objects of
+implicit-lifetime types within those regions of storage as needed to give the program
 defined behavior. For each operation that is specified as implicitly creating
 objects, that operation implicitly creates zero or more objects in its
 specified region of storage if doing so would give the program defined
@@ -1924,17 +1926,17 @@ of the program is defined.</p>
    <h3 class="heading settled" data-level="3.7" id="direct-object-creation"><span class="secno">3.7. </span><span class="content">Direct object creation</span><a class="self-link" href="#direct-object-creation"></a></h3>
    <p>In some cases it is desirable to change the dynamic type of existing storage
 while maintaining the object representation. If the destination type is an
-implicit lifetime type, this can be accomplished by usage of <code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>bless</c-></code> to
+implicit-lifetime type, this can be accomplished by usage of <code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>bless</c-></code> to
 change the type, followed by <code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>launder</c-></code> to acquire a pointer to the
 newly-created object. However, for expressivity and optimizability, a combined
-operation to create an object of implicit lifetime type in-place while
+operation to create an object of implicit-lifetime type in-place while
 preserving the object representation may be useful. For this we propose:</p>
 <pre class="highlight"><c- c1>// Effects: create an object of implicit lifetype type T in the storage</c->
 <c- c1>//          pointed to by T, while preserving the object representation.</c->
 <c- k>template</c-><c- o>&lt;</c-><c- k>typename</c-> <c- n>T</c-><c- o>></c-> <c- n>T</c-> <c- o>*</c-><c- n>start_lifetime_as</c-><c- p>(</c-><c- b>void</c-> <c- o>*</c-><c- n>p</c-><c- p>);</c->
 </pre>
    <p>Note that such an operation is not sufficient to implement <i><code class="highlight"><c- n>node_handle</c-></code></i> (<a data-link-type="biblio" href="#biblio-p0083r3">[P0083R3]</a>) for map-like containers. <i><code class="highlight"><c- n>node_handle</c-></code></i> requires the
-ability to take a <code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>pair</c-><c- o>&lt;</c-><c- k>const</c-> <c- n>Key</c-><c- p>,</c-> <c- n>Value</c-><c- o>></c-></code> and permit mutation of the <code class="highlight"><c- n>Key</c-></code> portion (without destroying and recreating the <code class="highlight"><c- n>Key</c-></code> object), even when <code class="highlight"><c- n>Key</c-></code> is not an implicit lifetime type, so the above operation does not
+ability to take a <code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>pair</c-><c- o>&lt;</c-><c- k>const</c-> <c- n>Key</c-><c- p>,</c-> <c- n>Value</c-><c- o>></c-></code> and permit mutation of the <code class="highlight"><c- n>Key</c-></code> portion (without destroying and recreating the <code class="highlight"><c- n>Key</c-></code> object), even when <code class="highlight"><c- n>Key</c-></code> is not an implicit-lifetime type, so the above operation does not
 suffice. However, we could imagine extending its semantics to also permit
 conversions where each subobject of non-implicit-lifetime type in the
 destination corresponds to an object of the same type (ignoring
@@ -1959,19 +1961,21 @@ when a temporary object is created (7.3.4, 6.6.7). [...]
    <blockquote>
     <ins>Some operations are described as <i>implicitly creating objects</i> within a specified region of storage.
 For each operation that is specified as implicitly creating objects,
-that operation implicitly creates zero or more objects
-of implicit lifetime types (6.7 [basic.types])
+that operation implicitly creates and starts the lifetime of zero or more objects
+of implicit-lifetime types (6.7 [basic.types])
 in its specified region of storage
 if doing so would result in the program having defined behavior.
 If no such sets of objects would give the program defined behavior,
-the behavior of the program is undefined.</ins>
+the behavior of the program is undefined.
+[<em>Note</em>: Such operations do not start the lifetimes of subobjects
+of such objects that are not themselves of implicit-lifetime types. -<em>end note</em>]</ins>
    </blockquote>
    <p>Add an example following the new paragraph:</p>
    <blockquote>
     <ins>
      [ Example: 
-<pre class="highlight"><c- cp>#include</c-> &lt;cstdlib>
-<c- k>struct</c-> <c- n>X</c-> <c- p>{</c-> <c- b>int</c-> <c- n>a</c-><c- p>,</c-> <c- n>b</c-><c- p>;</c-> <c- p>};</c->
+<pre class="highlight" style="color: #000; background-color: #c8ffc8"><c- cp>#include</c-> <cstdlib>
+struct X { int a, b; };
 <c- n>X</c-> <c- o>*</c-><c- nf>make_x</c-><c- p>()</c-> <c- p>{</c->
   <c- c1>// The call to std::malloc implicitly creates an object of type X</c->
   <c- c1>// and its subobjects a and b in order to give the subsequent</c->
@@ -1981,8 +1985,8 @@ the behavior of the program is undefined.</ins>
   <c- n>p</c-><c- o>-></c-><c- n>b</c-> <c- o>=</c-> <c- mi>2</c-><c- p>;</c->
   <c- k>return</c-> <c- n>p</c-><c- p>;</c->
 <c- p>}</c->
-</pre>
-     -- end example ]
+</cstdlib></pre>
+      -- end example ]
     </ins>
    </blockquote>
    <p>Add another paragraph:</p>
@@ -2060,18 +2064,20 @@ a trivial, non-deleted destructor.</ins>
    <p>Add paragraph after 19.10.9.2 [allocator.traits.members] paragraph 1:</p>
    <blockquote>
     <ins><i>Remarks:</i> Implicitly creates objects (6.6.2 [intro.object])
-in the reused region of storage.</ins>
+in the returned region of storage.</ins>
    </blockquote>
    <p>Add paragraph after 19.10.9.2 [allocator.traits.members] paragraph 2:</p>
    <blockquote>
     <ins><i>Remarks:</i> Implicitly creates objects (6.6.2 [intro.object])
-in the reused region of storage.</ins>
+in the returned region of storage.</ins>
    </blockquote>
    <h3 class="heading settled" data-level="4.8" id="191012-c-library-memory-allocation-cmalloc"><span class="secno">4.8. </span><span class="content">19.10.12 C library memory allocation [c.malloc]</span><a class="self-link" href="#191012-c-library-memory-allocation-cmalloc"></a></h3>
    <p>Add a new paragraph after [c.malloc] paragraph 4 in the description of <code class="highlight"><c- n>aligned_alloc</c-></code>, <code class="highlight"><c- n>calloc</c-></code>, <code class="highlight"><c- n>malloc</c-></code>, and <code class="highlight"><c- n>realloc</c-></code>:</p>
    <blockquote>
     <ins>These functions implicitly create objects (6.6.2 [intro.object])
-in the returned region of storage.</ins>
+in the returned region of storage. In the case of <code class="highlight"><c- n>calloc</c-></code> and <code class="highlight"><c- n>realloc</c-></code>,
+the objects are created before the storage is zeroed or copied,
+respectively.</ins>
    </blockquote>
    <h3 class="heading settled" data-level="4.9" id="2053-header-cstring-synopsis-cstringsyn"><span class="secno">4.9. </span><span class="content">20.5.3 Header <code class="highlight"><c- o>&lt;</c-><c- n>cstring</c-><c- o>></c-></code> synopsis [cstring.syn]</span><a class="self-link" href="#2053-header-cstring-synopsis-cstringsyn"></a></h3>
    <p>Change in 20.5.3 [cstring.syn] paragraph 3:</p>
@@ -2087,23 +2093,23 @@ immediately prior to copying the sequence of characters to the destination.</ins
    <p>Add the following after the declarations of <code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>align</c-></code> and <code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>assume_aligned</c-></code>:</p>
    <blockquote>
     <ins>
-<pre class="highlight"><c- c1>// [obj.lifetime] Explicit lifetime management</c->
-<c- k>template</c-><c- o>&lt;</c-><c- k>typename</c-> <c- n>T</c-><c- o>></c-> <c- n>T</c-> <c- o>*</c-><c- n>std</c-><c- o>::</c-><c- n>start_lifetime_as</c-><c- p>(</c-><c- b>void</c-> <c- o>*</c-><c- n>p</c-><c- p>);</c->
-<c- k>template</c-><c- o>&lt;</c-><c- k>typename</c-> <c- n>T</c-><c- o>></c-> <c- k>volatile</c-> <c- n>T</c-> <c- o>*</c-><c- n>std</c-><c- o>::</c-><c- n>start_lifetime_as</c-><c- p>(</c-><c- k>volatile</c-> <c- b>void</c-> <c- o>*</c-><c- n>p</c-><c- p>);</c->
-</pre>
+<pre class="highlight" style="color: #000; background-color: #c8ffc8"><c- c1>// [obj.lifetime] Explicit lifetime management</c->
+<c- k>template</c-><typename t> <c- n>T</c-> <c- o>*</c-><c- n>std</c-><c- o>::</c-><c- n>start_lifetime_as</c-><c- p>(</c-><c- b>void</c-> <c- o>*</c-><c- n>p</c-><c- p>);</c->
+<c- k>template</c-><typename t> <c- k>volatile</c-> <c- n>T</c-> <c- o>*</c-><c- n>std</c-><c- o>::</c-><c- n>start_lifetime_as</c-><c- p>(</c-><c- k>volatile</c-> <c- b>void</c-> <c- o>*</c-><c- n>p</c-><c- p>);</c->
+</typename></typename></pre>
     </ins>
    </blockquote>
    <p>Add the following subclause immediately after 20.10.6 [ptr.align]:</p>
    <h3 class="heading settled" data-level="4.11" id="2010x-explicit-lifetime-management-objlifetime"><span class="secno">4.11. </span><span class="content">20.10.x <ins>Explicit lifetime management</ins> [obj.lifetime]</span><a class="self-link" href="#2010x-explicit-lifetime-management-objlifetime"></a></h3>
    <blockquote>
     <ins>
-<pre class="highlight"><c- k>template</c-><c- o>&lt;</c-><c- k>typename</c-> <c- n>T</c-><c- o>></c-> <c- n>T</c-> <c- o>*</c-><c- n>std</c-><c- o>::</c-><c- n>start_lifetime_as</c-><c- p>(</c-><c- b>void</c-> <c- o>*</c-><c- n>p</c-><c- p>);</c->
-<c- k>template</c-><c- o>&lt;</c-><c- k>typename</c-> <c- n>T</c-><c- o>></c-> <c- k>volatile</c-> <c- n>T</c-> <c- o>*</c-><c- n>std</c-><c- o>::</c-><c- n>start_lifetime_as</c-><c- p>(</c-><c- k>volatile</c-> <c- b>void</c-> <c- o>*</c-><c- n>p</c-><c- p>);</c->
-</pre>
+<pre class="highlight" style="color: #000; background-color: #c8ffc8"><c- k>template</c-><typename t> <c- n>T</c-> <c- o>*</c-><c- n>std</c-><c- o>::</c-><c- n>start_lifetime_as</c-><c- p>(</c-><c- b>void</c-> <c- o>*</c-><c- n>p</c-><c- p>);</c->
+<c- k>template</c-><typename t> <c- k>volatile</c-> <c- n>T</c-> <c- o>*</c-><c- n>std</c-><c- o>::</c-><c- n>start_lifetime_as</c-><c- p>(</c-><c- k>volatile</c-> <c- b>void</c-> <c- o>*</c-><c- n>p</c-><c- p>);</c->
+</typename></typename></pre>
     </ins>
    </blockquote>
    <blockquote>
-    <ins><em>Mandates:</em> <code class="highlight"><c- n>T</c-></code> is an implicit lifetime type. </ins>
+    <ins><em>Mandates:</em> <code class="highlight"><c- n>T</c-></code> is an implicit-lifetime type. </ins>
    </blockquote>
    <blockquote>
     <ins><em>Requires:</em> [<code class="highlight"><c- n>p</c-></code>, <code class="highlight"><c- p>(</c-><c- b>char</c-><c- o>*</c-><c- p>)</c-><c- n>p</c-> <c- o>+</c-> <c- k>sizeof</c-><c- p>(</c-><c- n>T</c-><c- p>)</c-></code>) denotes a region of allocated
@@ -2113,7 +2119,7 @@ storage that is a subset of the region of storage reachable through <code class=
     <ins><em>Effects:</em> Implicitly creates objects within the denoted region,
 including an object <code class="highlight"><c- n>A</c-></code> of type <code class="highlight"><c- n>T</c-></code> whose address is <code class="highlight"><c- n>p</c-></code>. The object
 representation of <code class="highlight"><c- n>A</c-></code> is the contents of the storage prior to the
-call to <code class="highlight"><c- n>bless</c-></code> as if by calling <code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>memcpy</c-></code> from a copy of the
+call to <code class="highlight"><c- n>start_lifetime_as</c-></code> as if by calling <code class="highlight"><c- n>std</c-><c- o>::</c-><c- n>memcpy</c-></code> from a copy of the
 original storage, except that the storage is not accessed.</ins>
    </blockquote>
    <blockquote>
@@ -2126,7 +2132,7 @@ original storage, except that the storage is not accessed.</ins>
       <strong>Affected subclause:</strong> [basic.life]<br> <strong>Change:</strong> A pseudo-destructor call ends the lifetime of the object to
 which it is applied.<br> <strong>Rationale:</strong> Increase consistency of the language model.<br> <strong>Effect on original feature:</strong> Valid ISO C++ 2017 code may be ill-formed
 or have undefined behavior in this International Standard.<br> 
-<pre class="highlight"><c- k>constexpr</c-> <c- b>int</c-> <c- nf>f</c-><c- p>()</c-> <c- p>{</c->
+<pre class="highlight" style="color: #000; background-color: #c8ffc8"><c- k>constexpr</c-> <c- b>int</c-> <c- nf>f</c-><c- p>()</c-> <c- p>{</c->
   <c- b>int</c-> <c- n>a</c-> <c- o>=</c-> <c- mi>123</c-><c- p>;</c->
   <c- k>using</c-> <c- n>T</c-> <c- o>=</c-> <c- b>int</c-><c- p>;</c->
   <c- n>a</c-><c- p>.</c-><c- o>~</c-><c- n>T</c-><c- p>();</c->
@@ -2136,6 +2142,10 @@ or have undefined behavior in this International Standard.<br>
 </pre>
     </ins>
    </blockquote>
+   <h3 class="heading settled" data-level="4.13" id="feature-test-macro"><span class="secno">4.13. </span><span class="content">Feature test macro</span><a class="self-link" href="#feature-test-macro"></a></h3>
+   <p>No feature test macro is proposed for the core language changes.
+For the library functionality, add feature test macro <code class="highlight"><c- n>__cpp_lib_start_lifetime_at</c-></code> for header <code class="highlight"><c- o>&lt;</c-><c- n>memory</c-><c- o>></c-></code> with a suitable value to
+Table 36 in 17.3.1 [support.limits.general].</p>
    <h2 class="heading settled" data-level="5" id="acknowledgments"><span class="secno">5. </span><span class="content">Acknowledgments</span><a class="self-link" href="#acknowledgments"></a></h2>
    <p>Thanks to Ville Voutilainen for raising this problem, and to the members of
 SG12 for discussing possible solutions.</p>

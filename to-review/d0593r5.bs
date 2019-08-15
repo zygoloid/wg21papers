@@ -14,6 +14,8 @@ URL: http://wg21.link/p0593r4
 Markup Shorthands: markdown yes
 </pre>
 
+This paper resolves CWG2325.
+
 Change history
 ==============
 
@@ -49,7 +51,7 @@ Incorporated further SG12 feedback:
   * An explicit syntactic marker is required to indicate that objects should be
     created. Existing obvious markers, such as the use of `malloc`, or simply
     performing member access on a union, suffice.
-  * Expand set of implicit lifetime types to require *either* a trivial default
+  * Expand set of implicit-lifetime types to require *either* a trivial default
     constructor *or* a trivial copy/move constructor, rather than requiring both.
       * Types with only a trivial default constructor may be suitable for
         member-by-member construction via class member access, even if the copy
@@ -79,13 +81,13 @@ Since [[P0593R3]]:
 
 EWG polls:
  * D0593R4 as presented for C++20 (22 11  4  1  0)
- * aggregates as implicit lifetime types for C++20 (20 12  2  0  0)
+ * aggregates as implicit-lifetime types for C++20 (20 12  2  0  0)
  * provide a typed version of 'bless' for C++20 (24 11  0  1  0)
 
 -->
 
   * Incorporated EWG feedback:
-    * Aggregates are considered implicit lifetime types
+    * Aggregates are considered implicit-lifetime types
     * Provide a typed version of `std::bless`
   * Added wording.
 
@@ -238,7 +240,7 @@ This suggests that the largest set of types we could apply this to is:
 reference type, `void`, and class types where all constructors are non-trivial
 or where the destructor is non-trivial.)
 
-We will call types that satisfy the above constraints *implicit lifetime types*.
+We will call types that satisfy the above constraints *implicit-lifetime types*.
 
 When to create objects
 ----------------------
@@ -282,8 +284,8 @@ is not a good path forward.
 Therefore we propose the following rule:
 
 > Some operations are described as implicitly creating objects within a
-> specified region of storage. The abstract machine creates objects of implicit
-> lifetime types within those regions of storage as needed to give the program
+> specified region of storage. The abstract machine creates objects of
+> implicit-lifetime types within those regions of storage as needed to give the program
 > defined behavior. For each operation that is specified as implicitly creating
 > objects, that operation implicitly creates zero or more objects in its
 > specified region of storage if doing so would give the program defined
@@ -481,10 +483,10 @@ Direct object creation
 
 In some cases it is desirable to change the dynamic type of existing storage
 while maintaining the object representation. If the destination type is an
-implicit lifetime type, this can be accomplished by usage of `std::bless` to
+implicit-lifetime type, this can be accomplished by usage of `std::bless` to
 change the type, followed by `std::launder` to acquire a pointer to the
 newly-created object. However, for expressivity and optimizability, a combined
-operation to create an object of implicit lifetime type in-place while
+operation to create an object of implicit-lifetime type in-place while
 preserving the object representation may be useful. For this we propose:
 
 ```
@@ -497,7 +499,7 @@ Note that such an operation is not sufficient to implement <i>`node_handle`</i>
 ([[P0083R3]]) for map-like containers. <i>`node_handle`</i> requires the
 ability to take a `std::pair<const Key, Value>` and permit mutation of the
 `Key` portion (without destroying and recreating the `Key` object), even when
-`Key` is not an implicit lifetime type, so the above operation does not
+`Key` is not an implicit-lifetime type, so the above operation does not
 suffice. However, we could imagine extending its semantics to also permit
 conversions where each subobject of non-implicit-lifetime type in the
 destination corresponds to an object of the same type (ignoring
@@ -525,17 +527,19 @@ Add a new paragraph at the end of [intro.object]:
 > <ins>Some operations are described as <i>implicitly creating objects</i>
 > within a specified region of storage.
 > For each operation that is specified as implicitly creating objects,
-> that operation implicitly creates zero or more objects
-> of implicit lifetime types (6.7 [basic.types])
+> that operation implicitly creates and starts the lifetime of zero or more objects
+> of implicit-lifetime types (6.7 [basic.types])
 > in its specified region of storage
 > if doing so would result in the program having defined behavior.
 > If no such sets of objects would give the program defined behavior,
-> the behavior of the program is undefined.</ins>
+> the behavior of the program is undefined.
+> [*Note*: Such operations do not start the lifetimes of subobjects
+> of such objects that are not themselves of implicit-lifetime types. -*end note*]</ins>
 
 Add an example following the new paragraph:
 
 > <ins>[ Example:
-> ```
+> <pre style="color: #000; background-color: #c8ffc8">
 > #include <cstdlib>
 > struct X { int a, b; };
 > X *make_x() {
@@ -547,7 +551,7 @@ Add an example following the new paragraph:
 >   p->b = 2;
 >   return p;
 > }
-> ```
+> </pre>
 > -- end example ]</ins>
 
 Add another paragraph:
@@ -624,12 +628,12 @@ Add a new paragraph at the end of [class.prop]:
 Add paragraph after 19.10.9.2 [allocator.traits.members] paragraph 1:
 
 > <ins><i>Remarks:</i> Implicitly creates objects (6.6.2 [intro.object])
-> in the reused region of storage.</ins>
+> in the returned region of storage.</ins>
 
 Add paragraph after 19.10.9.2 [allocator.traits.members] paragraph 2:
 
 > <ins><i>Remarks:</i> Implicitly creates objects (6.6.2 [intro.object])
-> in the reused region of storage.</ins>
+> in the returned region of storage.</ins>
 
 19.10.12 C library memory allocation [c.malloc]
 -----------------------------------------------
@@ -638,7 +642,9 @@ Add a new paragraph after [c.malloc] paragraph 4 in the description of
 `aligned_alloc`, `calloc`, `malloc`, and `realloc`:
 
 > <ins>These functions implicitly create objects (6.6.2 [intro.object])
-> in the returned region of storage.</ins>
+> in the returned region of storage. In the case of `calloc` and `realloc`,
+> the objects are created before the storage is zeroed or copied,
+> respectively.</ins>
 
 20.5.3 Header `<cstring>` synopsis [cstring.syn]
 ------------------------------------------------
@@ -656,11 +662,11 @@ Change in 20.5.3 [cstring.syn] paragraph 3:
 Add the following after the declarations of `std::align` and `std::assume_aligned`:
 
 > <ins>
-> ```
+> <pre style="color: #000; background-color: #c8ffc8">
 > // [obj.lifetime] Explicit lifetime management
 > template<typename T> T *std::start_lifetime_as(void *p);
 > template<typename T> volatile T *std::start_lifetime_as(volatile void *p);
-> ```
+> </pre>
 > </ins>
 
 Add the following subclause immediately after 20.10.6 [ptr.align]:
@@ -669,13 +675,13 @@ Add the following subclause immediately after 20.10.6 [ptr.align]:
 -------------------------------------------------------------
 
 > <ins>
-> ```
+> <pre style="color: #000; background-color: #c8ffc8">
 > template<typename T> T *std::start_lifetime_as(void *p);
 > template<typename T> volatile T *std::start_lifetime_as(volatile void *p);
-> ```
+> </pre>
 > </ins>
 
-> <ins>*Mandates:* `T` is an implicit lifetime type.
+> <ins>*Mandates:* `T` is an implicit-lifetime type.
 
 > <ins>*Requires:* [`p`, `(char*)p + sizeof(T)`) denotes a region of allocated
 > storage that is a subset of the region of storage reachable through `p`.</ins>
@@ -683,7 +689,7 @@ Add the following subclause immediately after 20.10.6 [ptr.align]:
 > <ins>*Effects:* Implicitly creates objects within the denoted region,
 > including an object `A` of type `T` whose address is `p`. The object
 > representation of `A` is the contents of the storage prior to the
-> call to `bless` as if by calling `std::memcpy` from a copy of the
+> call to `start_lifetime_as` as if by calling `std::memcpy` from a copy of the
 > original storage, except that the storage is not accessed.</ins>
 
 > <ins>*Returns:* A pointer to `A`.</ins>
@@ -700,7 +706,7 @@ Add an entry to Annex C as follows:
 > **Rationale:** Increase consistency of the language model.<br>
 > **Effect on original feature:** Valid ISO C++ 2017 code may be ill-formed
 > or have undefined behavior in this International Standard.<br>
-> ```
+> <pre style="color: #000; background-color: #c8ffc8">
 > constexpr int f() {
 >   int a = 123;
 >   using T = int;
@@ -708,7 +714,7 @@ Add an entry to Annex C as follows:
 >   return a;  // undefined behavior; previously returned 123
 > }
 > static_assert(f() == 123);  // ill-formed; previously valid
-> ```
+> </pre>
 > </ins>
 
 Feature test macro
