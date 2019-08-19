@@ -10,7 +10,7 @@
 
 <body>
 Richard Smith<br>
-2019-07-15
+2019-08-19
 
 <h1>Core Issue 1621: Member initializers in anonymous unions</h1>
 
@@ -54,14 +54,12 @@ from the anonymous union because the <tt>this</tt> pointer points to the
 anonymous union and not to the <tt>B</tt> object. (See [expr.prim.this]p3.)
 
 <p>
-Analysis of [class.mfct.non-static] suggests that we do not currently permit
-non-static members to be named via unqualified identifiers within default
-member initializers <em>at all</em>.  See the Wording section for a resolution
-of this issue.
-With the changes in the Wording section, it should be clear that the above
-example is ill-formed: the class containing the default member initializer is
-the anonymous union, so the above transformations do not apply, and the
-reference to <tt>x</tt> is ill-formed by [expr.prim.id]/2.
+Careful reading indicates the example is already ill-formed:
+the reference to <tt>x</tt> is rewritten as <tt>(*this).x</tt>,
+but <tt>this</tt> points to the anonymous union,
+so the member access is ill-formed.
+(The Wording below cleans up some wording in this area,
+but no change to the normative meaning is intended.)
 
 <blockquote>
  As a further example, consider:
@@ -157,25 +155,67 @@ Change in 11.3.2 class.mfct.non-static paragraph 1:
 </p>
 
 <blockquote>
- [&hellip;] A non-static member function may also be called directly using the
- function call syntax (7.6.1.2, 12.3.1.1) from within the body of a member
- function of its class or of a class derived from its class <ins>or from
-   within a default member initializer in such a class</ins>.
- </blockquote>
+[&hellip;] A non-static member function may also be called directly using the
+function call syntax (7.6.1.2, 12.3.1.1) from within <del>the body of a member function of</del>
+its class or <del>of</del> a class derived from its class<ins>, or a member thereof, as described below</ins>.
+</blockquote>
 
 <p>
 Change in 11.3.2 class.mfct.non-static paragraph 3:
 </p>
 
 <blockquote>
-[&hellip;]
+When an <i>id-expression</i> (7.5.4)
+that is not part of a class member access syntax (7.6.1.4)
+and not used to form a pointer to member (7.6.2.1)
+is used in a member of class <tt>X</tt>
+in a context where <tt>this</tt> can be used (7.5.2),
+if name lookup (6.4) resolves the name in the <i>id-expression</i>
+to a non-static non-type member of some class <tt>C</tt>,
+and if either the <i>id-expression</i> is potentially evaluated
+or <tt>C</tt> is <tt>X</tt> or a base class of <tt>X</tt>,
+the <i>id-expression</i> is transformed into a class member access expression (7.6.1.4)
+using <tt>(*this)</tt> (11.3.2.1) as the <i>postfix-expression</i>
+to the left of the <tt>.</tt> operator.
+[<i>Note</i>:
+If <tt>C</tt> is not <tt>X</tt> or a base class of <tt>X</tt>,
+the class member access expression is ill-formed.
+&mdash;<i>end note</i>]
+<del>
 Similarly during name lookup, when an unqualified-id (7.5.4.1) used in the
-definition of a member function <ins>or default member initializer</ins>
+definition of a member function
 for class X resolves to a static member, an
 enumerator or a nested type of class X or of a base class of X, the
 unqualified-id is transformed into a qualified-id (7.5.4.2) in which the
 nested-name-specifier names the class of the member function.
+</del>
+<del>These</del><ins>This</ins> transformation<del>s do</del> <ins>does</ins> not apply in the template definition context (13.7.2.1).
+[&hellip;]
 </blockquote>
+
+<p>
+Delete 11.3.8 class.static paragraph 3:
+</p>
+
+<blockquote>
+<del>
+If an <i>unqualified-id</i> (7.5.4.1)
+is used in the definition of a static member
+following the member's <i>declarator-id</i>,
+and name lookup (6.4.1) finds that the <i>unqualified-id</i>
+refers to a static member, enumerator, or nested type of the member's class
+(or of a base class of the member's class),
+the <i>unqualified-id</i> is transformed
+into a <i>qualified-id</i> expression
+in which the <i>nested-name-specifier</i>
+names the class scope from which the member is referenced.
+[<i>Note</i>:
+See 7.5.4 for restrictions on the use of non-static data members and non-static member functions.
+&mdash;<i>end note</i>]
+</del>
+</blockquote>
+
+<i>Drafting note: in CWG discussion we determined that the above wording appears to have no normative effect.</i>
 
 <p>
 Change in 11.4.1 class.anon.union paragraph 1:
