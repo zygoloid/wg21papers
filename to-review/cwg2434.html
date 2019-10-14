@@ -1,0 +1,88 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Core Issue 2434: Mandatory copy elision vs non-class objects</title>
+
+<style type="text/css">
+ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
+del, del > * { text-decoration:line-through; background-color:#FFA0A0 }
+
+blockquote {
+  color: #000000; background-color: #F1F1F1;
+  border: 1px solid #D1D1D1;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stdins {
+  color: #000000; background-color: #C8FFC8;
+  border: 1px solid #B3EBB3;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+blockquote.stddel {
+  text-decoration: line-through;
+  color: #000000; background-color: #FFEBFF;
+  border: 1px solid #ECD7EC;
+  padding-left: 0.5em; padding-right: 0.5em;
+}
+</style>
+
+</head>
+
+<body>
+Richard Smith<br>
+2019-10-14
+
+<h1>Core Issue 2434: Mandatory copy elision vs non-class objects</h1>
+
+<p>
+Change in [class.temporary] (6.7.7) paragraph 1:
+</p>
+
+<blockquote>
+Temporary objects are created:
+<ul>
+<li>[&hellip;]
+<li>when needed by the implementation to pass or return an object of <del>trivially-copyable</del> <ins>trivially transferrable</ins> type (see below),
+and
+<li>[&hellip;]
+</ul>
+[&hellip;]
+</blockquote>
+
+<p>
+Change in [class.temporary] (6.7.7) paragraph 3:
+</p>
+
+<blockquote>
+<del>When an object of class type X is passed to or returned from a function, if</del>
+<ins>A type <tt>X</tt> is <i>trivially transferrable</i> if</ins>
+<ul>
+<li><ins><tt>X</tt> is a scalar type, or</ins>
+<li><tt>X</tt> <ins>is a class type that</ins> has at least one eligible copy or move constructor (11.4.3),
+each such constructor is trivial, and
+the destructor of <tt>X</tt> is either trivial or deleted<ins>.</ins>
+</ul>
+<ins>
+When an object of trivially transferrable type
+is passed to or returned from a function</ins>,
+implementations are permitted to create a temporary object to hold the function parameter or result
+object.
+The temporary object is constructed from the function argument or return value, respectively, and
+the function's parameter or return object is initialized
+<ins>from the temporary object.
+For a parameter or return object of class type, the initialization is performed</ins>
+as if by using the eligible trivial constructor <del>to copy the temporary</del>
+(even if that constructor is inaccessible or would not be selected by overload resolution to
+perform a copy or move of the <ins>temporary</ins> object).
+[<i>Note</i>: This latitude is granted to allow objects <del>of class type</del>
+to be passed to or returned from functions in registers. &mdash;&nbsp;<i>end note</i>]
+</blockquote>
+
+<i>Drafting note: the Itanium C++ ABI uses the term "non-trivial for the
+purposes of calls" to denote the types that are required to be passed
+indirectly. The intent is that every type is exactly one of:
+
+<ul>
+<li>trivially transferrable
+<li>non-trivial for the purposes of calls
+<li>not an object type that can be passed or returned: a function type, array type, reference type, or <i>cv</i> <tt>void</tt>
+</i>
+
+</body></html>
