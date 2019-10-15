@@ -1,0 +1,971 @@
+<pre class='metadata'>
+Title: Implicit creation of objects for low-level object manipulation
+Shortname: D0593
+Revision: 6
+Date: 2019-10-06
+Editor: Richard Smith, Google, richard@metafoo.co.uk
+Former Editor: Ville Voutilainen, ville.voutilainen@gmail.com
+Abstract: This paper proposes that objects of sufficiently trivial types be created on-demand as necessary within newly-allocated storage to give programs defined behavior.
+
+Status: D
+Group: wg21
+Audience: EWG, LWG, CWG
+URL: http://wg21.link/p0593r6
+Markup Shorthands: markdown yes
+</pre>
+
+This paper resolves CWG2325.
+
+Change history
+==============
+
+Since [[P0593R0]]:
+
+  * Paper expanded from Ville's original call for solutions to a description of
+    a proposed solution, based on SG12 discussion.
+
+Since [[P0593R1]]:
+
+<!--
+* explicit syntax only (6 3 1 0 0)
+  * barrier function for the other cases
+  * example from C DR 236 is UB, even if function is inlined
+  * no difference between declared storage and dynamic storage
+  * union member access counts as suitable explicit syntax
+  * reinterpret_cast does not
+* no punning (use bit_cast)
+* which types:
+  * trivial default ctor + trivial dtor, OR
+  * trivial copy/move ctor + trivial dtor
+  * first case is "i will member-by-member initialize an object"
+  * second case is "i bit-copied a representation from somewhere else"
+
+Aside:
+
+* pseudo-destructor call ends lifetime (2 6 2 0 0)
+* incorporate gaby's memcpy-equals-bit_cast paper? idea: memmove is "copy storage elsewhere, implicitly create objects, copy storage back"; memcpy is memmove + overlap restriction (4 4 2 0 0)
+-->
+
+Incorporated further SG12 feedback:
+
+  * An explicit syntactic marker is required to indicate that objects should be
+    created. Existing obvious markers, such as the use of `malloc`, or simply
+    performing member access on a union, suffice.
+  * Expand set of implicit-lifetime types to require *either* a trivial default
+    constructor *or* a trivial copy/move constructor, rather than requiring both.
+      * Types with only a trivial default constructor may be suitable for
+        member-by-member construction via class member access, even if the copy
+        or move constructor is non-trivial.
+      * Types with only a trivial copy/move constructor may be suitable for
+        initialization by copying (for example) an on-disk representation into
+        memory, even if the default constructor is non-trivial.
+  * Define the C standard library `memcpy` and `memmove` functions as triggering
+    implicit object creation.
+  * Add description of suggested "typed" form of `std::bless`.
+
+Since [[P0593R2]]:
+
+<!--
+
+* strike the new rule for union members (2 3 4 0 1)
+* forward to EWG as amended by the above (consensus)
+
+-->
+
+  * Removed union member access being sufficient to implicitly create objects
+    based on objections from an implementer.
+
+Since [[P0593R3]]:
+
+<!--
+
+EWG polls:
+ * D0593R4 as presented for C++20 (22 11  4  1  0)
+ * aggregates as implicit-lifetime types for C++20 (20 12  2  0  0)
+ * provide a typed version of 'bless' for C++20 (24 11  0  1  0)
+
+-->
+
+  * Incorporated EWG feedback:
+    * Aggregates are considered implicit-lifetime types
+    * Provide a typed version of `std::bless`
+  * Added wording.
+
+Since P0594R4:
+
+  * Incorporated LEWG feedback:
+    * Removed untyped version of `std::bless(p, n)`, favoring use of `new (p) std::byte[n]` in its place.
+    * Renamed typed version of `std::bless<T>` to `std::start_lifetime_as<T>`.
+    * Add `volatile` variant of typed version.
+  * Added `std::bit_cast` as an operation that implicitly creates objects.
+  * Added section on trivial union copies and added wording to copy the subobject structure.
+  * Separated standard library extensions from DR-level language rules fix.
+
+Since P0594R5:
+
+  * Added discussion on array cookies and placement array new.
+  * Added wording to make allocation functions implicitly produce the "correct" pointer value.
+  * Resolved conflict between this paper and `constexpr` containers support
+    by making `allocator<T>::allocate(n)` only create a `T[n]` object, not an
+    arbitrary set of objects.
+    * Updated allocator requirements to require such an object to be created.
+    * Added a `start_lifetime_as_array` library function to provide a convenient
+      way for custom allocators that reuse storage to satisfy this requirement.
+
+Motivating examples
+===================
+
+Idiomatic C code as C++
+-----------------------
+
+Consider the following natural C program:
+
+```
+struct X { int a, b; };
+X *make_x() {
+  X *p = (X*)malloc(sizeof(struct X));
+  p->a = 1;
+  p->b = 2;
+  return p;
+}
+```
+
+When compiled with a C++ compiler, this code has undefined behavior, because
+`p->a` attempts to write to an `int` subobject of an `X` object, and this
+program never created either an `X` object nor an `int` subobject.
+
+Per [intro.object]p1,
+
+<blockquote>
+An *object* is created by a definition, by a *new-expression*, when
+implicitly changing the active member of a union, or when a temporary
+object is created.
+</blockquote>
+
+... and this program did none of these things.
+
+Objects provided as byte representation
+---------------------------------------
+
+Suppose a C++ program is given a sequence of bytes (perhaps from disk or from a
+network), and it knows those bytes are a valid representation of type `T`. How
+can it efficiently obtain a `T *` that can be legitimately used to access the
+object?
+
+Example: (many details omitted for brevity)
+
+```
+void process(Stream *stream) {
+  unique_ptr<char[]> buffer = stream->read();
+  if (buffer[0] == FOO)
+    process_foo(reinterpret_cast<Foo*>(buffer.get())); // #1
+  else
+    process_bar(reinterpret_cast<Bar*>(buffer.get())); // #2
+}
+```
+
+This code leads to undefined behavior today: within `Stream::read`, no `Foo` or
+`Bar` object is created, and so any attempt to access a `Foo` object through the
+`Foo*` produced by the cast at #1 would result in undefined behavior.
+
+Dynamic construction of arrays
+------------------------------
+
+Consider this program that attempts to implement a type like `std::vector`
+(with many details omitted for brevity):
+
+```
+template<typename T> struct Vec {
+  char *buf = nullptr, *buf_end_size = nullptr, *buf_end_capacity = nullptr;
+  void reserve(std::size_t n) {
+    char *newbuf = (char*)::operator new(n * sizeof(T), std::align_val_t(alignof(T)));
+    std::uninitialized_copy(begin(), end(), (T*)newbuf); // #a
+
+    ::operator delete(buf, std::align_val_t(alignof(T)));
+    buf_end_size = newbuf + sizeof(T) * size(); // #b
+    buf_end_capacity = newbuf + sizeof(T) * n;  // #c
+    buf = newbuf;
+  }
+  void push_back(T t) {
+    if (buf_end_size == buf_end_capacity)
+      reserve(std::max<std::size_t>(size() * 2, 1));
+    new (buf_end_size) T(t);
+    buf_end_size += sizeof(T); // #d
+  }
+  T *begin() { return (T*)buf; }
+  T *end() { return (T*)buf_end_size; }
+  std::size_t size() { return end() - begin(); } // #e
+};
+int main() {
+  Vec<int> v;
+  v.push_back(1);
+  v.push_back(2);
+  v.push_back(3);
+  for (int n : v) { /*...*/ } // #f
+}
+```
+
+In practice, this code works across a range of existing implementations, but
+according to the C++ object model, undefined behavior occurs at points #a, #b,
+#c, #d, and #e, because they attempt to perform pointer arithmetic on a region
+of allocated storage that does not contain an array object.
+
+At locations #b, #c, and #d, the arithmetic is performed on a `char*`, and at
+locations #a, #e, and #f, the arithmetic is performed on a `T*`. Ideally, a
+solution to this problem would imbue both calculations with defined behavior.
+
+Approach
+========
+
+The above snippets have a common theme: they attempt to use objects that they
+never created. Indeed, there is a family of types for which programmers assume
+they do not need to explicitly create objects. We propose to identify these
+types, and carefully carve out rules that remove the need to explicitly create
+such objects, by instead creating them implicitly.
+
+Affected types
+--------------
+
+If we are going to create objects automatically, we need a bare minimum of the
+following two properties for the type:
+
+1) *Creating an instance of the type runs no code.* For class types, having a
+trivially default constructible type is often the right constraint. However, we
+should also consider cases where initially creating an object is non-trivial,
+but copying it (for instance, from an on-disk representation) is trivial.
+
+2) *Destroying an instance of the type runs no code.* If the type maintains
+invariants, we should not be implicitly creating objects of that type.
+
+Note that we're only interested in properties of the object itself here, not
+of its subobjects. In particular, the above two properties always hold for
+array types. While creating or destroying array elements might run code,
+creating the array object (without its elements) does not. For similar reasons,
+it also seems reasonable to permit implicit object creation for aggregate class
+types even if the aggregate contains an element with a non-trivial destructor.
+
+This suggests that the largest set of types we could apply this to is:
+
+ * Scalar types
+ * Aggregate types (arrays with any element type, aggregate classes with any members)
+ * Class types with a trivial destructor and a trivial constructor (of any kind)
+
+(Put another way, we can apply this to all types other than function type,
+reference type, `void`, and class types where all constructors are non-trivial
+or where the destructor is non-trivial.)
+
+We will call types that satisfy the above constraints *implicit-lifetime types*.
+
+When to create objects
+----------------------
+
+In the above cases, it would be sufficient for `malloc` / `::operator new`
+to implicitly create sufficient objects to make the examples work. Imagine
+that `malloc` could "look into the future" and see how its storage would be
+used, and create the set of objects that the program would eventually need,
+and then return a pointer to the "right" implicitly-created object.
+If we somehow specified that `malloc` did this, the behavior of many C-style
+use cases would be defined.
+
+On typical implementations, we can argue that this is not only natural, it is
+in some sense the status quo. Because the compiler typically does not make
+assumptions about what objects are created within the implementation of
+`malloc` nor what kind of pointer value it returns, and because object creation
+itself typically has no effect on the physical machine, the compiler must
+generate code that would be correct if `malloc` did create that correct set of
+objects and return a suitable pointer.
+
+However, this is not always sufficient. An allocation from `malloc` may be
+sequentially used to store multiple different types, for instance by way
+of a memory pool that recycles the same allocation for multiple objects of
+the same size. It should be possible to grant such cases the same power to
+implicitly create objects as is de facto granted to `malloc`.
+
+We could specify that implicit object creation happens automatically at any
+program point that relies on an object existing. This has a great deal of
+appeal: no explicit program action is ever required to create objects, and it
+directly describes a simple model where objects are not distinguished from the
+storage they occupy (this model gives the same results as C's "effective type"
+model in most cases). However, it also removes much of the power of scalar
+type-based alias analysis. The C committee has long been struggling with the
+conflict between their desire to support TBAA and their version of this rule,
+as exemplified by C's DR 236 ([[C236]]), which lists a "resolution" not
+reflected by the standard wording and that undesirably grants special powers to
+function call boundaries (this is one of at least four different and
+incompatible rules the C committee has at one point or another taken as the
+resolution to that defect).  The lack of a reasonable resolution to these
+problems, despite them being known for nearly two decades, suggests that this
+is not a good path forward.
+
+Therefore we propose the following rule:
+
+> Some operations are described as implicitly creating objects within a
+> specified region of storage. The abstract machine creates objects of
+> implicit-lifetime types within those regions of storage as needed to give the program
+> defined behavior. For each operation that is specified as implicitly creating
+> objects, that operation implicitly creates zero or more objects in its
+> specified region of storage if doing so would give the program defined
+> behavior. If no such sets of objects would give the program defined behavior,
+> the behavior of the program is undefined.
+
+The coherence of the above rule hinges on a key observation: changing the
+set of objects that are implicitly created can only change whether a particular
+program execution has defined behavior, not what the behavior is.
+
+We propose that at minimum the following operations be specified as implicitly
+creating objects:
+
+  * Creation of an array of `char`, `unsigned char`, or `std::byte` implicitly
+    creates objects within that array.
+  * A call to `malloc`, `calloc`, `realloc`, or any function named `operator new`
+    or `operator new[]` implicitly creates objects in its returned storage.
+  * `std::allocator<T>::allocate(n)` implicitly creates a `T[n]` object
+    in its returned storage; the allocator requirements should require
+    other allocator implementations to do the same.
+  * A call to `memmove` behaves as if it
+ 
+    1. copies the source storage to a temporary area
+    2. implicitly creates objects in the destination storage, and then
+    3. copies the temporary storage to the destination storage.
+ 
+    This permits `memmove` to preserve the types of trivially-copyable objects,
+    or to be used to reinterpret a byte representation of one object as that of
+    another object.
+  * A call to `memcpy` behaves the same as a call to `memmove` except that it
+    introduces an overlap restriction between the source and destination.
+<!-- Removed in R3
+  * A class member access that nominates a union member triggers implicit object
+    creation within the storage occupied by the union member. Note that this is
+    not an entirely new rule: this permission already existed in [[P0137R1]] for
+    cases where the member access is on the left side of an assignment, but is
+    now generalized as part of this new framework. As explained below, this does
+    not permit type punning through unions; rather, it merely permits the active
+    union member to be changed by a class member access expression.
+-->
+<!-- Added in R5 -->
+  * A call to `std::bit_cast` implicitly creates objects in the result, to
+    handle the case where the destination type contains a union.
+  * A new barrier operation (distinct from `std::launder`, which does not create
+    objects) could be introduced to the standard library, with semantics
+    equivalent to a `memmove` with the same source and destination storage.
+    Prior versions of this document suggested:
+ 
+    ```
+    // Requires: [start, (char*)start + length) denotes a region of allocated
+    // storage that is a subset of the region of storage reachable through start.
+    // Effects: implicitly creates objects within the denoted region.
+    void std::bless(void *start, size_t length);
+    ```
+
+    However, LEWG review observed that `new (start) std::byte[length]` can be
+    used to obtain the desired effect by reusing the first rule above.
+    Note that this relies on the resolution of
+    [CWG 2382](http://wg21.link/cwg2382), which removes the possibility of
+    array allocation overhead from such a *new-expression*.
+
+In addition to the above, an implementation-defined set of non-standard memory
+allocation and mapping functions, such as `mmap` on POSIX systems and
+`VirtualAlloc` on Windows systems, should be specified as implicitly creating
+objects.
+
+Note that a pointer `reinterpret_cast` is not considered sufficient to trigger
+implicit object creation.
+
+Type punning
+------------
+
+We do not wish examples such as the following to become valid:
+
+```
+float do_bad_things(int n) {
+  alignof(int) alignof(float)
+    char buffer[max(sizeof(int), sizeof(float))];
+  *(int*)buffer = n;      // #1
+  new (buffer) std::byte[sizeof(buffer)];
+  return (*float*)buffer; // #2
+}
+```
+
+```
+float do_bad_things(int n) {
+  union { int n; float f; } u;
+  u.n = n;    // #1
+  new (&u) std::byte[sizeof(u)];
+  return u.f; // #2
+}
+```
+
+The proposed rule would permit an `int` object to spring into existence
+to make line #1 valid (in each case), and would permit a `float` object to
+likewise spring into existence to make line #2 valid.
+
+However, these examples still do not have defined behavior under the
+proposed rule. The reason is a consequence of [basic.life]p4:
+
+<blockquote>
+The properties ascribed to objects and references throughout this document
+apply for a given object or reference only during its lifetime.
+</blockquote>
+
+Specifically, the value held by an object is only stable throughout its
+lifetime. When the lifetime of the `int` object in line #1 ends (when
+its storage is reused by the `float` object in line #2), its value is
+gone. Symmetrically, when the `float` object is created, the object has
+an indeterminate value ([dcl.init]p12), and therefore any attempt to
+load its value results in undefined behavior.
+
+Thus we retain the property (essential to modern scalar type-based
+alias analysis) that loads of some scalar type can be considered to
+not alias earlier stores of unrelated scalar types.
+
+Union copies
+------------
+
+Consider an example such as:
+
+```
+union U {
+  int n;
+  float f;
+};
+float pun(int n) {
+  U u = {.n = n};
+  U u2 = u;    // #1
+  return u2.f; // #2
+}
+```
+
+In the current language rules,
+a strict interpretation of the wording would suggest that
+only the object representation of `u` is copied on line #1,
+but no union member's lifetime begins, so `u2` has no active union member.
+This is clearly not the appropriate outcome.
+
+We could rectify this in one of two natural ways:
+
+  * Line #1 copies the object structure of `u` to `u2`, so that the active
+    member of `u2` is `n`;
+    line #2 does not have defined behavior, just as if it returned `u.f`.
+  * Line #1 implicitly creates objects;
+    at line #2 we have implicitly bit-cast `n` to `float`.
+
+This paper proposes we adopt the former option,
+as it preserves equational reasoning and results in more explicit code
+(that is, using `std::bit_cast` to perform bit-casts rather than union copies).
+
+Constant expressions
+--------------------
+
+Constant expression evaluation is currently very conservative with regard to
+object creation. There is a tension here: on the one hand, constant expression
+evaluation gives us an opportunity to disallow runtime program semantics that
+we consider undesirable or problematic, and on the other hand, users strongly
+desire a full compile-time evaluation mechanism with the same semantics as the
+base language.
+
+Following the existing conservatism in constant expression evaluation,
+and specific concerns about high implementation costs in some existing implementations,
+we propose that implicit creation of objects
+should *not* be performed during such evaluation.
+The disallowance of pointer or reference `reinterpret_cast`s in constant expressions
+is believed to make the lack of implicit object creation unobservable.
+
+Pseudo-destructor calls
+-----------------------
+
+In the current C++ language rules, "pseudo-destructor" calls may be used in
+generic code to allow such code to be ambivalent as to whether an object is of
+class type:
+
+```
+template<typename T> void destroy(T *p) { p->~T(); }
+``` 
+
+When `T` is, say, `int`, the pseudo-destructor expression `p->~T()` is specified
+as having no effect. We believe this is an error: such an expression should have
+a lifetime effect, ending the lifetime of the `int` object. Likewise, calling a
+destructor of a class object should always end the lifetime of that object,
+regardless of whether the destructor is trivial.
+
+This change improves the ability of static and dynamic analysis tools to reason
+about the lifetimes of C++ objects.
+
+Practical examples
+------------------
+
+```
+std::vector<int> vi;
+vi.reserve(4);
+vi.push_back(1);
+int *p = &vi.back();
+vi.push_back(2);
+vi.push_back(3);
+int n = *p;
+```
+
+Within the implementation of `vector`, some storage is allocated to hold
+an array of up to 4 `int`s. Ignoring minor differences, there are two ways
+to create implicit objects to give the execution of this program defined
+behavior: within the allocated storage, either an `int[3]` object or an
+`int[4]` object is created. Both are correct interpretations of the program,
+and naturally both result in the same behavior. We can choose to view the
+program as being in the superposition of those two states. If we add a fourth
+`push_back` call to the program prior to the initialization of `n`, then only
+the `int[4]` interpretation remains valid.
+
+```
+unique_ptr<char[]> Stream::read() {
+  // ... determine data size ...
+  unique_ptr<char[]> buffer(new char\[N]);
+  // ... copy data into buffer ...
+  return buffer;
+}
+
+void process(Stream *stream) {
+  unique_ptr<char[]> buffer = stream->read();
+  if (buffer[0] == FOO)
+    process_foo(reinterpret_cast<Foo*>(buffer.get())); // #1
+  else
+    process_bar(reinterpret_cast<Bar*>(buffer.get())); // #2
+}
+```
+
+Note the `new char[N]` implicitly creates objects within the allocated array.
+In this case, the program would have defined behavior if an object of type
+`Foo` or `Bar` (as appropriate for the content of the incoming data) were
+implicitly created *prior* to `Stream::read` populating its buffer. Therefore,
+regardless of which arm of the `if` is taken, there is a set of implicit
+objects sufficient to give the program defined behavior, and thus the behavior
+of the program is defined.
+
+Direct object creation
+----------------------
+
+In some cases it is desirable to change the dynamic type of existing storage
+while maintaining the object representation. If the destination type is a
+trivially-copyable implicit-lifetime type, this can be accomplished by copying
+the storage elsewhere, using placement new of an array of byte-like type, and
+copying the storage back to its original location, then using `std::launder` to
+acquire a pointer to the newly-created object. However, for expressivity and
+optimizability, a combined operation to create an object of implicit-lifetime
+type in-place while preserving the object representation may be useful. For
+this we propose:
+
+```
+// Effects: create an object of implicit-lifetype type T in the storage
+//          pointed to by T, while preserving the object representation.
+template<typename T> T *start_lifetime_as(void *p);
+```
+
+Note that such an operation is not sufficient to implement <i>`node_handle`</i>
+([[P0083R3]]) for map-like containers. <i>`node_handle`</i> requires the
+ability to take a `std::pair<const Key, Value>` and permit mutation of the
+`Key` portion (without destroying and recreating the `Key` object), even when
+`Key` is not an implicit-lifetime type, so the above operation does not
+quite suffice. However, we could imagine extending its semantics to also permit
+conversions where each subobject of non-implicit-lifetime type in the
+destination corresponds to an object of the same type (ignoring
+cv-qualifications) in the source.
+
+Disposition and shipping vehicle
+================================
+
+This paper did not complete LWG review in time for C++20. However, the
+functionality contained herein can be split into two portions:
+
+  * The core language change that gives defined behavior to various constructs
+    that have historically been assumed to work, and
+  * The standard library addition of `std::start_lifetime_as`, which is a pure
+    extension.
+
+The author suggests that the committee considers adopting the former portion of
+this paper as a Defect Report, for possible inclusion into the C++20 IS, and
+that the latter portion be deferred to C++23.
+
+Wording is presented assuming the committee agrees with this direction.
+
+<div class=advisement>
+The portions of the wording below corresponding to the library extension
+are presented in this style, and marked <b>"Library extension,
+not for inclusion in C++20"</b>.
+
+Such wording is presented only for context and should not be applied to the
+C++20 working draft.
+</div>
+
+Wording
+=======
+
+6.6.2 Object model [intro.object]
+---------------------------------
+
+Change in 6.6.2 [intro.object] paragraph 1:
+
+> The constructs in a C++ program
+> create, destroy, refer to, access, and manipulate objects.
+> An <i>object</i> is created
+> by a definition (6.1),
+> by a new-expression (7.6.2.4), <ins>by
+> an operation that implicitly creates objects (see below),</ins>
+> when implicitly changing the active member of a union (10.4), or
+> when a temporary object is created (7.3.4, 6.6.7). [...]
+
+Add new paragraphs at the end of [intro.object]:
+
+> <ins>Some operations are described as <i>implicitly creating objects</i>
+> within a specified region of storage.
+> For each operation that is specified as implicitly creating objects,
+> that operation implicitly creates and starts the lifetime of zero or more objects
+> of implicit-lifetime types (6.7 [basic.types])
+> in its specified region of storage
+> if doing so would result in the program having defined behavior.
+> If no such sets of objects would give the program defined behavior,
+> the behavior of the program is undefined.
+> If multiple such sets of objects would give the program defined behavior,
+> it is unspecified which such set of objects is created.
+> [*Note*: Such operations do not start the lifetimes of subobjects
+> of such objects that are not themselves of implicit-lifetime types. -*end note*]</ins>
+
+> <ins>Further, after implicitly creating objects
+> within a specified region of storage,
+> some operations are described as producing a pointer to a
+> <i>suitable created object</i>.
+> These operations select one of the implicitly created objects
+> whose address is the address of the start of the region of storage,
+> and produce a pointer value that points to that object,
+> if that value would result in the program having defined behavior.
+> If no such pointer value would give the program defined behavior,
+> the behavior of the program is undefined.
+> If multiple such pointer values would give the program defined behavior,
+> it is unspecified which such pointer value is produced.
+
+> <ins>[ Example:
+> <pre style="color: #000; background-color: #c8ffc8">
+> #include <cstdlib>
+> struct X { int a, b; };
+> X *make_x() {
+>   // The call to std::malloc implicitly creates an object of type X
+>   // and its subobjects a and b, and returns a pointer to that X object,
+>   // in order to give the subsequent class member access operations
+>   // defined behavior.
+>   X *p = (X*)std::malloc(sizeof(struct X));
+>   p->a = 1;
+>   p->b = 2;
+>   return p;
+> }
+> </pre>
+> -- end example ]</ins>
+
+> <ins>An operation that begins the lifetime of an array of
+> `char`, `unsigned char`, or `std::byte` implicitly creates objects
+> within the region of storage occupied by the array.
+> [ Note: the array object provides storage for these objects. -- end note ]
+> Any implicit or explicit invocation of
+> a function named `operator new` or `operator new[]`
+> implicitly creates objects in the returned region of storage
+> and returns a pointer to a suitable created object.
+> Some functions in the C++ standard library implicitly create objects
+> (19.10.9.2 [allocator.traits.members],
+> 19.10.12 [c.malloc], 20.5.3 [cstring.syn], 26.5.3 [bit.cast]).
+
+<div class=advisement>
+<b>Library extension, not for inclusion in C++20.</b>
+
+Change in the final newly-added paragraph:
+
+> Some functions in the C++ standard library implicitly create objects
+> (<ins>16.6.x [obj.lifetime],</ins> 19.10.9.2 [allocator.traits.members],
+> 19.10.12 [c.malloc], 20.5.3 [cstring.syn], 26.5.3 [bit.cast]).
+</div>
+
+6.6.3 Object and reference lifetime [basic.life]
+------------------------------------------------
+
+Change in 6.6.3 [basic.life] paragraph 1:
+
+> [...] The lifetime of an object of type T begins when:
+> [...]
+> except that if the object is a union member or subobject thereof,
+> its lifetime only begins if
+> that union member is the initialized member in the union (9.3.1, 11.9.2),
+> or as described in 11.4 <ins>and [class.copy.ctor],
+> and except as described in [allocator.members]</ins>.
+> [...] The lifetime of an object `o` of type `T` ends when:
+>   * if `T` is a non-class type, the object is destroyed, or
+>   * if `T` is a class type, the destructor call starts, or
+>   * the storage which the object occupies is released, or
+>     is reused by an object that is not nested within `o` (6.6.2).
+
+6.7 Types [basic.types]
+-----------------------
+
+Change in 6.7 [basic.types] paragraph 9:
+
+> [...] Scalar types, trivial class types (10.1), arrays of such types and cv-qualified versions of these types are collectively called <i>trivial types</i>.
+> Scalar types, standard-layout class types (10.1), arrays of such types and cv-qualified versions of these types are collectively called <i>standard-layout types</i>. <ins>
+> Scalar types, implicit-lifetime class types ([class.prop]), array types, and cv-qualified versions of these types are collectively called <i>implicit-lifetime types</i>.</ins>
+
+7.5.4.3 Destruction [expr.prim.id.dtor]
+---------------------------------------
+
+Change in 7.5.4.3 [expr.prim.id.dtor] paragraph 2:
+
+> If the *id-expression* names a pseudo-destructor,
+> `T` shall be a scalar type and
+> the *id-expression* shall appear as the right operand of a class member access (7.6.1.4)
+> that forms the *postfix-expression* of a function call (7.6.1.2).
+> [Note: Such a call <del>has no effect</del> <ins>ends the lifetime
+> of the object ([expr.call], [basic.life])</ins>. —end note]
+
+7.6.1.2 Function call [expr.call]
+---------------------------------
+
+Change in 7.6.1.2 [expr.call] paragraph 5:
+
+> [...] If the *postfix-expression* names a *pseudo-destructor*, <ins>the
+> *postfix-expression* must be a possibly-parenthesized
+> class member access (7.6.1.4), and</ins>
+> the function call <del>has no effect</del> <ins>destroys
+> the object of scalar type denoted by the object expression of
+> the class member access</ins> .
+
+11.1 Properties of classes [class.prop]
+---------------------------------------
+
+Add a new paragraph at the end of [class.prop]:
+
+> <ins>A class `S` is an <i>implicit-lifetime class</i> if it
+> is an aggregate ([dcl.aggr]) or has
+> at least one trivial eligible constructor and
+> a trivial, non-deleted destructor.</ins>
+
+11.3.4.2 Copy/move constructors [class.copy.ctor]
+-------------------------------------------------
+
+Change in 11.3.4.2 [class.copy.ctor] paragraph 15:
+
+> The implicitly-defined copy/move constructor for a union `X`
+> copies the object representation (6.7) of `X`.
+> <ins>For each object nested within ([intro.object])
+> the object that is the source of the copy,
+> a corresponding object <i>o</i> nested within the destination
+> is identified (if the object is a subobject) or created (otherwise),
+> and the lifetime of <i>o</i> begins before the copy is performed.</ins>
+
+11.3.5 Copy/move assignment operator [class.copy.assign]
+--------------------------------------------------------
+
+Change in 11.3.5 [class.copy.assign] paragraph 13:
+
+> The implicitly-defined copy assignment operator for a union `X`
+> copies the object representation (6.7) of `X`.
+> <ins>If the source and destination of the assignment are not the
+> same object, then
+> for each object nested within ([intro.object])
+> the object that is the source of the copy,
+> a corresponding object <i>o</i> nested within the destination
+> is created,
+> and the lifetime of <i>o</i> begins before the copy is performed.</ins>
+
+16.5.3.5 Table 34: Cpp17Allocator requirements [tab:cpp17.allocator]
+--------------------------------------------------------------------
+
+Change table as follows:
+
+> <table>
+> <tr>
+> <th>Expression</th>
+> <th>Return type</th>
+> <th>Assertion/note<br>pre-/post-condition</th>
+> <th>Default</th>
+> </tr>
+> <tr><td colspan=4>[...]</td></tr>
+> <tr>
+> <td>`a.allocate(n)`</td>
+> <td>`X::pointer`</td>
+> <td>
+> Memory is allocated for <ins>an array of</ins> `n` <del>objects of type</del> `T`
+> <ins>and such an object is created</ins>
+> but <del>objects</del> <ins>array elements</ins> are not constructed.
+> <ins>[*Example*: When reusing storage denoted by some pointer value `p`,
+> `launder(reinterpret_cast<T*>(new (p) byte[n * sizeof(T)]))`
+> can be used to implicitly create a suitable array object and obtain a pointer to it. — *end example*]</ins>
+> `allocate` may throw an appropriate exception.
+> [*Note*: If `n == 0`, the return value is unspecified.  — *end note*]
+> </td>
+> <td></td>
+> <tr><td colspan=4>[...]</td></tr>
+> </table>
+
+<div class=advisement>
+<b>Library extension, not for inclusion in C++20.</b>
+
+Change the above example as follows:
+> [*Example*: When reusing storage denoted by some pointer value `p`, <del>`launder(reinterpret_cast<T*>(new (p) std::byte[n * sizeof(T)]))`</del> <ins>`start_lifetime_as_array(p, n)` ([obj.lifetime])</ins> can be used to implicitly create a suitable array object and obtain a pointer to it. — *end example*]</ins>
+
+20.10.2 Header `<memory>` synopsis [memory.syn]
+-----------------------------------------------
+
+Add the following after the declarations of `std::align` and `std::assume_aligned`:
+
+> <ins>
+> <pre style="color: #000; background-color: #c8ffc8">
+> // [obj.lifetime] Explicit lifetime management
+> template&lt;typename T&gt; T *std::start_lifetime_as(void *p);
+> template&lt;typename T&gt; volatile T *std::start_lifetime_as(volatile void *p);
+> template&lt;typename T&gt; T *std::start_lifetime_as_array(void *p, size_t n);
+> template&lt;typename T&gt; volatile T *std::start_lifetime_as_array(volatile void *p, size_t n);
+> </pre>
+> </ins>
+
+Add the following subclause immediately after 20.10.6 [ptr.align]:
+
+20.10.x <ins>Explicit lifetime management</ins> [obj.lifetime]
+-------------------------------------------------------------
+
+> <ins>
+> <pre style="color: #000; background-color: #c8ffc8">
+> template&lt;typename T&gt; T *std::start_lifetime_as(void *p);
+> template&lt;typename T&gt; volatile T *std::start_lifetime_as(volatile void *p);
+> </pre>
+> </ins>
+
+> <ins>*Mandates:* `T` is an implicit-lifetime type.
+
+> <ins>*Requires:* [`p`, `(char*)p + sizeof(T)`) denotes a region of allocated
+> storage that is a subset of the region of storage reachable through `p`.</ins>
+
+> <ins>*Effects:* Implicitly creates objects within the denoted region,
+> including an object `A` of type `T` whose address is `p`. The object
+> representation of `A` is the contents of the storage prior to the
+> call to `start_lifetime_as` as if by calling `std::memcpy` from a copy of the
+> original storage, except that the storage is not accessed.</ins>
+
+> <ins>*Returns:* A pointer to `A`.</ins>
+
+Drafting note: the following two functions were added after LEWG review and
+have not been seen by LEWG yet:
+
+> <ins>
+> <pre style="color: #000; background-color: #c8ffc8">
+> template&lt;typename T&gt; T *std::start_lifetime_as_array(void *p, size_t n);
+> template&lt;typename T&gt; volatile T *std::start_lifetime_as_array(volatile void *p, size_t n);
+> </pre>
+> </ins>
+
+> <ins>*Effects:* Equivalent to: `return start_lifetime_as<U>(p);`
+> where `U` is the type &ldquo;array of `n` `T`&rdquo;.</ins>
+
+</div>
+
+20.10.10.1 Members [allocator.members]
+--------------------------------------
+
+Change in 20.10.10.1 [allocator.members] paragraph 2 and 3
+(description of `allocate(size_type n)`):
+
+> *Returns:* A pointer to the initial element of
+> an array of <del>storage of size</del> <tt>n <del>* sizeof(</del>T</del>)</del></tt> <del>,
+> aligned appropriately for objects of type <tt>T</tt></del>.
+
+> *Remarks:* <del>the</del> <ins>The</ins> storage <ins>for the array</ins>
+> is obtained by calling `::operator new` (17.6.2),
+> but it is unspecified when or how often this function is called. <ins>This
+> function starts the lifetime of the array object, but not that
+> of any of the array elements.</ins>
+
+20.10.12 C library memory allocation [c.malloc]
+-----------------------------------------------
+
+Add a new paragraph after [c.malloc] paragraph 4 in the description of
+`aligned_alloc`, `calloc`, `malloc`, and `realloc`:
+
+> <ins>These functions implicitly create objects (6.6.2 [intro.object])
+> in the returned region of storage and return a pointer to a suitable
+> created object. In the case of `calloc` and `realloc`,
+> the objects are created before the storage is zeroed or copied,
+> respectively.</ins>
+
+21.5.3 Header `<cstring>` synopsis [cstring.syn]
+------------------------------------------------
+
+Change in 20.5.3 [cstring.syn] paragraph 3:
+
+> The functions `memcpy` and `memmove` are signal-safe (16.12.4). <ins>
+> Both functions implicitly create objects (6.6.2 [intro.objects])
+> in the destination region of storage
+> immediately prior to copying the sequence of characters to the destination.
+
+26.5.3 Function template `bit_cast` [bit.cast]
+----------------------------------------------
+
+Change in 26.5.3 [bit.cast] paragraph 1:
+
+> ```
+> template<class To, class From>
+>   constexpr To bit_cast(const From& from) noexcept;
+> ```
+
+> *Returns:*
+> An object of type `To`.
+> <ins>Implicitly creates objects in the result (6.6.2 [intro.object]).</ins>
+> Each bit of the value representation of the result
+> is equal to the corresponding bit in the object representation of `from`.
+> Padding bits of the `To` object are unspecified.
+> <ins>For the result and each object created within it, if</ins> <del>If</del> 
+> there is no value of <ins>the object's</ins> type <del>`To`</del>
+> corresponding to the value representation produced, the behavior is undefined.
+> If there are multiple such values, which value is produced is unspecified.
+
+C.5 C++ and ISO C++ 2017 [diff.cpp17]
+-------------------------------------
+
+Add an entry to Annex C as follows:
+
+> <ins>
+> **Affected subclause:** [basic.life]<br>
+> **Change:** A pseudo-destructor call ends the lifetime of the object to
+> which it is applied.<br>
+> **Rationale:** Increase consistency of the language model.<br>
+> **Effect on original feature:** Valid ISO C++ 2017 code may be ill-formed
+> or have undefined behavior in this International Standard.<br>
+> <pre style="color: #000; background-color: #c8ffc8">
+> constexpr int f() {
+>   int a = 123;
+>   using T = int;
+>   a.~T();
+>   return a;  // undefined behavior; previously returned 123
+> }
+> static_assert(f() == 123);  // ill-formed; previously valid
+> </pre>
+> </ins>
+
+Feature test macro
+------------------
+
+No feature test macro is proposed for the core language changes.
+
+<div class=advisement>
+<b>Library extension, not for inclusion in C++20.</b>
+
+For the library functionality, add feature test macro
+`__cpp_lib_start_lifetime_at` for header `<memory>` with a suitable value to
+Table 36 in 17.3.1 [support.limits.general].
+</div>
+
+Acknowledgments
+===============
+
+Thanks to Ville Voutilainen for raising this problem, and to the members of
+SG12 for discussing possible solutions.
+
+<pre class=biblio>
+{
+ "C236": {
+  "authors": ["Raymond Mak"],
+  "href": "http://www.open-std.org/jtc1/sc22/wg14/www/docs/dr_236.htm",
+  "title": "C Defect Report #236: The interpretation of type based aliasing rule when applied to union objects or allocated objects.",
+  "publisher": "WG14"
+ }
+}
+</pre>
