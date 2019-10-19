@@ -91,7 +91,7 @@ EWG polls:
     * Provide a typed version of `std::bless`
   * Added wording.
 
-Since P0594R4:
+Since [[P0593R4]]:
 
   * Incorporated LEWG feedback:
     * Removed untyped version of `std::bless(p, n)`, favoring use of `new (p) std::byte[n]` in its place.
@@ -101,16 +101,16 @@ Since P0594R4:
   * Added section on trivial union copies and added wording to copy the subobject structure.
   * Separated standard library extensions from DR-level language rules fix.
 
-Since P0594R5:
+Since [[P0593R5]]:
 
   * Added discussion on array cookies and placement array new.
   * Added wording to make allocation functions implicitly produce the "correct" pointer value.
   * Resolved conflict between this paper and `constexpr` containers support
     by making `allocator<T>::allocate(n)` only create a `T[n]` object, not an
     arbitrary set of objects.
-    * Updated allocator requirements to require such an object to be created.
-    * Added a `start_lifetime_as_array` library function to provide a convenient
-      way for custom allocators that reuse storage to satisfy this requirement.
+      * Updated allocator requirements to require such an object to be created.
+      * Added a `start_lifetime_as_array` library function to provide a convenient
+        way for custom allocators that reuse storage to satisfy this requirement.
 
 Motivating examples
 ===================
@@ -853,7 +853,7 @@ have not been seen by LEWG yet:
 > </pre>
 > </ins>
 
-> <ins>*Effects:* Equivalent to: `return start_lifetime_as<U>(p);`
+> <ins>*Effects:* Equivalent to: `return *start_lifetime_as<U>(p);`
 > where `U` is the type &ldquo;array of `n` `T`&rdquo;.</ins>
 
 </div>
