@@ -645,7 +645,8 @@ Add new paragraphs at the end of [intro.object]:
 > struct X { int a, b; };
 > X *make_x() {
 >   // The call to std::malloc implicitly creates an object of type X
->   // and its subobjects a and b, and returns a pointer to that X object,
+>   // and its subobjects a and b, and returns a pointer to that X object
+>   // (or an object that is pointer-interconvertible ([basic.compound]) with it),
 >   // in order to give the subsequent class member access operations
 >   // defined behavior.
 >   X *p = (X*)std::malloc(sizeof(struct X));
@@ -664,9 +665,11 @@ Add new paragraphs at the end of [intro.object]:
 > a function named `operator new` or `operator new[]`
 > implicitly creates objects in the returned region of storage
 > and returns a pointer to a suitable created object.
+> [ Note:
 > Some functions in the C++ standard library implicitly create objects
 > (19.10.9.2 [allocator.traits.members],
 > 19.10.12 [c.malloc], 20.5.3 [cstring.syn], 26.5.3 [bit.cast]).
+> -- end note ]
 
 <div class=advisement>
 <b>Library extension, not for inclusion in C++20.</b>
@@ -722,12 +725,12 @@ Change in 7.5.4.3 [expr.prim.id.dtor] paragraph 2:
 
 Change in 7.6.1.2 [expr.call] paragraph 5:
 
-> [...] If the *postfix-expression* names a *pseudo-destructor*, <ins>the
-> *postfix-expression* must be a possibly-parenthesized
-> class member access (7.6.1.4), and</ins>
+> [...] If the *postfix-expression* names a *pseudo-destructor* <ins>(in
+> which case the *postfix-expression* is a possibly-parenthesized
+> class member access)</ins>,
 > the function call <del>has no effect</del> <ins>destroys
 > the object of scalar type denoted by the object expression of
-> the class member access</ins> .
+> the class member access ([expr.ref], [basic.life])</ins> .
 
 11.1 Properties of classes [class.prop]
 ---------------------------------------
@@ -865,7 +868,7 @@ Change in 20.10.10.1 [allocator.members] paragraph 2 and 3
 (description of `allocate(size_type n)`):
 
 > *Returns:* A pointer to the initial element of
-> an array of <del>storage of size</del> <tt>n <del>* sizeof(</del>T</del>)</del></tt> <del>,
+> an array of <del>storage of size</del> <tt>n <del>* sizeof(</del>T</tt><del><tt>)</tt>,
 > aligned appropriately for objects of type <tt>T</tt></del>.
 
 > *Remarks:* <del>the</del> <ins>The</ins> storage <ins>for the array</ins>
@@ -908,7 +911,7 @@ Change in 26.5.3 [bit.cast] paragraph 1:
 
 > *Returns:*
 > An object of type `To`.
-> <ins>Implicitly creates objects in the result (6.6.2 [intro.object]).</ins>
+> <ins>Implicitly creates objects nested within the result (6.6.2 [intro.object]).</ins>
 > Each bit of the value representation of the result
 > is equal to the corresponding bit in the object representation of `from`.
 > Padding bits of the `To` object are unspecified.
