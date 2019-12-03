@@ -1,5 +1,5 @@
 <html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-<title>Minor defaulted comparisons fixes</title>
+<title>D2002R0: Defaulted comparison specification fixes</title>
 
 <style type="text/css">
 ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
@@ -27,7 +27,93 @@ blockquote.stddel {
 
 <body>
 Richard Smith<br>
-2019-11-26
+2019-12-03<br>
+D2002R0
+
+<h2>Introduction</h2>
+
+<p>
+This paper provides a collection of wording fixes to improve the precision,
+implementability, consistency, and completeness of the wording for defaulted
+comparison operator functions.
+
+<p>
+In the following areas, there was previously no specification for how
+a defaulted comparison operator behaves:
+
+<ul>
+<li>when it is implicitly defined (eagerly vs lazily);
+<li>whether it is implicitly <tt>constexpr</tt>;
+<li>when it may be explicitly declared <tt>constexpr</tt> or <tt>consteval</tt>.
+</ul>
+
+In each case, the new specification matches the behavior of
+defaulted special member functions to the extent possible.
+
+<p>
+The rules for when to delete a comparison function were inconsistent
+and varied between checks that overload resolution finds a usable function
+and checks that require performing full semantic analysis on the definition
+and determining whether it would be ill-formed.
+Consistent with defaulted special member functions, we now look only for
+surface-level problems: cases where overload resolution would fail
+or the structure of the class is obviously incompatible with
+a defaulted comparison (eg, reference members).
+
+<p>
+When determining whether a defaulted comparison is <tt>noexcept</tt>,
+we now consider all operations it performs,
+not only the invocation of comparison functions in its body.
+This is consistent with the behavior of defaulted special member functions,
+and avoids calls to <tt>terminate()</tt> if (for example)
+a conversion performed when initializing a parameter of
+a conversion function call throws an exception.
+
+<p>
+The specification for an implicitly-declared <tt>operator==</tt>
+was incomplete, lacking specification for various properties of
+the implicit declaration. Following prior CWG discussion, we
+inherit all properties of the <tt>operator&lt;=&gt;</tt> onto the
+<tt>operator==</tt> (other than the name and return type).
+
+<p>
+In addition, the rules for the defaulted operators other than
+<tt>&lt;=&gt;</tt> and <tt>==</tt>
+have been simplified and made to match the design intent,
+that they capture the behavior of a rewritten operator
+as a function whose address can be taken.
+For those operators, we no longer care what members the class has,
+since that plays no role in how the function is defaulted.
+
+<h2>Wording</h2>
+
+<p>
+Change in 10.6 [module.context] paragraph 2:
+</p>
+
+<blockquote>
+During the implicit definition of a defaulted <del>special member</del> function
+(11.4.3<ins>, 11.11.1 [class.compare.default]</ins>),
+the instantiation context is the union of
+the instantiation context from the definition of the class and
+the instantiation context of the program construct
+that resulted in the implicit definition of the <ins>defaulted</ins> <del>special member</del> function.
+</blockquote>
+
+<p>
+Change in 10.6 [module.context] paragraph 4:
+</p>
+
+<blockquote>
+During the implicit instantiation of a template
+that is implicitly instantiated
+because it is referenced from within
+the implicit definition of
+a defaulted <del>special member</del> function,
+the instantiation context is
+the instantiation context of
+the defaulted <del>special member</del> function.
+</blockquote>
 
 <p>
 Change in 11.11.1 [class.compare.default] paragraph 1:
@@ -49,9 +135,10 @@ that is not defined as deleted
 is <i>implicitly defined</i>
 <!-- at the end of the definition of class <tt>C</tt>. -->
 when it is odr-used or needed for constant evaluation.
-Overload resolution is performed from a context equivalent to
+Name lookups in the defaulted definition are performed from a context equivalent to
 the <i>function-body</i> of the defaulted <tt>operator@</tt> function,
-except that the defaulted function itself is not a candidate.</ins>
+except that the defaulted function itself
+is never a candidate for overload resolution.</ins>
 </blockquote>
 
 <i>Drafting note: the lazy definition of the defaulted function
@@ -60,6 +147,13 @@ Such lookups should be done at the point where the function is defaulted,
 in a manner analogous to two-phase name lookup for templates.
 Lookups for a defaulted secondary operator function need to avoid
 finding that secondary operator function itself.
+</i>
+
+<i>Drafting note: there is no need to require that
+defaulted secondary operators be defaulted in their class
+(or even that they have any particular parameter types).
+Removing such restrictions seems like a design change
+rather than a wording fix, so they are retained here.
 </i>
 
 <p>
@@ -214,17 +308,11 @@ for each <tt>x</tt><sub>i</sub> in the expanded list of subobjects
 for an object <tt>x</tt> of type <tt>C</tt>,
 <ins>overload resolution for</ins>
 <tt>x</tt><sub>i</sub> <tt>==</tt> <tt>x</tt><sub>i</sub>
-<ins>results in a usable candidate with return type</ins>
-<del>is a valid expression and contextually convertible to</del>
-<tt>bool</tt>.
+<ins>results in a usable candidate</ins>
+<del>is a valid expression and contextually convertible to <tt>bool</tt></del>.
 </blockquote>
 
-<i>Drafting note: if we want to allow conversions on the return type,
-we need to decide which kinds we want.
-We don't have a notion corresponding to "implicit conversion sequence" for direct-initialization,
-so we'd need something at least a little inventive here.
-Restricting to exactly <tt>bool</tt> (as we did for rewritten <tt>!=</tt>)
-seems like the simplest and most consistent path forward.</i>
+<i>Drafting note: if the return type is not contextually convertible to bool, this will result in a hard error.</i>
 
 <p>
 Delete 11.11.2 [class.eq] paragraph 4:
@@ -267,7 +355,7 @@ Change in 11.11.3 [class.spaceship] paragraph 1:
 three-way comparison is not defined.
 <li><ins>Otherwise, if <tt>R</tt> is not a comparison category type, or
 if overload resolution for either the expression <tt>a == b</tt> or the expression <tt>a &lt; b</tt>
-does not result in a usable candidate with return type <tt>bool</tt>,
+does not result in a usable candidate<!--with return type <tt>bool</tt>-->,
 the synthesized three-way comparison is not defined.</ins>
 <li>[...]
 <li>Otherwise<del>, if</del> <ins>(when</ins> <tt>R</tt> is <tt>partial_ordering</tt><ins>)</ins>, <del>then</del> [...]
@@ -324,7 +412,7 @@ to produce some answer from <tt>std::common_comparison_category</tt>,
 and should be localized to that trait.</i>
 
 <p>
-Change heading of 11.11.4 [class.rel]: <del>Relational</del> <ins>Secondary comparison</ins> operators
+Change heading and section label of 11.11.4 [class.<del>rel</del><ins>secondary</ins>]: <del>Relational</del> <ins>Secondary comparison</ins> operators
 </p>
 
 <p>
