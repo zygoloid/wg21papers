@@ -405,24 +405,27 @@ Change in 11.11.3 [class.spaceship] paragraph 2:
 </p>
 
 <blockquote>
-Let R be the declared return type of a defaulted three-way comparison operator function<del>.
+Let <tt>R</tt> be the declared return type of a defaulted three-way comparison operator function<del>.
 Given</del>
 <ins>, and let <tt>x</tt><sub>i</sub> be</ins> an expanded list of subobjects for an object x of type C<del>,
 let R<sub>i</sub> be the type of the expression x<sub>i</sub> &lt;=&gt; x<sub>i</sub>,
 or void if overload resolution applied to that expression does not find a usable function</del>.
 <ul>
 <li>
-If R is auto, then
+If <tt>R</tt> is <tt>auto</tt>, then
 <ins>
 let <tt>R</tt><sub>i</sub> be the type of the expression <tt>x</tt><sub>i</sub> <tt>&lt;=&gt;</tt> <tt>x</tt><sub>i</sub>.
 The operator function is defined as deleted if overload resolution applied to that expression
-does not find a usable candidate or if <tt>R</tt><sub>i</sub> is not a comparison category type ([cmp.categories.pre] 17.11.2.1).
+does not find a usable candidate or if <tt>R</tt><sub>i</sub> is not a comparison category type ([cmp.categories.pre] 17.11.2.1)
+for any i.
 The</ins>
 <del>the</del> return type is deduced as the common comparison type (see below) of R<sub>0</sub>, R<sub>1</sub>, &hellip;, R<sub>n-1</sub>.
 <del>If the return type is deduced as void, the operator function is defined as deleted.</del>
 
 <li>
-Otherwise, if the synthesized three-way comparison of type R between any objects xi and xi is not
+Otherwise, <ins><tt>R</tt> shall not contain a placeholder type. If</ins> <del>if</del>
+the synthesized three-way comparison of type <tt>R</tt>
+between any objects <tt>x</tt><sub>i</sub> and <tt>x</tt><sub>i</sub> is not
 defined <del>or would be ill-formed</del>, the operator function is defined as deleted.
 </ul>
 </blockquote>
