@@ -149,6 +149,7 @@ Lookups for a defaulted secondary operator function need to avoid
 finding that secondary operator function itself.
 </i>
 
+<p>
 <i>Drafting note: there is no need to require that
 defaulted secondary operators be defaulted in their class
 (or even that they have any particular parameter types).
@@ -180,14 +181,35 @@ Add a new paragraph after 11.11.1 [class.compare.default] paragraph 2:
 
 <blockquote class="stdins">
 A defaulted comparison function is <i>constexpr-compatible</i> if
-it satisfies the requirements for a constexpr function ([dcl.constexpr])
-and each comparison operator function invoked by its defaulted definition
-is a constexpr function.
+it satisfies the requirements for a constexpr function ([dcl.constexpr]) and
+no overload resolution performed
+<ul>
+<li>when determining whether a synthesized three-way comparison is defined,
+for an <tt>operator&lt=&gt;</tt> whose return type is not <tt>auto</tt>,
+<li>between an element of the expanded list of subobjects and itself,
+for an <tt>operator&lt;=&gt;</tt> whose return type is <tt>auto</tt>
+or for an <tt>operator==</tt>, or
+<li>for the expression <tt>x @ y</tt>, for a secondary comparison operator <tt>@</tt>
+</ul>
+results in a non-constexpr function.
 </blockquote>
 
 <i>Drafting note: the implicit definition can invoke other functions, such as a conversion from
-some custom comparison category to the return type. Ignoring those is consistent with
-the rule we use for defaulted special member functions.</i>
+some custom comparison category to the return type, or an <tt>operator@</tt> if the use of the <tt>@</tt>
+operator is rewritten in terms of a different operator. Ignoring those, and considering only
+the results of overload resolutions that affect deletedness, is consistent with
+the rule we use for defaulted special member functions. It doesn't really matter if we get this "wrong"
+in a corner case, since the worst case is that a comparison function is spuriously constexpr.</i>
+
+<p>
+Change in 11.11.1 [class.compare.default] paragraph 4:
+</p>
+
+<blockquote>
+[...]
+<del>It is unspecified whether virtual base class subobjects
+appear more than once in the expanded list of subobjects.</del>
+</blockquote>
 
 <p>
 Add a new paragraph to the end of 11.4.3 [special]:
@@ -221,11 +243,22 @@ struct X { int n; friend bool operator==(const X&, const X&) = default; };
 
 <i>This program is valid, but reversing the order of the two lines renders it ill-formed
 because the defaulted <tt>operator==</tt> is no longer <tt>constexpr</tt>.
-Perhaps a better rule would be that a constexpr-compatible defaulted function
+Perhaps a better general rule would be that a constexpr-compatible defaulted function
 is implicitly constexpr if it is defaulted at class scope, regardless of whether
-that's the first declaration? The same concern applies to the implicit exception specification.
-This also affects whether the function is considered to be user-provided,
-which controls whether the program is ill-formed if the function is defined as deleted.</i>
+that's the first declaration (that is, you always get an implicit <tt>constexpr</tt>
+for a defaulted comparison)? The same concern applies to the implicit exception specification.
+However, for a case such as:</i>
+
+<pre>
+struct Y { int &amp;n; friend bool operator==(const Y&, const Y&) = default; };
+bool operator==(const Y&, const Y&);
+</pre>
+
+<i>
+... the program will be ill-formed if we reverse the two lines
+(because the <tt>operator==</tt> is deleted after its first declaration),
+and there's not really anything we can do about that.
+</i>
 
 <p>
 Change in 11.11.1 [class.compare.default] paragraph 3:
@@ -412,7 +445,7 @@ to produce some answer from <tt>std::common_comparison_category</tt>,
 and should be localized to that trait.</i>
 
 <p>
-Change heading and section label of 11.11.4 [class.<del>rel</del><ins>secondary</ins>]: <del>Relational</del> <ins>Secondary comparison</ins> operators
+Change heading and section label of 11.11.4 [class.<del>rel</del><ins>compare.secondary</ins>]: <del>Relational</del> <ins>Secondary comparison</ins> operators
 </p>
 
 <p>
