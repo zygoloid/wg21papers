@@ -265,11 +265,14 @@ Change in 11.11.1 [class.compare.default] paragraph 3:
 </p>
 
 <blockquote>
-If the class definition does not explicitly declare an <tt>==</tt> operator function,
+If the <del>class definition</del> <ins><i>member-specification</i></ins>
+does not explicitly declare
+<del>an <tt>==</tt> operator function</del>
+<ins>any member or friend named <tt>operator==</tt></ins>,
 <del>but declares a defaulted three-way comparison operator function,</del>
 an <tt>==</tt> operator function is declared implicitly
 <ins>for each defaulted three-way comparison operator function
-declared in the class definition,</ins>
+defined in the <i>member-specification</i>,</ins>
 with the same access <ins>and <i>function-definition</i>
 and in the same class scope</ins>
 as the three-way comparison operator function<ins>,
@@ -292,14 +295,14 @@ Otherwise,
 </del>
 <ins>If the three-way comparison operator function declaration is a friend declaration,</ins>
 the implicitly-declared <tt>==</tt> operator function is
-<ins>a friend declaration.</ins>
+<ins>a friend declaration;</ins>
 <del>
 of the form
 <pre>
 friend bool operator==(const X&, const X&);
 </pre>
 </del>
-<del>[<i>Note</i>:</del> Such a friend function is visible to argument-dependent lookup only.
+<del>[<i>Note</i>: Such</del> <ins>such</ins> a friend function is visible to argument-dependent lookup only.
 <ins>If the three-way comparison operator function is declared
 <tt>virtual</tt>, <tt>constexpr</tt>, or <tt>consteval</tt>,
 the implicitly-declared <tt>==</tt> operator function is declared
@@ -308,10 +311,10 @@ respectively.</ins> &mdash;<i>end note</i>]
 <ins>[<i>Example</i>:
 <pre>
 template&lt;typename T&gt; struct X {
-  friend constexpr std::strong_ordering operator&lt;=&gt;(X, X) requires (sizeof(T) != 1) = default;
+  friend constexpr std::partial_ordering operator&lt;=&gt;(X, X) requires (sizeof(T) != 1) = default;
   // implicitly declares: friend constexpr bool operator==(X, X) requires (sizeof(T) != 1) = default;
 
-  [[nodiscard]] virtual std::partial_ordering operator&lt;=&gt;(const X&amp;) const = default;
+  [[nodiscard]] virtual std::strong_ordering operator&lt;=&gt;(const X&amp;) const = default;
   // implicitly declares: [[nodiscard]] virtual bool operator==(const X&amp;) const = default;
 };
 </pre>
@@ -544,7 +547,7 @@ Change in 17.11.3 [cmp.common] paragraph 2:
 <p>
 
 <blockquote>
-<i>Remarks</i>
+<i>Remarks</i>:
 The member <i>typedef-name</i> <tt>type</tt> denotes the common comparison type (11.11.3) of
 <tt>Ts...</tt>, the expanded parameter pack<ins>,
 or <tt>void</tt> if any element of <tt>Ts</tt> is not a comparison category type</ins>.
