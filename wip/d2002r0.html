@@ -497,6 +497,9 @@ The operator function with parameters x and y is defined as deleted if
 <li>the <ins>candidate selected by overload resolution is not a rewritten candidate</ins> <del>operator @ cannot be applied to the return type of x &lt;=&gt; y</del>.
 </ul>
 Otherwise, the operator function yields <tt>x <del>&lt;=&gt;</del> <ins>@</ins> y <del>@ 0</del></tt>.
+<ins>[<i>Note</i>:
+The defaulted operator function is not a candidate in the overload resolution for the <tt>@</tt> operator (11.11.1 [class.compare.default]).
+&mdash;<i>end note</i>]</ins>
 </blockquote>
 
 <p>
