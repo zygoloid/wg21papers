@@ -417,7 +417,7 @@ or void if overload resolution applied to that expression does not find a usable
 <li>
 If <tt>R</tt> is <tt>auto</tt>, then
 <ins>
-let <tt>R</tt><sub>i</sub> be the type of the expression <tt>x</tt><sub>i</sub> <tt>&lt;=&gt;</tt> <tt>x</tt><sub>i</sub>.
+let <i>cv<sub>i</sub></i> <tt>R</tt><sub>i</sub> be the type of the expression <tt>x</tt><sub>i</sub> <tt>&lt;=&gt;</tt> <tt>x</tt><sub>i</sub>.
 The operator function is defined as deleted if overload resolution applied to that expression
 does not find a usable candidate or if <tt>R</tt><sub>i</sub> is not a comparison category type ([cmp.categories.pre] 17.11.2.1)
 for any i.
