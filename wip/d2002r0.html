@@ -124,7 +124,8 @@ A defaulted comparison operator function (12.6.2) for some class C shall be a no
 <del>declared</del> <ins>defined</ins> in the member-specification of C that is
 <ul>
 <li>
-a non-static const <ins>non-volatile</ins> member of C having one parameter of type const C&, or
+a non-static const <ins>non-volatile</ins> member of C having one parameter of type const C& <ins>and
+either no <i>ref-qualifier</i> or the <i>ref-qualifier</i> <tt>&amp;</tt></ins>, or
 
 <li>
 a friend of C having either two parameters of type const C& or two parameters of type C.
