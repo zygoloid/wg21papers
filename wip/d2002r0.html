@@ -88,6 +88,39 @@ since that plays no role in how the function is defaulted.
 <h2>Wording</h2>
 
 <p>
+Change in 7.6.8 [expr.spaceship] paragraph 6:
+</p>
+
+<blockquote>
+If at least one of the operands is of pointer type
+<ins>and the other operand is of pointer or array type</ins>,
+array-to-pointer conversions (7.3.2),
+pointer conversions (7.3.11),
+<del>function pointer conversions (7.3.13),</del>
+and qualification conversions (7.3.5)
+are performed on both operands to bring them to their composite pointer type (7.2.2).
+<del>If at least one of the operands is of pointer-to-member type,
+pointer-to-member conversions (7.3.12)
+and qualification conversions (7.3.5)
+are performed on both operands to bring them to their composite pointer type (7.2.2).
+If both operands are null pointer constants, but not both of integer type,
+pointer conversions (7.3.11)
+are performed on both operands to bring them to their composite pointer type (7.2.2).
+In all cases, after</del>
+<ins>After</ins> the conversions, the operands shall have the same type.
+[<i>Note</i>:
+If both of the operands are arrays, array-to-pointer conversions (7.3.2) are not applied.
+&mdash;<i>end note</i>]
+</blockquote>
+
+<i>
+Drafting note: this extends the resolution of DR 583 to three-way comparisons,
+and cleans up some dead wording left behind by the removal of <tt>std::*_equality</tt>.
+The change to disallow three-way comparisons against null pointer constants
+was approved by EWG as part of the discussion of P0946R0.
+</i>
+
+<p>
 Change in 10.6 [module.context] paragraph 2:
 </p>
 
@@ -183,16 +216,24 @@ Add a new paragraph after 11.11.1 [class.compare.default] paragraph 2:
 <blockquote class="stdins">
 A defaulted comparison function is <i>constexpr-compatible</i> if
 it satisfies the requirements for a constexpr function ([dcl.constexpr]) and
-no overload resolution performed
+no overload resolution performed when determining whether to delete the function
+results in a usable candidate that is a non-constexpr function.
+[<i>Note</i>:
+This includes the overload resolutions performed:
 <ul>
-<li>when determining whether a synthesized three-way comparison is defined,
+<li>
 for an <tt>operator&lt=&gt;</tt> whose return type is not <tt>auto</tt>,
-<li>between an element of the expanded list of subobjects and itself,
+when determining whether a synthesized three-way comparison is defined,
+<li>
 for an <tt>operator&lt;=&gt;</tt> whose return type is <tt>auto</tt>
-or for an <tt>operator==</tt>, or
-<li>for the expression <tt>x @ y</tt>, for a secondary comparison operator <tt>@</tt>
+or for an <tt>operator==</tt>,
+for a comparison between an element of the expanded list of subobjects and itself,
+or
+<li>
+for a secondary comparison operator <tt>@</tt>,
+for the expression <tt>x @ y</tt>.
 </ul>
-results in a non-constexpr function.
+&mdash;<i>end note</i>]
 </blockquote>
 
 <i>Drafting note: the implicit definition can invoke other functions, such as a conversion from
