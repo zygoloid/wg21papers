@@ -280,11 +280,11 @@ it is implicitly considered to be constexpr <del>if the implicit declaration wou
 
 <pre>
 struct X { int n; friend bool operator==(const X&, const X&) = default; };
-constexpr bool operator==(const X&, const X&) noexcept;
+constexpr bool operator==(const X&, const X&);
 </pre>
 
 <i>This program is valid, but reversing the order of the two lines renders it ill-formed
-because the defaulted <tt>operator==</tt> is no longer <tt>constexpr</tt> (nor <tt>noexcept</tt>).
+because the defaulted <tt>operator==</tt> is no longer <tt>constexpr</tt>.
 Perhaps a better general rule would be that a constexpr-compatible defaulted function
 is implicitly constexpr if it is defaulted at class scope, regardless of whether
 that's the first declaration (that is, you always get an implicit <tt>constexpr</tt>
@@ -349,7 +349,13 @@ friend bool operator==(const X&, const X&);
 <tt>virtual</tt>, <tt>constexpr</tt>, or <tt>consteval</tt>,
 the implicitly-declared <tt>==</tt> operator function is declared
 <tt>virtual</tt>, <tt>constexpr</tt>, or <tt>consteval</tt>,
-respectively.</ins> &mdash;<i>end note</i>]
+respectively.
+If the three-way comparison operator function has no <i>noexcept-specifier</i>,
+the implicitly-declared <tt>==</tt> operator function has
+an implicit exception specification ([except.spec])
+that may differ from the implicit exception specification of
+the three-way comparison operator function.
+</ins> &mdash;<i>end note</i>]
 <ins>[<i>Example</i>:
 <pre>
 template&lt;typename T&gt; struct X {

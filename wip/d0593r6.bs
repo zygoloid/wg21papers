@@ -2,14 +2,14 @@
 Title: Implicit creation of objects for low-level object manipulation
 Shortname: D0593
 Revision: 6
-Date: 2019-10-06
+Date: 2020-01-13
 Editor: Richard Smith, Google, richard@metafoo.co.uk
 Former Editor: Ville Voutilainen, ville.voutilainen@gmail.com
 Abstract: This paper proposes that objects of sufficiently trivial types be created on-demand as necessary within newly-allocated storage to give programs defined behavior.
 
 Status: D
 Group: wg21
-Audience: EWG, LWG, CWG
+Audience: LWG
 URL: http://wg21.link/p0593r6
 Markup Shorthands: markdown yes
 </pre>
@@ -804,7 +804,7 @@ Change table as follows:
 <b>Library extension, not for inclusion in C++20.</b>
 
 Change the above example as follows:
-> [*Example*: When reusing storage denoted by some pointer value `p`, <del>`launder(reinterpret_cast<T*>(new (p) std::byte[n * sizeof(T)]))`</del> <ins>`start_lifetime_as_array(p, n)` ([obj.lifetime])</ins> can be used to implicitly create a suitable array object and obtain a pointer to it. — *end example*]</ins>
+> [*Example*: When reusing storage denoted by some pointer value `p`, <del>`launder(reinterpret_cast<T*>(new (p) std::byte[n * sizeof(T)]))`</del> <ins>`start_lifetime_as_array<T>(p, n)` ([obj.lifetime])</ins> can be used to implicitly create a suitable array object and obtain a pointer to it. — *end example*]</ins>
 
 20.10.2 Header `<memory>` synopsis [memory.syn]
 -----------------------------------------------
