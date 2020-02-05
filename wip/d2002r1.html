@@ -172,7 +172,9 @@ when it is odr-used or needed for constant evaluation.
 Name lookups in the defaulted definition are performed from a context equivalent to
 the <i>function-body</i> of the defaulted <tt>operator@</tt> function,
 except that the defaulted function itself
-is never a candidate for overload resolution.</ins>
+is never a candidate for overload resolution.
+A defaulted comparison operator function
+shall be defaulted on its first declaration.</ins>
 </blockquote>
 
 <i>Drafting note: the lazy definition of the defaulted function
@@ -189,6 +191,13 @@ defaulted secondary operators be defaulted in their class
 (or even that they have any particular parameter types).
 Removing such restrictions seems like a design change
 rather than a wording fix, so they are retained here.
+</i>
+
+<p>
+<i>Drafting note: requiring a comparison to be defaulted
+on its first declaration avoids cases where the meaning of
+a program (such as whether a comparison is <tt>noexcept</tt>)
+can change based on a simple reordering of top-level declarations.
 </i>
 
 <p>
@@ -275,32 +284,6 @@ constexpr<ins>-compatible ([special], [class.compare.default])</ins>.
 If a <ins>constexpr-compatible</ins> function is explicitly defaulted on its first declaration,
 it is implicitly considered to be constexpr <del>if the implicit declaration would be</del>.
 </blockquote>
-
-<i>Drafting note: this behavior seems unwise; consider a case such as:</i>
-
-<pre>
-struct X { int n; friend bool operator==(const X&, const X&) = default; };
-constexpr bool operator==(const X&, const X&);
-</pre>
-
-<i>This program is valid, but reversing the order of the two lines renders it ill-formed
-because the defaulted <tt>operator==</tt> is no longer <tt>constexpr</tt>.
-Perhaps a better general rule would be that a constexpr-compatible defaulted function
-is implicitly constexpr if it is defaulted at class scope, regardless of whether
-that's the first declaration (that is, you always get an implicit <tt>constexpr</tt>
-for a defaulted comparison)? The same concern applies to the implicit exception specification.
-However, for a case such as:</i>
-
-<pre>
-struct Y { int &amp;n; friend bool operator==(const Y&, const Y&) = default; };
-bool operator==(const Y&, const Y&);
-</pre>
-
-<i>
-... the program will be ill-formed if we reverse the two lines
-(because the <tt>operator==</tt> is deleted after its first declaration),
-and there's not really anything we can do about that.
-</i>
 
 <p>
 Change in 11.11.1 [class.compare.default] paragraph 3:
