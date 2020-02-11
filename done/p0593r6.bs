@@ -1,13 +1,13 @@
 <pre class='metadata'>
 Title: Implicit creation of objects for low-level object manipulation
-Shortname: D0593
+Shortname: P0593
 Revision: 6
-Date: 2020-01-13
+Date: 2020-02-14
 Editor: Richard Smith, Google, richard@metafoo.co.uk
 Former Editor: Ville Voutilainen, ville.voutilainen@gmail.com
 Abstract: This paper proposes that objects of sufficiently trivial types be created on-demand as necessary within newly-allocated storage to give programs defined behavior.
 
-Status: D
+Status: P
 Group: wg21
 Audience: LWG
 URL: http://wg21.link/p0593r6
@@ -583,7 +583,9 @@ this paper as a Defect Report, for possible inclusion into the C++20 IS, and
 that the latter portion be deferred to C++23.
 
 Wording is presented assuming the committee agrees with this direction.
+Wording for the deferred portion will be presented as a separate paper.
 
+<!--
 <div class=advisement>
 The portions of the wording below corresponding to the library extension
 are presented in this style, and marked <b>"Library extension,
@@ -592,6 +594,7 @@ not for inclusion in C++20"</b>.
 Such wording is presented only for context and should not be applied to the
 C++20 working draft.
 </div>
+-->
 
 Wording
 =======
@@ -641,7 +644,7 @@ Add new paragraphs at the end of [intro.object]:
 
 > <ins>[ Example:
 > <pre style="color: #000; background-color: #c8ffc8">
-> #include <cstdlib>
+> #include &lt;cstdlib&gt;
 > struct X { int a, b; };
 > X *make_x() {
 >   // The call to std::malloc implicitly creates an object of type X
@@ -671,6 +674,7 @@ Add new paragraphs at the end of [intro.object]:
 > 19.10.12 [c.malloc], 20.5.3 [cstring.syn], 26.5.3 [bit.cast]).
 > -- end note ]
 
+<!--
 <div class=advisement>
 <b>Library extension, not for inclusion in C++20.</b>
 
@@ -680,6 +684,7 @@ Change in the final newly-added paragraph:
 > (<ins>16.6.x [obj.lifetime],</ins> 19.10.9.2 [allocator.traits.members],
 > 19.10.12 [c.malloc], 20.5.3 [cstring.syn], 26.5.3 [bit.cast]).
 </div>
+-->
 
 6.6.3 Object and reference lifetime [basic.life]
 ------------------------------------------------
@@ -800,6 +805,7 @@ Change table as follows:
 > <tr><td colspan=4>[...]</td></tr>
 > </table>
 
+<!--
 <div class=advisement>
 <b>Library extension, not for inclusion in C++20.</b>
 
@@ -860,6 +866,7 @@ have not been seen by LEWG yet:
 > where `U` is the type &ldquo;array of `n` `T`&rdquo;.</ins>
 
 </div>
+-->
 
 20.10.10.1 Members [allocator.members]
 --------------------------------------
@@ -914,7 +921,7 @@ Change in 26.5.3 [bit.cast] paragraph 1:
 > <ins>Implicitly creates objects nested within the result (6.6.2 [intro.object]).</ins>
 > Each bit of the value representation of the result
 > is equal to the corresponding bit in the object representation of `from`.
-> Padding bits of the `To` object are unspecified.
+> Padding bits of the <del>`To` object</del> <ins>result</ins> are unspecified.
 > <ins>For the result and each object created within it, if</ins> <del>If</del> 
 > there is no value of <ins>the object's</ins> type <del>`To`</del>
 > corresponding to the value representation produced, the behavior is undefined.
@@ -946,8 +953,9 @@ Add an entry to Annex C as follows:
 Feature test macro
 ------------------
 
-No feature test macro is proposed for the core language changes.
+No feature test macro is proposed<!-- for the core language changes-->.
 
+<!--
 <div class=advisement>
 <b>Library extension, not for inclusion in C++20.</b>
 
@@ -955,6 +963,7 @@ For the library functionality, add feature test macro
 `__cpp_lib_start_lifetime_at` for header `<memory>` with a suitable value to
 Table 36 in 17.3.1 [support.limits.general].
 </div>
+-->
 
 Acknowledgments
 ===============
