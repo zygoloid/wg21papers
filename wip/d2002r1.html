@@ -27,7 +27,7 @@ blockquote.stddel {
 
 <body>
 Richard Smith<br>
-2020-01-13<br>
+2020-02-10<br>
 D2002R1
 
 <h2>Introduction</h2>
@@ -171,8 +171,7 @@ is <i>implicitly defined</i>
 when it is odr-used or needed for constant evaluation.
 Name lookups in the defaulted definition are performed from a context equivalent to
 the <i>function-body</i> of the defaulted <tt>operator@</tt> function,
-except that the defaulted function itself
-is never a candidate for overload resolution.
+except that the defaulted function itself is not found.
 A defaulted comparison operator function
 shall be defaulted on its first declaration.</ins>
 </blockquote>
@@ -219,8 +218,18 @@ Also, while variant members pose a problem for defaulted primary comparisons,
 empty unions do not.</i>
 
 <p>
-Add a new paragraph after 11.11.1 [class.compare.default] paragraph 2:
+Add two new paragraphs after 11.11.1 [class.compare.default] paragraph 2:
 </p>
+
+<blockquote class="stdins">
+A binary operator expression <tt>a @ b</tt> is <i>usable</i> if either
+<ul>
+<li><tt>a</tt> or <tt>b</tt> is of class or enumeration type and
+overload resolution (12.4) as applied to <tt>a @ b</tt> results in a usable function, or
+<li>neither <tt>a</tt> nor <tt>b</tt> is of class or enumeration type and
+<tt>a @ b</tt> is a valid expression.
+</ul>
+</blockquote>
 
 <blockquote class="stdins">
 A defaulted comparison function is <i>constexpr-compatible</i> if
@@ -300,7 +309,7 @@ an <tt>==</tt> operator function is declared implicitly
 defined in the <i>member-specification</i>,</ins>
 with the same access <ins>and <i>function-definition</i>
 and in the same class scope</ins>
-as the three-way comparison operator function<ins>,
+as the <ins>respective</ins> three-way comparison operator function<ins>,
 except that the return type is replaced with <tt>bool</tt>
 and the <i>declarator-id</i> is replaced with <tt>operator==</tt></ins>.
 <ins>[<i>Note</i>: Such an</ins>
@@ -309,7 +318,7 @@ is an inline <del>member</del> <ins>function</ins> and
 is defined as defaulted in the definition of <tt>X</tt><ins>,
 and has the same
 <i>parameter-declaration-clause</i> and
-trailing <i>requires-clause</i> as the three-way comparison operator</ins>.
+trailing <i>requires-clause</i> as the respective three-way comparison operator</ins>.
 If the three-way comparison operator function is declared as
 a non-static const member, the implicitly-declared <tt>==</tt> operator function is a <ins>non-static const</ins> member<ins>.</ins>
 <del>of the form
@@ -373,9 +382,8 @@ A defaulted <tt>==</tt> operator function
 for a class <tt>C</tt> is defined as deleted unless,
 for each <tt>x</tt><sub>i</sub> in the expanded list of subobjects
 for an object <tt>x</tt> of type <tt>C</tt>,
-<ins>overload resolution for</ins>
 <tt>x</tt><sub>i</sub> <tt>==</tt> <tt>x</tt><sub>i</sub>
-<ins>results in a usable candidate</ins>
+<ins>is usable ([class.compare.default])</ins>
 <del>is a valid expression and contextually convertible to <tt>bool</tt></del>.
 </blockquote>
 
@@ -417,13 +425,13 @@ Change in 11.11.3 [class.spaceship] paragraph 1:
 <blockquote>
 [...]
 <ul>
-<li>If overload resolution for <tt>a &lt;=&gt; b</tt> results in a usable <del>function</del> <ins>candidate</ins> (12.4), <tt>static_cast&lt;R&gt;(a &lt;=&gt; b)</tt>.
-<li>Otherwise, if overload resolution for <tt>a &lt;=&gt; b</tt> finds at least one viable candidate, the synthesized
+<li>If <del>overload resolution for</del> <tt>a &lt;=&gt; b</tt> <del>results in a</del> <ins>is</ins> usable <ins>([class.compare.default])</ins>
+<del>function (12.4)</del>, <tt>static_cast&lt;R&gt;(a &lt;=&gt; b)</tt>.
+<li>Otherwise, if overload resolution for <tt>a &lt;=&gt; b</tt> <ins>is performed and</ins> finds at least one viable candidate, the synthesized
 three-way comparison is not defined.
 <li><ins>Otherwise, if <tt>R</tt> is not a comparison category type, or
-if overload resolution for either the expression <tt>a == b</tt> or the expression <tt>a &lt; b</tt>
-does not result in a usable candidate<!--with return type <tt>bool</tt>-->,
-the synthesized three-way comparison is not defined.</ins>
+either the expression <tt>a == b</tt> or the expression <tt>a &lt; b</tt>
+is not usable, the synthesized three-way comparison is not defined.</ins>
 <li>[...]
 <li>Otherwise<del>, if</del> <ins>(when</ins> <tt>R</tt> is <tt>partial_ordering</tt><ins>)</ins>, <del>then</del> [...]
 <li><del>Otherwise, the synthesized three-way comparison is not defined.</del>
@@ -449,8 +457,7 @@ or void if overload resolution applied to that expression does not find a usable
 If <tt>R</tt> is <tt>auto</tt>, then
 <ins>
 let <i>cv<sub>i</sub></i> <tt>R</tt><sub>i</sub> be the type of the expression <tt>x</tt><sub>i</sub> <tt>&lt;=&gt;</tt> <tt>x</tt><sub>i</sub>.
-The operator function is defined as deleted if overload resolution applied to that expression
-does not find a usable candidate or if <tt>R</tt><sub>i</sub> is not a comparison category type ([cmp.categories.pre] 17.11.2.1)
+The operator function is defined as deleted if that expression is not usable or if <tt>R</tt><sub>i</sub> is not a comparison category type ([cmp.categories.pre] 17.11.2.1)
 for any i.
 The</ins>
 <del>the</del> return type is deduced as the common comparison type (see below) of R<sub>0</sub>, R<sub>1</sub>, &hellip;, R<sub>n-1</sub>.
