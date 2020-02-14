@@ -1,5 +1,5 @@
 <html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-<title>D2002R1: Defaulted comparison specification fixes</title>
+<title>P2002R1: Defaulted comparison specification fixes</title>
 
 <style type="text/css">
 ins, ins > * { text-decoration:none; font-weight:bold; background-color:#A0FFA0 }
@@ -27,8 +27,8 @@ blockquote.stddel {
 
 <body>
 Richard Smith<br>
-2020-02-10<br>
-D2002R1
+2020-02-14<br>
+P2002R1
 
 <h2>Introduction</h2>
 
@@ -121,6 +121,19 @@ was approved by EWG as part of the discussion of P0946R0.
 </i>
 
 <p>
+Change in 9.5.2 [dcl.fct.def.default] paragraph 3:
+<p>
+
+<blockquote>
+An explicitly-defaulted function that is not defined as deleted
+may be declared constexpr or consteval
+only if it <del>would have been</del> <ins>is</ins> <del>implicitly declared as</del>
+constexpr<ins>-compatible ([special], [class.compare.default])</ins>.
+If a <ins>constexpr-compatible</ins> function is explicitly defaulted on its first declaration,
+it is implicitly considered to be constexpr <del>if the implicit declaration would be</del>.
+</blockquote>
+
+<p>
 Change in 10.6 [module.context] paragraph 2:
 </p>
 
@@ -170,8 +183,7 @@ is <i>implicitly defined</i>
 <!-- at the end of the definition of class <tt>C</tt>. -->
 when it is odr-used or needed for constant evaluation.
 Name lookups in the defaulted definition are performed from a context equivalent to
-the <i>function-body</i> of the defaulted <tt>operator@</tt> function,
-except that the defaulted function itself is not found.
+the <i>function-body</i> of the defaulted <tt>operator@</tt> function.
 A defaulted comparison operator function
 shall be defaulted on its first declaration.</ins>
 </blockquote>
@@ -180,8 +192,6 @@ shall be defaulted on its first declaration.</ins>
 needs to perform unqualified lookup for operator functions.
 Such lookups should be done at the point where the function is defaulted,
 in a manner analogous to two-phase name lookup for templates.
-Lookups for a defaulted secondary operator function need to avoid
-finding that secondary operator function itself.
 </i>
 
 <p>
@@ -225,7 +235,7 @@ Add two new paragraphs after 11.11.1 [class.compare.default] paragraph 2:
 A binary operator expression <tt>a @ b</tt> is <i>usable</i> if either
 <ul>
 <li><tt>a</tt> or <tt>b</tt> is of class or enumeration type and
-overload resolution (12.4) as applied to <tt>a @ b</tt> results in a usable function, or
+overload resolution (12.4) as applied to <tt>a @ b</tt> results in a usable candidate, or
 <li>neither <tt>a</tt> nor <tt>b</tt> is of class or enumeration type and
 <tt>a @ b</tt> is a valid expression.
 </ul>
@@ -260,39 +270,6 @@ operator is rewritten in terms of a different operator. Ignoring those, and cons
 the results of overload resolutions that affect deletedness, is consistent with
 the rule we use for defaulted special member functions. It doesn't really matter if we get this "wrong"
 in a corner case, since the worst case is that a comparison function is spuriously constexpr.</i>
-
-<p>
-Change in 11.11.1 [class.compare.default] paragraph 4:
-</p>
-
-<blockquote>
-[...]
-<del>It is unspecified whether virtual base class subobjects
-appear more than once in the expanded list of subobjects.</del>
-</blockquote>
-
-<p>
-Add a new paragraph to the end of 11.4.3 [special]:
-</p>
-
-<blockquote class="stdins">
-A defaulted special member function is <i>constexpr-compatible</i> if
-the corresponding implicitly-declared special member function
-would be a constexpr function.
-</blockquote>
-
-<p>
-Change in 9.5.2 [dcl.fct.def.default] paragraph 3:
-<p>
-
-<blockquote>
-An explicitly-defaulted function that is not defined as deleted
-may be declared constexpr or consteval
-only if it <del>would have been</del> <ins>is</ins> <del>implicitly declared as</del>
-constexpr<ins>-compatible ([special], [class.compare.default])</ins>.
-If a <ins>constexpr-compatible</ins> function is explicitly defaulted on its first declaration,
-it is implicitly considered to be constexpr <del>if the implicit declaration would be</del>.
-</blockquote>
 
 <p>
 Change in 11.11.1 [class.compare.default] paragraph 3:
@@ -368,6 +345,16 @@ and we previously agreed to produce a defaulted <tt>operator==</tt> for each.
 The old wording didn't specify many of the properties of the <tt>operator==</tt>
 function; inheriting them all from the <tt>operator&lt;=&gt;</tt> function
 seems like the right default behavior.</i>
+
+<p>
+Change in 11.11.1 [class.compare.default] paragraph 4:
+</p>
+
+<blockquote>
+[...]
+<del>It is unspecified whether virtual base class subobjects
+appear more than once in the expanded list of subobjects.</del>
+</blockquote>
 
 <p>
 Change heading of 11.11.2 [class.eq]: Equality operator<del>s</del>
@@ -449,7 +436,8 @@ Change in 11.11.3 [class.spaceship] paragraph 2:
 <blockquote>
 Let <tt>R</tt> be the declared return type of a defaulted three-way comparison operator function<del>.
 Given</del>
-<ins>, and let <tt>x</tt><sub>i</sub> be</ins> an expanded list of subobjects for an object x of type C<del>,
+<ins>, and let <tt>x</tt><sub>i</sub> be the elements of the</ins>
+<del>an</del> expanded list of subobjects for an object x of type C<del>,
 let R<sub>i</sub> be the type of the expression x<sub>i</sub> &lt;=&gt; x<sub>i</sub>,
 or void if overload resolution applied to that expression does not find a usable function</del>.
 <ul>
@@ -535,9 +523,19 @@ The operator function with parameters x and y is defined as deleted if
 <li>the <ins>candidate selected by overload resolution is not a rewritten candidate</ins> <del>operator @ cannot be applied to the return type of x &lt;=&gt; y</del>.
 </ul>
 Otherwise, the operator function yields <tt>x <del>&lt;=&gt;</del> <ins>@</ins> y <del>@ 0</del></tt>.
-<ins>[<i>Note</i>:
-The defaulted operator function is not a candidate in the overload resolution for the <tt>@</tt> operator (11.11.1 [class.compare.default]).
-&mdash;<i>end note</i>]</ins>
+<ins>
+The defaulted operator function is not considered as a candidate in the overload resolution for the <tt>@</tt> operator.
+</ins>
+</blockquote>
+
+<p>
+Add a new paragraph to the end of 11.4.3 [special]:
+</p>
+
+<blockquote class="stdins">
+A defaulted special member function is <i>constexpr-compatible</i> if
+the corresponding implicitly-declared special member function
+would be a constexpr function.
 </blockquote>
 
 <p>
@@ -596,9 +594,5 @@ or <tt>void</tt> if any element of <tt>Ts</tt> is not a comparison category type
 if the expansion is empty<del> or includes a
 type that is not a comparison category type</del>. &mdash;<i>end note</i>]
 </blockquote>
-
-<i>Drafting note: <tt>common_comparison_category</tt> should probably be removed.
-The same functionality can be obtained using <tt>common_type</tt>,
-except the latter is more general and SFINAE-friendly.</i>
 
 </body></html>
